@@ -19,12 +19,25 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MessagesTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+
+                // UI re-factoring: the goal is to push any Scaffold down to any Screen
+                // @Composable function.
+                // Each "Screen" has its own Scaffold as necessary for top bar/bottom bar features.
+
+
+//                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+//                    Greeting(
+//                        name = "Android",
+//                        modifier = Modifier.padding(innerPadding)
+//                    )
+//                }
+
+
+                // If I get around to creating a theme for this app with material design website,
+                // then I can put the MessageApp() inside a Surface block, to have a surface
+                // container with theme-based background color, probably fill to max size.
+                MessageApp()
+
             }
         }
     }

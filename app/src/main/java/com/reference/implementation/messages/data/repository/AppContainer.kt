@@ -1,0 +1,80 @@
+package com.reference.implementation.messages.data.repository
+
+import android.content.Context
+import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
+import com.reference.implementation.messages.data.audit.SecurityAuditInterceptor
+import com.reference.implementation.messages.data.remote.ApiService
+import com.reference.implementation.messages.domain.repository.LoginRepository
+import com.reference.implementation.messages.domain.use_case.LoginUseCase
+import kotlinx.serialization.json.Json
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Retrofit
+
+interface AppContainer {
+    val loginUseCase: LoginUseCase
+}
+
+/**
+ * [AppContainer] implementation that provides instances(s) of my use cases
+ * and provides the needed repository value(s) to each use case.
+ */
+
+class AppMessageContainer(private val context: Context) : AppContainer {
+
+    private val json = Json {
+        ignoreUnknownKeys = true // API adds a field? No crash.
+        isLenient = true // Accepts malformed JSON if possible
+        coerceInputValues = true // Enables coercing incorrect JSON values. See documentation
+        encodeDefaults = true // Includes default values in requests
+    }
+
+    /**
+     * The view models should not "see" the data/remote layer.
+     * Encapsulate it here!
+     */
+    private val apiService: ApiService by lazy {
+
+        // 1. Create the logging interceptor
+        val logging = HttpLoggingInterceptor().apply {
+            // BODY gives you headers + status + body.
+            // Use HEADERS if you only want the metadata.
+            level = HttpLoggingInterceptor.Level.BODY
+        }
+
+        // 2. Create the OkHttpClient and add the interceptor
+        val client = OkHttpClient.Builder()
+            .addInterceptor(logging)
+            .addInterceptor(SecurityAuditInterceptor())
+            .build()
+
+        val contentType = "application/json".toMediaType()
+
+        Retrofit.Builder()
+            .baseUrl("http://10.0.2.2:4000/")
+            .client(client) // This is incorporating the logging of the HTTP client
+            // This is the magic line for Kotlinx Serialization
+            .addConverterFactory(json.asConverterFactory(contentType))
+            .build()
+            .create(ApiService::class.java)
+    }
+
+    /**
+     * The view models should not "see" the data/repository layer.
+     * Encapsulate it here!
+     */
+    private val loginRepository: LoginRepository by lazy {
+        // The container provides ("injects") the api service to the re=pository.
+        LoginRepositoryImpl(apiService)
+    }
+
+    /**
+     * On the journey of building up the app, the first point of contact is login.
+     * Here is the implementation for the login use case.
+     */
+    override val loginUseCase: LoginUseCase by lazy {
+        // The container provides ("injects") the repository to the use case.
+        LoginUseCase(loginRepository)
+    }
+}
