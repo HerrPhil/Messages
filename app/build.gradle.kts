@@ -1,6 +1,10 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
+
+    // IMPORTANT FOR KOTLINX SERIALIZATION!
+    // ADD THIS LINE (without the version)
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 android {
@@ -49,16 +53,20 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.material.icons.extended)
 
     // The journey of remote/data/domain/UI layer dependencies start here
     // Retrofit
     implementation(libs.retrofit)
     // Official Kotlin Serialization Converter
-    implementation(libs.retrofit2.kotlinx.serialization.converter)
+//    implementation(libs.retrofit2.kotlinx.serialization.converter)
+    implementation(libs.converter.kotlinx.serialization)
     implementation(libs.jetbrains.kotlinx.serialization.json)
     implementation(libs.okhttp)
     // Logging HTTP raw network traffic in Logcat
     implementation(libs.logging.interceptor)
+    // Secure storage of access tokens internally in the app
+//    implementation(libs.androidx.security.crypto)
 
 
     testImplementation(libs.junit)
