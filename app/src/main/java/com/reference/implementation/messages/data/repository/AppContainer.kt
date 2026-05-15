@@ -1,7 +1,6 @@
 package com.reference.implementation.messages.data.repository
 
 import android.content.Context
-import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
 import com.reference.implementation.messages.data.audit.SecurityAuditInterceptor
 import com.reference.implementation.messages.data.remote.ApiService
 import com.reference.implementation.messages.domain.repository.LoginRepository
@@ -11,6 +10,7 @@ import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
+import retrofit2.converter.kotlinx.serialization.asConverterFactory
 
 interface AppContainer {
     val loginUseCase: LoginUseCase
@@ -22,6 +22,9 @@ interface AppContainer {
  */
 
 class AppMessageContainer(private val context: Context) : AppContainer {
+
+
+    private val tokenManager = TokenManager(context)
 
     private val json = Json {
         ignoreUnknownKeys = true // API adds a field? No crash.
@@ -47,6 +50,7 @@ class AppMessageContainer(private val context: Context) : AppContainer {
         val client = OkHttpClient.Builder()
             .addInterceptor(logging)
             .addInterceptor(SecurityAuditInterceptor())
+            .addInterceptor(AuthInterceptor(tokenManager))
             .build()
 
         val contentType = "application/json".toMediaType()
@@ -60,13 +64,17 @@ class AppMessageContainer(private val context: Context) : AppContainer {
             .create(ApiService::class.java)
     }
 
+    private val sessionRepository: SessionRepository by lazy {
+        SessionRepositoryImpl(tokenManager)
+    }
+
     /**
      * The view models should not "see" the data/repository layer.
      * Encapsulate it here!
      */
     private val loginRepository: LoginRepository by lazy {
         // The container provides ("injects") the api service to the re=pository.
-        LoginRepositoryImpl(apiService)
+        LoginRepositoryImpl(apiService, tokenManager, sessionRepository)
     }
 
     /**

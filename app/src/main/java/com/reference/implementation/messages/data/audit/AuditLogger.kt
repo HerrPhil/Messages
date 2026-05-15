@@ -1,5 +1,7 @@
 package com.reference.implementation.messages.data.audit
 
+import android.util.Log
+
 class Audit {
 
     companion object Logger {
@@ -10,5 +12,6 @@ class Audit {
 
     fun writeLog(message: String) {
         // TODO write. the message to an audit logger repository or SIEM
+        Log.d("audit", message)
     }
 }

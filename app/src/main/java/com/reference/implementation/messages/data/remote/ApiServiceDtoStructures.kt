@@ -3,6 +3,7 @@ package com.reference.implementation.messages.data.remote
 import com.reference.implementation.messages.domain.model.LoginDomainModel
 import com.reference.implementation.messages.domain.model.MessageDomainModel
 import com.reference.implementation.messages.domain.model.UserDomainModel
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -31,6 +32,7 @@ data class LoginRequestDto(
 @Serializable
 data class LoginDto(
     val accessToken: String,
+    @SerialName("user") // This matches the JSON key from the server
     val userDto: UserDto
 )
 

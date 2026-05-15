@@ -10,9 +10,8 @@ fun MessageApp() {
     // On this iteration, I have no navigation to choose screens.
     // I have wired up one screen: LoginScreen.
     // This will be the starting point.
-    LoginScreen(navigateToHome = { accessToken, userUiState ->
+    LoginScreen(navigateToHome = { userUiState ->
         println("Hey login is complete")
-        println("Your session has this access token for api call headers: $accessToken")
         println("Your user ui state looks like")
         when (userUiState) {
             is UserUiState.Success -> {

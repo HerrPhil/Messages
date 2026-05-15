@@ -1,6 +1,7 @@
 package com.reference.implementation.messages
 
 import android.app.Application
+import android.util.Log
 import com.reference.implementation.messages.data.repository.AppContainer
 import com.reference.implementation.messages.data.repository.AppMessageContainer
 
@@ -23,6 +24,7 @@ class MessageApplication : Application() {
      */
     override fun onCreate() {
         super.onCreate()
+        Log.d("MessageApplication", "construct app message container implementation")
         container = AppMessageContainer(this)
     }
 }

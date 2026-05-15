@@ -25,15 +25,13 @@ internal suspend fun <T> retryIO(
         } catch (io: IOException) {
             onRetry(attempt + 1) // add 1 for readability; repeat() is zero-based
             // 1. Only retry on IO/Network exceptions
-            // Do not retry on logic errors (like 401 Unauthorized)
             Audit.createInstance()
                 .writeLog("Retry on IO exception: ".plus(io.message ?: "no message"))
         } catch (http: HttpException) {
             val code = http.code()
             if (code >= 500) {
                 onRetry(attempt + 1) // add 1 for readability; repeat() is zero-based
-                // 1. Only retry on IO/Network exceptions
-                // Do not retry on logic errors (like 401 Unauthorized)
+                // 1.a. Do not retry on logic errors (like 401 Unauthorized)
                 Audit.createInstance()
                     .writeLog("Retry on http 5** exception: ".plus(http.message ?: "no message"))
             }

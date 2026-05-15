@@ -30,16 +30,14 @@ class LoginViewModel(private val loginUseCase: LoginUseCase) : ViewModel() {
             val resource = loginUseCase(
                 email,
                 password,
-                onRetry = { attempt ->
-                    uiState = LoginUiState.Retrying(attempt)
-                }
+                onRetry = { attempt -> uiState = LoginUiState.Retrying(attempt) }
             )
 
             uiState = when (resource) {
                 is Resource.Success -> LoginUiState.Success(
-                    accessToken = resource.data.accessToken,
-                    userUiState = resource.data.user.toUserUiState()
+                    userUiState = resource.data.toUserUiState()
                 )
+
                 is Resource.Error -> LoginUiState.Error(resource.message)
                 else -> LoginUiState.Error("Something went wrong")
             }
