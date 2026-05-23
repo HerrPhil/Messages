@@ -20,7 +20,7 @@ class TokenManager(context: Context) {
 
     private val prefs = context.getSharedPreferences("secure_prefs", Context.MODE_PRIVATE)
 
-    private val secretKey: SecretKey by lazy { getOrCreateKey() }
+//    private val secretKey: SecretKey by lazy { getOrCreateKey() }
 
     // --- Public API ---
     suspend fun saveToken(token: String) = withContext(Dispatchers.IO) {
@@ -43,11 +43,21 @@ class TokenManager(context: Context) {
         decrypt(encryptedToken, iv)
     }
 
+    suspend fun logout() = withContext(Dispatchers.IO) {
+        // 1. Wipe the "Island" (Hardware)
+        val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
+        keyStore.deleteEntry(KEY_ALIAS)
+
+        // 2. Wipe the "Mess" (Persistence)
+        prefs.edit { clear() }
+    }
+
     // --- Encryption Logic ---
     private fun encrypt(data: String): Pair<String, String> {
 
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
-        cipher.init(Cipher.ENCRYPT_MODE, secretKey)
+        cipher.init(Cipher.ENCRYPT_MODE, getOrCreateKey())
+//        cipher.init(Cipher.ENCRYPT_MODE, secretKey)
 
         val encryptedBytes = cipher.doFinal(data.toByteArray())
         val iv = cipher.iv // Initialization Vector is needed for decryption
@@ -63,7 +73,8 @@ class TokenManager(context: Context) {
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         val spec = GCMParameterSpec(128, Base64.decode(iv, Base64.DEFAULT))
 
-        cipher.init(Cipher.DECRYPT_MODE, secretKey, spec)
+        cipher.init(Cipher.DECRYPT_MODE, getOrCreateKey(), spec)
+//        cipher.init(Cipher.DECRYPT_MODE, secretKey, spec)
         val decodedBytes = Base64.decode(encryptedData, Base64.DEFAULT)
         val decryptedBytes = cipher.doFinal(decodedBytes)
 

@@ -1,5 +1,6 @@
 package com.reference.implementation.messages.presentation.screens.login
 
+import android.util.Log
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,12 +37,13 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.reference.implementation.messages.data.audit.Audit
 import com.reference.implementation.messages.presentation.AppViewModelProvider
 import com.reference.implementation.messages.presentation.screens.user.UserUiState
 
 @Composable
 fun LoginScreen(
-    navigateToHome: (UserUiState) -> Unit,
+    onLogin: () -> Unit,
     viewModel: LoginViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
 
@@ -58,16 +60,16 @@ fun LoginScreen(
             password = password,
             passwordVisible = passwordVisible,
             onPasswordToggle = { passwordVisible = !passwordVisible },
-            onCancelClick = { viewModel.cancelLoading() },
+            onCancelClick = { viewModel.cancel() },
             onLoginClick = { viewModel.login(email, password) },
+            onResetLogin = { viewModel.reset() },
             onEmailChange = { newEmail: String -> email = newEmail },
             onPasswordChange = { newPassword: String -> password = newPassword },
-            onSuccessAction = navigateToHome,
+            onSuccessAction = onLogin,
             contentPadding = innerPadding
         )
+
     }
-
-
 }
 
 @Composable
@@ -79,9 +81,10 @@ fun LoginBody(
     onPasswordToggle: () -> Unit,
     onCancelClick: () -> Unit,
     onLoginClick: () -> Unit,
+    onResetLogin: () -> Unit,
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
-    onSuccessAction: (UserUiState) -> Unit,
+    onSuccessAction: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
 
@@ -103,15 +106,16 @@ fun LoginBody(
 
             is LoginUiState.Success -> {
                 SuccessMessage(uiState)
-                onSuccessAction(uiState.userUiState)
+                onSuccessAction()
+                onResetLogin()
             }
 
-            is LoginUiState.Warning -> {
-                WarningMessage(uiState.message, onRetry = onLoginClick)
-            }
+//            is LoginUiState.Warning -> {
+//                WarningMessage(uiState.message, onRetry = onLoginClick)
+//            }
 
             is LoginUiState.Error -> {
-                ErrorMessage(uiState.message, onRetry = onLoginClick)
+                ErrorMessage(uiState.message, onRetry = onLoginClick, onCancelClick)
             }
 
             else -> { // idle state
@@ -122,7 +126,7 @@ fun LoginBody(
                     onPasswordToggle = onPasswordToggle,
                     onEmailChange = onEmailChange,
                     onPasswordChange = onPasswordChange,
-                    onLoginClick = onLoginClick,
+                    onLoginClick = { onLoginClick() },
                     onCancelClick = onLoginClick
                 )
             }
@@ -192,6 +196,96 @@ private fun RetryingMessage(
 }
 
 @Composable
+fun SuccessMessage(loginUiState: LoginUiState.Success) {
+    val userName = when (loginUiState.userUiState) {
+        is UserUiState.Success -> loginUiState.userUiState.name
+        else -> "no name"
+    }
+    val email = when (loginUiState.userUiState) {
+        is UserUiState.Success -> loginUiState.userUiState.email
+        else -> "no email"
+    }
+    Log.d("LoginScreen", "Success: user $userName, email $email, is logged in successfully")
+    Audit.createInstance()
+        .writeLog("Success: user $userName, email $email, is logged in successfully")
+//    Column(
+//        modifier = Modifier
+//            .fillMaxSize()
+//            .padding(24.dp),
+//        horizontalAlignment = Alignment.CenterHorizontally,
+//        verticalArrangement = Arrangement.Center
+//    ) {
+//        Text(
+//            text = "Success: user $userName, email $email, is logged in successfully",
+//            style = MaterialTheme.typography.labelMedium,
+//            color = MaterialTheme.colorScheme.primary
+//        )
+//    }
+}
+
+//@Composable
+//fun WarningMessage(message: String, onRetry: () -> Unit) {
+//    Column(
+//        modifier = Modifier
+//            .fillMaxSize()
+//            .padding(24.dp),
+//        horizontalAlignment = Alignment.CenterHorizontally,
+//        verticalArrangement = Arrangement.Center
+//    ) {
+//        Text(
+//            text = "Warning: $message",
+//            style = MaterialTheme.typography.labelMedium,
+//            color = MaterialTheme.colorScheme.primary
+//        )
+//        Spacer(modifier = Modifier.height(32.dp))
+//        Button(
+//            onClick = onRetry,
+//            modifier = Modifier.fillMaxWidth(),
+//            shape = RoundedCornerShape(8.dp)
+//        ) {
+//            Text("Retry")
+//        }
+//    }
+//}
+
+@Composable
+fun ErrorMessage(
+    message: String, onRetry: () -> Unit,
+    onCancelClick: () -> Unit
+    ) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "Error: $message",
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Spacer(modifier = Modifier.height(32.dp))
+        Button(
+            onClick = onRetry,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Text("Retry")
+        }
+
+        // The "Force Cancel" Button
+        Button(
+            onClick = onCancelClick,
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)
+        ) {
+            Text(text = "Cancel Request")
+        }
+
+    }
+}
+
+@Composable
 fun LoginDetails(
     email: String,
     password: String,
@@ -253,87 +347,6 @@ fun LoginDetails(
             shape = RoundedCornerShape(8.dp)
         ) {
             Text("Login")
-        }
-        TextButton(
-            onClick = onCancelClick,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text("Cancel", color = MaterialTheme.colorScheme.secondary)
-        }
-    }
-}
-
-@Composable
-fun SuccessMessage(loginUiState: LoginUiState.Success) {
-    val userName = when (loginUiState.userUiState) {
-        is UserUiState.Success -> loginUiState.userUiState.name
-        else -> "no name"
-    }
-    val email = when (loginUiState.userUiState) {
-        is UserUiState.Success -> loginUiState.userUiState.email
-        else -> "no email"
-    }
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = "Success: user $userName, email $email, is logged in successfully",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
-    }
-}
-
-@Composable
-fun WarningMessage(message: String, onRetry: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = "Warning: $message",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Spacer(modifier = Modifier.height(32.dp))
-        Button(
-            onClick = onRetry,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Text("Retry")
-        }
-    }
-}
-
-@Composable
-fun ErrorMessage(message: String, onRetry: () -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        Text(
-            text = "Error: $message",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.primary
-        )
-        Spacer(modifier = Modifier.height(32.dp))
-        Button(
-            onClick = onRetry,
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(8.dp)
-        ) {
-            Text("Retry")
         }
     }
 }
