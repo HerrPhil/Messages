@@ -1,19 +1,24 @@
 package com.reference.implementation.messages.data.repository
 
 import android.content.Context
+import com.reference.implementation.messages.BuildConfig
 import com.reference.implementation.messages.data.audit.SecurityAuditInterceptor
 import com.reference.implementation.messages.data.remote.ApiService
 import com.reference.implementation.messages.domain.repository.LoginRepository
+import com.reference.implementation.messages.domain.repository.LogoutRepository
 import com.reference.implementation.messages.domain.use_case.LoginUseCase
+import com.reference.implementation.messages.domain.use_case.LogoutUseCase
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
+import kotlin.getValue
 
 interface AppContainer {
     val loginUseCase: LoginUseCase
+    val logoutUseCase: LogoutUseCase
 }
 
 /**
@@ -43,7 +48,19 @@ class AppMessageContainer(private val context: Context) : AppContainer {
         val logging = HttpLoggingInterceptor().apply {
             // BODY gives you headers + status + body.
             // Use HEADERS if you only want the metadata.
-            level = HttpLoggingInterceptor.Level.BODY
+            // After I am comfortable with the code working, switch to NONE or BASIC for the
+            // level, for security reasons - keep the token out of logcat.
+
+            //            level = HttpLoggingInterceptor.Level.BODY
+
+            level =
+                if (BuildConfig.DEBUG) {
+                    HttpLoggingInterceptor.Level.BODY
+                } else {
+                    HttpLoggingInterceptor.Level.NONE
+                }
+            // Extra credit: redact the Header
+            redactHeader("Authorization")
         }
 
         // 2. Create the OkHttpClient and add the interceptor
@@ -77,6 +94,10 @@ class AppMessageContainer(private val context: Context) : AppContainer {
         LoginRepositoryImpl(apiService, tokenManager, sessionRepository)
     }
 
+    private val logoutRepository: LogoutRepository by lazy {
+        LogoutRepositoryImpl(sessionRepository)
+    }
+
     /**
      * On the journey of building up the app, the first point of contact is login.
      * Here is the implementation for the login use case.
@@ -84,5 +105,8 @@ class AppMessageContainer(private val context: Context) : AppContainer {
     override val loginUseCase: LoginUseCase by lazy {
         // The container provides ("injects") the repository to the use case.
         LoginUseCase(loginRepository)
+    }
+    override val logoutUseCase: LogoutUseCase by lazy {
+        LogoutUseCase(logoutRepository)
     }
 }

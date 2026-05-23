@@ -44,7 +44,11 @@ class LoginViewModel(private val loginUseCase: LoginUseCase) : ViewModel() {
         }
     }
 
-    fun cancelLoading() {
+    fun reset() {
+        uiState = LoginUiState.Idle
+    }
+
+    fun cancel() {
         loginJob?.cancel() // This triggers the CancellationException in the loop.
         uiState = LoginUiState.Idle
     }

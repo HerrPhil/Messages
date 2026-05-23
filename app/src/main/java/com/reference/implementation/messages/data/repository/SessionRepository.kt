@@ -13,6 +13,7 @@ import com.reference.implementation.messages.domain.model.UserDomainModel
  */
 interface SessionRepository {
     suspend fun isLoggedIn(): Boolean
+    suspend fun logout(): NetworkResult<UserDomainModel>
     fun getSessionUser(): NetworkResult<UserDomainModel>
     fun updateSessionUser(newSessionUserDto: UserDto): Unit
 }

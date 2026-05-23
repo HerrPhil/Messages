@@ -5,6 +5,7 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.reference.implementation.messages.MessageApplication
+import com.reference.implementation.messages.presentation.screens.home.HomeViewModel
 import com.reference.implementation.messages.presentation.screens.login.LoginViewModel
 
 object AppViewModelProvider {
@@ -16,6 +17,14 @@ object AppViewModelProvider {
         // the login view model initializer.
         initializer {
             LoginViewModel(messageApplication().container.loginUseCase)
+        }
+
+        // Second view model initialier to be added,
+        // the home view model initializer.
+        initializer {
+            HomeViewModel(
+                messageApplication().container.logoutUseCase
+            )
         }
     }
 }
