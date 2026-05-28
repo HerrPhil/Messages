@@ -39,4 +39,8 @@ interface ApiService {
 
     @DELETE("messages/{id}")
     suspend fun removeMessage(@Path("id") id: Int): Response<Unit>
+
+    // Get role by target user ID, expect one JSON object, empty when not found, otherwise populated
+    @GET("roles/{targetUserId}")
+    suspend fun getRole(@Path("targetUserId") targetUserId: Int): Response<RoleDto>
 }

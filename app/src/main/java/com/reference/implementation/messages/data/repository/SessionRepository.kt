@@ -1,5 +1,6 @@
 package com.reference.implementation.messages.data.repository
 
+import com.reference.implementation.messages.data.remote.RoleDto
 import com.reference.implementation.messages.data.remote.UserDto
 import com.reference.implementation.messages.domain.model.UserDomainModel
 
@@ -16,4 +17,6 @@ interface SessionRepository {
     suspend fun logout(): NetworkResult<UserDomainModel>
     fun getSessionUser(): NetworkResult<UserDomainModel>
     fun updateSessionUser(newSessionUserDto: UserDto): Unit
+    fun updateUserRole(newUserRoleDto: RoleDto)
+    suspend fun isAdministrator(): Boolean
 }

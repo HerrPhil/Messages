@@ -23,7 +23,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -35,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.reference.implementation.messages.data.audit.Audit
@@ -47,7 +47,7 @@ fun LoginScreen(
     viewModel: LoginViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
 
-    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+    Scaffold(modifier = Modifier.padding(all = 24.dp)) { innerPadding ->
 
         val uiState = viewModel.uiState
         var email by remember { mutableStateOf("") }
@@ -87,21 +87,17 @@ fun LoginBody(
     onSuccessAction: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
-
-    // TODO decide whether to use content padding in Box or Column of login screen.
-    //      My sample project used it on a list of data, for example.
-
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         when (uiState) {
             is LoginUiState.Loading -> {
-                LoadingMessage(onCancelClick)
+                LoadingMessage(onCancelClick, contentPadding)
             }
 
             is LoginUiState.Retrying -> {
-                RetryingMessage(onCancelClick, uiState)
+                RetryingMessage(onCancelClick, uiState, contentPadding)
             }
 
             is LoginUiState.Success -> {
@@ -110,12 +106,8 @@ fun LoginBody(
                 onResetLogin()
             }
 
-//            is LoginUiState.Warning -> {
-//                WarningMessage(uiState.message, onRetry = onLoginClick)
-//            }
-
             is LoginUiState.Error -> {
-                ErrorMessage(uiState.message, onRetry = onLoginClick, onCancelClick)
+                ErrorMessage(uiState.message, onRetry = onLoginClick, onCancelClick, contentPadding)
             }
 
             else -> { // idle state
@@ -127,19 +119,31 @@ fun LoginBody(
                     onEmailChange = onEmailChange,
                     onPasswordChange = onPasswordChange,
                     onLoginClick = { onLoginClick() },
-                    onCancelClick = onLoginClick
+                    contentPadding
                 )
             }
         }
     }
 }
 
+@Preview
 @Composable
-private fun LoadingMessage(onCancelClick: () -> Unit) {
+fun LoadingMessagePreview() {
+    LoadingMessage(
+        onCancelClick = {},
+        contentPadding = PaddingValues(24.dp)
+    )
+}
+
+@Composable
+private fun LoadingMessage(
+    onCancelClick: () -> Unit,
+    contentPadding: PaddingValues = PaddingValues(0.dp)
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(paddingValues = contentPadding),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -160,15 +164,26 @@ private fun LoadingMessage(onCancelClick: () -> Unit) {
     }
 }
 
+@Preview
+@Composable
+fun RetryingMessagePreview() {
+    RetryingMessage(
+        onCancelClick = {},
+        uiState = LoginUiState.Retrying(1),
+        contentPadding = PaddingValues(24.dp)
+    )
+}
+
 @Composable
 private fun RetryingMessage(
     onCancelClick: () -> Unit,
-    uiState: LoginUiState.Retrying
+    uiState: LoginUiState.Retrying,
+    contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(contentPadding),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -208,55 +223,30 @@ fun SuccessMessage(loginUiState: LoginUiState.Success) {
     Log.d("LoginScreen", "Success: user $userName, email $email, is logged in successfully")
     Audit.createInstance()
         .writeLog("Success: user $userName, email $email, is logged in successfully")
-//    Column(
-//        modifier = Modifier
-//            .fillMaxSize()
-//            .padding(24.dp),
-//        horizontalAlignment = Alignment.CenterHorizontally,
-//        verticalArrangement = Arrangement.Center
-//    ) {
-//        Text(
-//            text = "Success: user $userName, email $email, is logged in successfully",
-//            style = MaterialTheme.typography.labelMedium,
-//            color = MaterialTheme.colorScheme.primary
-//        )
-//    }
 }
 
-//@Composable
-//fun WarningMessage(message: String, onRetry: () -> Unit) {
-//    Column(
-//        modifier = Modifier
-//            .fillMaxSize()
-//            .padding(24.dp),
-//        horizontalAlignment = Alignment.CenterHorizontally,
-//        verticalArrangement = Arrangement.Center
-//    ) {
-//        Text(
-//            text = "Warning: $message",
-//            style = MaterialTheme.typography.labelMedium,
-//            color = MaterialTheme.colorScheme.primary
-//        )
-//        Spacer(modifier = Modifier.height(32.dp))
-//        Button(
-//            onClick = onRetry,
-//            modifier = Modifier.fillMaxWidth(),
-//            shape = RoundedCornerShape(8.dp)
-//        ) {
-//            Text("Retry")
-//        }
-//    }
-//}
+@Preview
+@Composable
+fun ErrorMessagePreview() {
+    ErrorMessage(
+        message = "Something went wrong",
+        onRetry = {},
+        onCancelClick = {},
+        contentPadding = PaddingValues(24.dp)
+    )
+}
 
 @Composable
 fun ErrorMessage(
-    message: String, onRetry: () -> Unit,
-    onCancelClick: () -> Unit
-    ) {
+    message: String,
+    onRetry: () -> Unit,
+    onCancelClick: () -> Unit,
+    contentPadding: PaddingValues = PaddingValues(0.dp)
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(paddingValues = contentPadding),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
@@ -268,7 +258,9 @@ fun ErrorMessage(
         Spacer(modifier = Modifier.height(32.dp))
         Button(
             onClick = onRetry,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 8.dp),
             shape = RoundedCornerShape(8.dp)
         ) {
             Text("Retry")
@@ -277,12 +269,29 @@ fun ErrorMessage(
         // The "Force Cancel" Button
         Button(
             onClick = onCancelClick,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp, vertical = 8.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 8.dp)
         ) {
             Text(text = "Cancel Request")
         }
 
     }
+}
+
+@Preview
+@Composable
+fun LoginDetailsPreview() {
+    LoginDetails(
+        email = "test@learn.com",
+        password = "qwerty1234",
+        passwordVisible = false,
+        onPasswordToggle = {},
+        onEmailChange = {},
+        onPasswordChange = {},
+        onLoginClick = {},
+        contentPadding = PaddingValues(24.dp)
+    )
 }
 
 @Composable
@@ -294,12 +303,12 @@ fun LoginDetails(
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
     onLoginClick: () -> Unit,
-    onCancelClick: () -> Unit
+    contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(paddingValues = contentPadding),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {

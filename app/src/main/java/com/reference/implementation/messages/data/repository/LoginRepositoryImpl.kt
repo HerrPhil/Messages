@@ -3,11 +3,13 @@ package com.reference.implementation.messages.data.repository
 import com.reference.implementation.messages.data.audit.Audit
 import com.reference.implementation.messages.data.remote.ApiService
 import com.reference.implementation.messages.data.remote.LoginRequestDto
+import com.reference.implementation.messages.data.remote.RoleDto
 import com.reference.implementation.messages.data.remote.toDomainModel
 import com.reference.implementation.messages.domain.model.UserDomainModel
 import com.reference.implementation.messages.domain.repository.LoginRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 
 class LoginRepositoryImpl(
@@ -40,6 +42,18 @@ class LoginRepositoryImpl(
                     // data based on the session user ID.
                     sessionRepository.updateSessionUser(userDto)
 
+                    val roleDeferred = async { getRole(userDto.id, onRetry) }
+                    val networkResultRole = roleDeferred.await()
+
+                    if (networkResultRole is NetworkResult.Success) {
+                        // DTO never leaves this layer!
+                        val roleDto = networkResultRole.data
+                        // Store the role for future business use cases that check whether the
+                        // session user is an administrator; drives which UI state to display,
+                        // in the future.
+                        sessionRepository.updateUserRole(roleDto)
+                    }
+
                     // DTO never leaves this layer!
                     NetworkResult.Success(userDto.toDomainModel())
                 } else {
@@ -52,6 +66,41 @@ class LoginRepositoryImpl(
             } finally {
                 withContext(NonCancellable) {
                     Audit.createInstance().writeLog("${auditLogTimestamp()} login call ended")
+                }
+            }
+        }
+    }
+
+    /**
+     * This method is private for two reasons.
+     * For now, it only services the login() function to determine whether the session user
+     * is an administrator.
+     * Since it scoped to this repository, there is no need to return a "RoleDomainModel".
+     * In this instance, the result is not bubbling up to a use case.
+     */
+    private suspend fun getRole(
+        userId: Int,
+        onRetry: suspend (Int) -> Unit
+    ): NetworkResult<RoleDto> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = retryIO(times = 3, onRetry = onRetry) {
+                    apiService.getRole(targetUserId = userId)
+                }
+                if (response.isSuccessful && response.body() != null) {
+                    val roleDto = response.body()!!
+                    sessionRepository.updateUserRole(roleDto)
+                    NetworkResult.Success(roleDto)
+                } else {
+                    // Transform unsuccessful Retrofit calls.
+                    NetworkResult.Error(response.code(), response.message())
+                }
+            } catch (e: Throwable) {
+                Audit.createInstance().writeLog(e.message ?: "no message")
+                NetworkResult.Exception(e)
+            } finally {
+                withContext(NonCancellable) {
+                    Audit.createInstance().writeLog("${auditLogTimestamp()} get role call ended")
                 }
             }
         }
