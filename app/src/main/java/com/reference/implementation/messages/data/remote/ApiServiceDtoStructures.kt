@@ -44,6 +44,16 @@ data class UserDto(
     val age: Int
 )
 
+// TODO left off here. create the Role DTO to receive the role, for example, by target User ID
+@Serializable
+data class RoleDto(
+    val id: Int,
+    val role: String,
+    val targetUserId: Int,
+    val permissionId: Int,
+    val userId: Int
+)
+
 fun LoginDto.toDomainModel() : LoginDomainModel = LoginDomainModel(this.accessToken, this.userDto.toDomainModel())
 
 fun UserDto.toDomainModel() : UserDomainModel = UserDomainModel(this.id, this.email, this.name, this.age)

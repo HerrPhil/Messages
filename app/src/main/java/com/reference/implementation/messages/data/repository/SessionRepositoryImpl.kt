@@ -1,5 +1,6 @@
 package com.reference.implementation.messages.data.repository
 
+import com.reference.implementation.messages.data.remote.RoleDto
 import com.reference.implementation.messages.data.remote.UserDto
 import com.reference.implementation.messages.data.remote.toDomainModel
 import com.reference.implementation.messages.domain.model.UserDomainModel
@@ -11,6 +12,9 @@ class SessionRepositoryImpl(private val tokenManager: TokenManager) : SessionRep
     //    returned by login.
     private val _sessionUserFlow =
         MutableStateFlow<NetworkSessionState>(NetworkSessionState.NoSession)
+
+    private val _sessionUserRoleFlow =
+        MutableStateFlow<RoleSessionState>(RoleSessionState.NoRole)
 
     // 2. Expose the immutable Flow to consumer (eg. Home page ViewModel/UI)
     // 2.a. After more consideration, this public StateFlow is unnecessary.
@@ -36,6 +40,20 @@ class SessionRepositoryImpl(private val tokenManager: TokenManager) : SessionRep
 
     override fun updateSessionUser(newSessionUserDto: UserDto) {
         _sessionUserFlow.value = NetworkSessionState.ActiveSession(newSessionUserDto)
+    }
+
+    override fun updateUserRole(newUserRoleDto: RoleDto) {
+        _sessionUserRoleFlow.value = RoleSessionState.UserRole(newUserRoleDto)
+    }
+
+    override suspend fun isAdministrator(): Boolean {
+        return when (val currentRoleState = _sessionUserRoleFlow.value) {
+            is RoleSessionState.UserRole -> {
+                currentRoleState.data.role.lowercase() == "system administrator"
+            }
+
+            else -> false
+        }
     }
 
     override suspend fun logout(): NetworkResult<UserDomainModel> {
