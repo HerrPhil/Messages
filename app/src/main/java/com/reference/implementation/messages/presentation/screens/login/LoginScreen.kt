@@ -24,11 +24,9 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -38,13 +36,11 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.reference.implementation.messages.data.audit.Audit
 import com.reference.implementation.messages.presentation.AppViewModelProvider
 import com.reference.implementation.messages.presentation.screens.user.UserUiState
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.async
-import kotlinx.coroutines.delay
 
 @Composable
 fun LoginScreen(
@@ -55,8 +51,10 @@ fun LoginScreen(
     Scaffold(modifier = Modifier.padding(all = 24.dp)) { innerPadding ->
 
         val uiState = viewModel.uiState
-        var email by remember { mutableStateOf("") }
-        var password by remember { mutableStateOf("") }
+        // Collect states reactively
+        val email by viewModel.email.collectAsStateWithLifecycle()
+        val password by viewModel.password.collectAsStateWithLifecycle()
+        val isSubmitEnabled by viewModel.isSubmitEnabled.collectAsStateWithLifecycle()
         var passwordVisible by remember { mutableStateOf(false) }
 
         LoginBody(
@@ -64,11 +62,12 @@ fun LoginScreen(
             email = email,
             password = password,
             passwordVisible = passwordVisible,
+            isSubmitEnabled = isSubmitEnabled,
             onPasswordToggle = { passwordVisible = !passwordVisible },
             onCancelClick = { viewModel.cancel() },
             onLoginClick = { viewModel.login(email, password) },
-            onEmailChange = { newEmail: String -> email = newEmail },
-            onPasswordChange = { newPassword: String -> password = newPassword },
+            onEmailChange = { newEmail: String -> viewModel.onEmailChange(newEmail) },
+            onPasswordChange = { newPassword: String -> viewModel.onPasswordChange(newPassword) },
             onSuccessAction = onLogin,
             contentPadding = innerPadding
         )
@@ -82,6 +81,7 @@ fun LoginBody(
     email: String,
     password: String,
     passwordVisible: Boolean,
+    isSubmitEnabled: Boolean,
     onPasswordToggle: () -> Unit,
     onCancelClick: () -> Unit,
     onLoginClick: () -> Unit,
@@ -117,6 +117,7 @@ fun LoginBody(
                     email = email,
                     password = password,
                     passwordVisible = passwordVisible,
+                    isSubmitEnabled = isSubmitEnabled,
                     onPasswordToggle = onPasswordToggle,
                     onEmailChange = onEmailChange,
                     onPasswordChange = onPasswordChange,
@@ -288,6 +289,7 @@ fun LoginDetailsPreview() {
         email = "test@learn.com",
         password = "qwerty1234",
         passwordVisible = false,
+        isSubmitEnabled = false,
         onPasswordToggle = {},
         onEmailChange = {},
         onPasswordChange = {},
@@ -301,6 +303,7 @@ fun LoginDetails(
     email: String,
     password: String,
     passwordVisible: Boolean,
+    isSubmitEnabled: Boolean,
     onPasswordToggle: () -> Unit,
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
@@ -355,6 +358,7 @@ fun LoginDetails(
         Button(
             onClick = onLoginClick,
             modifier = Modifier.fillMaxWidth(),
+            enabled = isSubmitEnabled, // Controlled entirely by the ViewModel
             shape = RoundedCornerShape(8.dp)
         ) {
             Text("Login")
