@@ -9,6 +9,8 @@ import com.reference.implementation.messages.domain.model.toUserUiState
 import com.reference.implementation.messages.domain.use_case.LoginUseCase
 import com.reference.implementation.messages.domain.use_case.Resource
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 class LoginViewModel(private val loginUseCase: LoginUseCase) : ViewModel() {
@@ -27,6 +29,11 @@ class LoginViewModel(private val loginUseCase: LoginUseCase) : ViewModel() {
 
             uiState = LoginUiState.Loading
 
+            // My "server" is local and blazingly fast.
+            // Without this, loading state is flickering.
+            val minimumLoadingVisibility = async { delay(300) }
+            minimumLoadingVisibility.await()
+
             val resource = loginUseCase(
                 email,
                 password,
@@ -42,10 +49,6 @@ class LoginViewModel(private val loginUseCase: LoginUseCase) : ViewModel() {
                 else -> LoginUiState.Error("Something went wrong")
             }
         }
-    }
-
-    fun reset() {
-        uiState = LoginUiState.Idle
     }
 
     fun cancel() {

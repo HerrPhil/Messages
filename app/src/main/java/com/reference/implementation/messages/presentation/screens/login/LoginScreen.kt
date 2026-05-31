@@ -24,9 +24,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,6 +42,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.reference.implementation.messages.data.audit.Audit
 import com.reference.implementation.messages.presentation.AppViewModelProvider
 import com.reference.implementation.messages.presentation.screens.user.UserUiState
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.async
+import kotlinx.coroutines.delay
 
 @Composable
 fun LoginScreen(
@@ -62,7 +67,6 @@ fun LoginScreen(
             onPasswordToggle = { passwordVisible = !passwordVisible },
             onCancelClick = { viewModel.cancel() },
             onLoginClick = { viewModel.login(email, password) },
-            onResetLogin = { viewModel.reset() },
             onEmailChange = { newEmail: String -> email = newEmail },
             onPasswordChange = { newPassword: String -> password = newPassword },
             onSuccessAction = onLogin,
@@ -81,7 +85,6 @@ fun LoginBody(
     onPasswordToggle: () -> Unit,
     onCancelClick: () -> Unit,
     onLoginClick: () -> Unit,
-    onResetLogin: () -> Unit,
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
     onSuccessAction: () -> Unit,
@@ -103,7 +106,6 @@ fun LoginBody(
             is LoginUiState.Success -> {
                 SuccessMessage(uiState)
                 onSuccessAction()
-                onResetLogin()
             }
 
             is LoginUiState.Error -> {

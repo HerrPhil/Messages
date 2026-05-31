@@ -5,11 +5,8 @@ import com.reference.implementation.messages.presentation.screens.user.UserUiSta
 sealed class HomeUiState {
     object Idle : HomeUiState()
     object Loading : HomeUiState()
-
     //    data class Retrying(val attempt: Int) : HomeUiState()
-//    data class Success(val userUiState: UserUiState) : HomeUiState()
-    data class LogoutComplete(val userUiState: UserUiState) : HomeUiState()
-
+    data class Success(val userUiState: UserUiState) : HomeUiState()
     //    data class Warning(val message: String) : HomeUiState()
     data class Error(val message: String) : HomeUiState()
 }
