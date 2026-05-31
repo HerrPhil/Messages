@@ -60,14 +60,13 @@ dependencies {
     // Retrofit
     implementation(libs.retrofit)
     // Official Kotlin Serialization Converter
-//    implementation(libs.retrofit2.kotlinx.serialization.converter)
     implementation(libs.converter.kotlinx.serialization)
     implementation(libs.jetbrains.kotlinx.serialization.json)
     implementation(libs.okhttp)
     // Logging HTTP raw network traffic in Logcat
     implementation(libs.logging.interceptor)
-    // Secure storage of access tokens internally in the app
-//    implementation(libs.androidx.security.crypto)
+    // Jetpack Compose Navigation
+    implementation(libs.androidx.navigation.compose)
 
 
     testImplementation(libs.junit)
