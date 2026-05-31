@@ -16,7 +16,6 @@ import com.reference.implementation.messages.presentation.AppViewModelProvider
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-//    onLogout: () -> Unit,
     viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
 

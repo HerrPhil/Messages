@@ -88,11 +88,11 @@ fun AuthenticatedShell(
                         // Prevent accidental double-clicks if already working
                         if (uiState is AuthenticatedShellUiState.Idle) {
 
-                            // Handle the Security Sandbox clearance, changes this UI state
-                            viewModel.logout()
-
                             // handle the drawer state
                             scope.launch { drawerState.close() }
+
+                            // Handle the Security Sandbox clearance, changes this UI state
+                            viewModel.logout()
                         }
                     }
                 )
