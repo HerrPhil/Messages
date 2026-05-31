@@ -8,8 +8,11 @@ import androidx.lifecycle.viewModelScope
 import com.reference.implementation.messages.domain.model.toUserUiState
 import com.reference.implementation.messages.domain.use_case.LogoutUseCase
 import com.reference.implementation.messages.domain.use_case.Resource
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class  AuthenticatedShellViewModel(
     private val logoutUseCase: LogoutUseCase
@@ -30,7 +33,19 @@ class  AuthenticatedShellViewModel(
             // move the UI state to "Loading..."
             uiState = AuthenticatedShellUiState.Loading
 
-            val resource = logoutUseCase()
+            // Warning Note: Only use NonCancellable for short-lived, non-blocking cleanup code
+            // (like closing databases, clearing cryptographic keys, or dropping file handles).
+            // This is exactly what logoutUseCase() is doing.
+            // It is clearing of the cryptographic keys.
+
+            // This dispatcher switches execution to a background thread
+            val resource = withContext(Dispatchers.IO + NonCancellable) {
+
+                // Even if the ViewModel is destroyed right now,
+                // this block is guaranteed to finish its work.
+                logoutUseCase()
+
+            }
 
             uiState = when(resource) {
                 is Resource.Success -> AuthenticatedShellUiState.LogoutComplete(
@@ -39,6 +54,7 @@ class  AuthenticatedShellViewModel(
                 is  Resource.Error -> AuthenticatedShellUiState.Error(resource.message)
                 else -> AuthenticatedShellUiState.Error("something went wrong")
             }
+
         }
     }
 
