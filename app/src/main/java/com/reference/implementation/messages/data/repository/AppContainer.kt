@@ -8,13 +8,15 @@ import com.reference.implementation.messages.domain.repository.LoginRepository
 import com.reference.implementation.messages.domain.repository.LogoutRepository
 import com.reference.implementation.messages.domain.use_case.LoginUseCase
 import com.reference.implementation.messages.domain.use_case.LogoutUseCase
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
-import kotlin.getValue
 
 interface AppContainer {
     val loginUseCase: LoginUseCase
@@ -30,6 +32,15 @@ class AppMessageContainer(private val context: Context) : AppContainer {
 
 
     private val tokenManager = TokenManager(context)
+
+    // To be used in conjunction with work that MUST finish.
+    // For example, on logout, if viewModelScope dies, there must be an application scope that is
+    // parented by the Application lifecycle to handle critical work.
+    // The cancellation signal from the ViewModel cannot reach it.
+    // Then just pass this to a repository, like we pass tokenManager to a repository.
+    // SupervisorJob ensures a failure in one background task won't kill the scope.
+    private val applicationScope: CoroutineScope =
+        CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
     private val json = Json {
         ignoreUnknownKeys = true // API adds a field? No crash.
@@ -95,7 +106,7 @@ class AppMessageContainer(private val context: Context) : AppContainer {
     }
 
     private val logoutRepository: LogoutRepository by lazy {
-        LogoutRepositoryImpl(sessionRepository)
+        LogoutRepositoryImpl(sessionRepository, externalScope = applicationScope)
     }
 
     /**

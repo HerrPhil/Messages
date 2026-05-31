@@ -133,7 +133,7 @@ fun LogoutMessage(authenticatedShellUiState: AuthenticatedShellUiState.LogoutCom
         is UserUiState.Success -> authenticatedShellUiState.userUiState.email
         else -> "no email"
     }
-    Log.d("LoginScreen", "Success: user $userName, email $email, is logged in successfully")
+    Log.d("LoginScreen", "Success: user $userName, email $email, is logged out successfully")
     Audit.createInstance()
-        .writeLog("Success: user $userName, email $email, is logged in successfully")
+        .writeLog("Success: user $userName, email $email, is logged out successfully")
 }
