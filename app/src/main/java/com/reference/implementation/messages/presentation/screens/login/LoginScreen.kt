@@ -44,7 +44,7 @@ import com.reference.implementation.messages.presentation.screens.user.UserUiSta
 
 @Composable
 fun LoginScreen(
-    onLogin: () -> Unit,
+//    onLogin: () -> Unit,
     viewModel: LoginViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
 
@@ -68,7 +68,7 @@ fun LoginScreen(
             onLoginClick = { viewModel.login(email, password) },
             onEmailChange = { newEmail: String -> viewModel.onEmailChange(newEmail) },
             onPasswordChange = { newPassword: String -> viewModel.onPasswordChange(newPassword) },
-            onSuccessAction = onLogin,
+//            onSuccessAction = onLogin,
             contentPadding = innerPadding
         )
 
@@ -87,7 +87,7 @@ fun LoginBody(
     onLoginClick: () -> Unit,
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
-    onSuccessAction: () -> Unit,
+//    onSuccessAction: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
     Box(
@@ -105,7 +105,9 @@ fun LoginBody(
 
             is LoginUiState.Success -> {
                 SuccessMessage(uiState)
-                onSuccessAction()
+
+                // TODO - stop doing this, here - it stays in RootAppNavigation
+//                onSuccessAction()
             }
 
             is LoginUiState.Error -> {
