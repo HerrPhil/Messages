@@ -1,5 +1,7 @@
 package com.reference.implementation.messages.data.repository
 
+import com.reference.implementation.messages.data.audit.Audit
+import com.reference.implementation.messages.data.manager.TokenManager
 import com.reference.implementation.messages.data.remote.RoleDto
 import com.reference.implementation.messages.data.remote.UserDto
 import com.reference.implementation.messages.data.remote.toDomainModel
@@ -16,7 +18,7 @@ class SessionRepositoryImpl(private val tokenManager: TokenManager) : SessionRep
     private val _sessionUserRoleFlow =
         MutableStateFlow<RoleSessionState>(RoleSessionState.NoRole)
 
-    // 2. Expose the immutable Flow to consumer (eg. Home page ViewModel/UI)
+    // 2. Expose the immutable Flow to consumer (e.g. Home page ViewModel/UI)
     // 2.a. After more consideration, this public StateFlow is unnecessary.
     //      Unlike business repositories that server view models,
     //      this repo only serves other repositories in the data layer.
@@ -56,9 +58,14 @@ class SessionRepositoryImpl(private val tokenManager: TokenManager) : SessionRep
         }
     }
 
-    override suspend fun logout(): NetworkResult<UserDomainModel> {
+    override suspend fun logout() {
 
+        var username = "no user"
         val loggedOutUser = getSessionUser()
+        if (loggedOutUser is NetworkResult.Success) {
+            val userDomainModel = loggedOutUser.data
+            username = userDomainModel.name
+        }
 
         // 1. Delegate to token manager to manage keystore and preferences.
         tokenManager.logout()
@@ -66,6 +73,6 @@ class SessionRepositoryImpl(private val tokenManager: TokenManager) : SessionRep
         // 2. Remove the session user information - no one is logged in
         _sessionUserFlow.value = NetworkSessionState.NoSession
 
-        return loggedOutUser
+        Audit.createInstance().writeLog("$username is logged out!")
     }
 }

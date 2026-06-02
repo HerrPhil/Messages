@@ -29,7 +29,9 @@ data class MessageEdit(val messageId: Int, val message: String)
 // 2. Authenticated Hub Level: Houses the drawer and layout
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AuthenticatedMainHub(onLogout: () -> Unit) {
+fun AuthenticatedMainHub(
+//    onLogout: () -> Unit
+) {
     // Isolated NavController for the internal tabs
     val childNavController = rememberNavController()
 
@@ -62,7 +64,6 @@ fun AuthenticatedMainHub(onLogout: () -> Unit) {
 
     AuthenticatedShell(
         title = displayTitle,
-        onLogout = onLogout,
         bottomBar = {
             NavigationBar {
 

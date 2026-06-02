@@ -1,6 +1,8 @@
 package com.reference.implementation.messages.data.repository
 
 import com.reference.implementation.messages.data.audit.Audit
+import com.reference.implementation.messages.data.manager.AuthSessionManager
+import com.reference.implementation.messages.data.manager.TokenManager
 import com.reference.implementation.messages.data.remote.ApiService
 import com.reference.implementation.messages.data.remote.LoginRequestDto
 import com.reference.implementation.messages.data.remote.RoleDto
@@ -14,7 +16,8 @@ import kotlinx.coroutines.withContext
 
 class LoginRepositoryImpl(
     private val apiService: ApiService,
-    private val tokenManager: TokenManager,
+    private val tokenManager: TokenManager, // an application scope
+    private val authSessionManager: AuthSessionManager, // Global state source (Application Layer)
     private val sessionRepository: SessionRepository
 ) : LoginRepository {
 
@@ -54,7 +57,11 @@ class LoginRepositoryImpl(
                         sessionRepository.updateUserRole(roleDto)
                     }
 
+                    // Make a note that the auth session is "Authenticated"!
+                    authSessionManager.startSession()
+
                     // DTO never leaves this layer!
+                    // This never triggers re-composition - it only logs the success!
                     NetworkResult.Success(userDto.toDomainModel())
                 } else {
                     // Transform unsuccessful Retrofit calls.

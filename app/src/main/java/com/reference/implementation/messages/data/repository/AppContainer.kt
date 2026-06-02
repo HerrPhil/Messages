@@ -3,6 +3,8 @@ package com.reference.implementation.messages.data.repository
 import android.content.Context
 import com.reference.implementation.messages.BuildConfig
 import com.reference.implementation.messages.data.audit.SecurityAuditInterceptor
+import com.reference.implementation.messages.data.manager.AuthSessionManager
+import com.reference.implementation.messages.data.manager.TokenManager
 import com.reference.implementation.messages.data.remote.ApiService
 import com.reference.implementation.messages.domain.repository.LoginRepository
 import com.reference.implementation.messages.domain.repository.LogoutRepository
@@ -21,6 +23,7 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
 interface AppContainer {
     val loginUseCase: LoginUseCase
     val logoutUseCase: LogoutUseCase
+    val authSessionManager: AuthSessionManager
 }
 
 /**
@@ -32,6 +35,12 @@ class AppMessageContainer(private val context: Context) : AppContainer {
 
 
     private val tokenManager = TokenManager(context)
+
+    /**
+     * This is related to login/logout.
+     * It is the Global State Source (Application Layer) whether the user is authenticated.
+     */
+    override val authSessionManager = AuthSessionManager()
 
     // To be used in conjunction with work that MUST finish.
     // For example, on logout, if viewModelScope dies, there must be an application scope that is
@@ -102,11 +111,20 @@ class AppMessageContainer(private val context: Context) : AppContainer {
      */
     private val loginRepository: LoginRepository by lazy {
         // The container provides ("injects") the api service to the re=pository.
-        LoginRepositoryImpl(apiService, tokenManager, sessionRepository)
+        LoginRepositoryImpl(
+            apiService,
+            tokenManager,
+            authSessionManager,
+            sessionRepository
+        )
     }
 
     private val logoutRepository: LogoutRepository by lazy {
-        LogoutRepositoryImpl(sessionRepository, externalScope = applicationScope)
+        LogoutRepositoryImpl(
+            sessionRepository = sessionRepository,
+            externalScope = applicationScope,
+            authSessionManager = authSessionManager
+        )
     }
 
     /**
@@ -117,7 +135,9 @@ class AppMessageContainer(private val context: Context) : AppContainer {
         // The container provides ("injects") the repository to the use case.
         LoginUseCase(loginRepository)
     }
+
     override val logoutUseCase: LogoutUseCase by lazy {
         LogoutUseCase(logoutRepository)
     }
+
 }

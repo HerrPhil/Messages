@@ -1,16 +1,16 @@
-package com.reference.implementation.messages.data.repository
+package com.reference.implementation.messages.data.manager
 
 import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
+import androidx.core.content.edit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.security.KeyStore
 import javax.crypto.Cipher
 import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
-import androidx.core.content.edit
 import javax.crypto.spec.GCMParameterSpec
 
 private const val KEY_ALIAS = "token_manager_key"

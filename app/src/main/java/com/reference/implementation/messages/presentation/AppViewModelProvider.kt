@@ -6,6 +6,7 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.reference.implementation.messages.MessageApplication
 import com.reference.implementation.messages.presentation.navigation.AuthenticatedShellViewModel
+import com.reference.implementation.messages.presentation.navigation.RootViewModel
 import com.reference.implementation.messages.presentation.screens.home.HomeViewModel
 import com.reference.implementation.messages.presentation.screens.login.LoginViewModel
 
@@ -31,6 +32,12 @@ object AppViewModelProvider {
         initializer {
             AuthenticatedShellViewModel(
                 messageApplication().container.logoutUseCase
+            )
+        }
+
+        initializer {
+            RootViewModel(
+                messageApplication().container.authSessionManager
             )
         }
     }
