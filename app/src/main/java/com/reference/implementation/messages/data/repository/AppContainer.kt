@@ -4,6 +4,7 @@ import android.content.Context
 import com.reference.implementation.messages.BuildConfig
 import com.reference.implementation.messages.data.audit.SecurityAuditInterceptor
 import com.reference.implementation.messages.data.manager.AuthSessionManager
+import com.reference.implementation.messages.data.manager.RoleManager
 import com.reference.implementation.messages.data.manager.TokenManager
 import com.reference.implementation.messages.data.remote.ApiService
 import com.reference.implementation.messages.domain.repository.LoginRepository
@@ -24,6 +25,7 @@ interface AppContainer {
     val loginUseCase: LoginUseCase
     val logoutUseCase: LogoutUseCase
     val authSessionManager: AuthSessionManager
+    val roleManager: RoleManager
 }
 
 /**
@@ -41,6 +43,13 @@ class AppMessageContainer(private val context: Context) : AppContainer {
      * It is the Global State Source (Application Layer) whether the user is authenticated.
      */
     override val authSessionManager = AuthSessionManager()
+
+    /**
+     * This is related to login.
+     * It is the Global State Source (Application Layer) of the authenticated user's role.
+     * Think "Regular User" or "Administrator".
+     */
+    override val roleManager = RoleManager()
 
     // To be used in conjunction with work that MUST finish.
     // For example, on logout, if viewModelScope dies, there must be an application scope that is
@@ -115,6 +124,7 @@ class AppMessageContainer(private val context: Context) : AppContainer {
             apiService,
             tokenManager,
             authSessionManager,
+            roleManager,
             sessionRepository
         )
     }
@@ -123,7 +133,8 @@ class AppMessageContainer(private val context: Context) : AppContainer {
         LogoutRepositoryImpl(
             sessionRepository = sessionRepository,
             externalScope = applicationScope,
-            authSessionManager = authSessionManager
+            authSessionManager = authSessionManager,
+            roleManager = roleManager
         )
     }
 

@@ -24,7 +24,9 @@ object AppViewModelProvider {
         // Second view model initializer to be added,
         // the home view model initializer.
         initializer {
-            HomeViewModel()
+            HomeViewModel(
+                messageApplication().container.roleManager
+            )
         }
 
         // Third view model initializer to be added,

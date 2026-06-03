@@ -3,14 +3,20 @@ package com.reference.implementation.messages.presentation.screens.home
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.reference.implementation.messages.data.manager.UserRoleState
 import com.reference.implementation.messages.presentation.AppViewModelProvider
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -21,18 +27,23 @@ fun HomeScreen(
 
     val uiState = viewModel.uiState
 
+    val roleState by viewModel.userRoleState.collectAsStateWithLifecycle()
+
     // Handle the other home screen UI states; expect this logic to change as more
     // navigation drawer items are added.
     when (uiState) {
         is HomeUiState.Idle -> {
-            HomeDetails()
+            HomeDetails(roleState)
         }
+
         is HomeUiState.Loading -> {
             Log.d("HomeScreen", "TODO loading feature")
         }
+
         is HomeUiState.Success -> {
             Log.d("HomeScreen", "TODO success feature")
         }
+
         is HomeUiState.Error -> {
             viewModel.cancel() // go back to "Idle" state
             // Share message in a Toast
@@ -44,11 +55,33 @@ fun HomeScreen(
 }
 
 @Composable
-fun HomeDetails() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
+fun HomeDetails(roleState: UserRoleState) {
+    Column {
+
         Text(text = "Welcome to the Home Screen!")
+
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center
+        ) {
+
+            when (val state = roleState) {
+                is UserRoleState.Loading -> {
+                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+                }
+
+                is UserRoleState.RegularUser -> {
+                    Text(text = "TODO create the regular user dashboard with role name: ${state.name}")
+                }
+
+                is UserRoleState.Administrator -> {
+                    Text(text = "TODO create the administrator dashboard")
+                }
+
+                is UserRoleState.Unknown -> {
+                    Text(text = "TODO create screen for unauthorized access", color = Color.Red)
+                }
+            }
+        }
     }
 }
