@@ -2,7 +2,9 @@ package com.reference.implementation.messages.data.repository
 
 import com.reference.implementation.messages.data.audit.Audit
 import com.reference.implementation.messages.data.manager.AuthSessionManager
+import com.reference.implementation.messages.data.manager.RoleManager
 import com.reference.implementation.messages.data.manager.TokenManager
+import com.reference.implementation.messages.data.manager.UserRoleState
 import com.reference.implementation.messages.data.remote.ApiService
 import com.reference.implementation.messages.data.remote.LoginRequestDto
 import com.reference.implementation.messages.data.remote.RoleDto
@@ -18,6 +20,7 @@ class LoginRepositoryImpl(
     private val apiService: ApiService,
     private val tokenManager: TokenManager, // an application scope
     private val authSessionManager: AuthSessionManager, // Global state source (Application Layer)
+    private val roleManager: RoleManager, // Global state source (Application Layer)
     private val sessionRepository: SessionRepository
 ) : LoginRepository {
 
@@ -26,6 +29,9 @@ class LoginRepositoryImpl(
         password: String,
         onRetry: suspend (Int) -> Unit
     ): NetworkResult<UserDomainModel> {
+
+        roleManager.updateRole(UserRoleState.Loading)
+
         return withContext(Dispatchers.IO) {
             try {
                 val loginRequestDto = LoginRequestDto(email, password)
@@ -51,10 +57,25 @@ class LoginRepositoryImpl(
                     if (networkResultRole is NetworkResult.Success) {
                         // DTO never leaves this layer!
                         val roleDto = networkResultRole.data
+
                         // Store the role for future business use cases that check whether the
                         // session user is an administrator; drives which UI state to display,
                         // in the future.
-                        sessionRepository.updateUserRole(roleDto)
+//                        sessionRepository.updateUserRole(roleDto)
+
+
+                        val userRoleState =
+                            when (roleDto.role.lowercase() == "system administrator") {
+                                true -> {
+                                    UserRoleState.Administrator
+                                }
+
+                                false -> {
+                                    UserRoleState.RegularUser(roleDto.role)
+                                }
+                            }
+                        roleManager.updateRole(userRoleState)
+
                     }
 
                     // Make a note that the auth session is "Authenticated"!
