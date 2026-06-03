@@ -3,6 +3,7 @@ package com.reference.implementation.messages.data.repository
 import com.reference.implementation.messages.data.audit.Audit
 import com.reference.implementation.messages.data.manager.AuthSessionManager
 import com.reference.implementation.messages.data.manager.RoleManager
+import com.reference.implementation.messages.data.manager.SessionManager
 import com.reference.implementation.messages.data.manager.TokenManager
 import com.reference.implementation.messages.data.manager.UserRoleState
 import com.reference.implementation.messages.data.remote.ApiService
@@ -21,7 +22,7 @@ class LoginRepositoryImpl(
     private val tokenManager: TokenManager, // an application scope
     private val authSessionManager: AuthSessionManager, // Global state source (Application Layer)
     private val roleManager: RoleManager, // Global state source (Application Layer)
-    private val sessionRepository: SessionRepository
+    private val sessionManager: SessionManager
 ) : LoginRepository {
 
     override suspend fun login(
@@ -47,41 +48,19 @@ class LoginRepositoryImpl(
 
                     val userDto = response.body()!!.userDto
 
-                    // The session user DTO gets stashed for other screens that want to look up
-                    // data based on the session user ID.
-                    sessionRepository.updateSessionUser(userDto)
-
                     val roleDeferred = async { getRole(userDto.id, onRetry) }
                     val networkResultRole = roleDeferred.await()
 
                     if (networkResultRole is NetworkResult.Success) {
-                        // DTO never leaves this layer!
                         val roleDto = networkResultRole.data
-
-                        // Store the role for future business use cases that check whether the
-                        // session user is an administrator; drives which UI state to display,
-                        // in the future.
-//                        sessionRepository.updateUserRole(roleDto)
-
-
-                        val userRoleState =
-                            when (roleDto.role.lowercase() == "system administrator") {
-                                true -> {
-                                    UserRoleState.Administrator
-                                }
-
-                                false -> {
-                                    UserRoleState.RegularUser(roleDto.role)
-                                }
-                            }
+                        sessionManager.updateSession(userDto, roleDto)
+                        val userRoleState = getUserRoleState(roleDto)
                         roleManager.updateRole(userRoleState)
-
                     }
 
                     // Make a note that the auth session is "Authenticated"!
                     authSessionManager.startSession()
 
-                    // DTO never leaves this layer!
                     // This never triggers re-composition - it only logs the success!
                     NetworkResult.Success(userDto.toDomainModel())
                 } else {
@@ -117,7 +96,6 @@ class LoginRepositoryImpl(
                 }
                 if (response.isSuccessful && response.body() != null) {
                     val roleDto = response.body()!!
-                    sessionRepository.updateUserRole(roleDto)
                     NetworkResult.Success(roleDto)
                 } else {
                     // Transform unsuccessful Retrofit calls.
@@ -135,3 +113,14 @@ class LoginRepositoryImpl(
     }
 
 }
+
+private fun getUserRoleState(roleDto: RoleDto): UserRoleState =
+    when (roleDto.name.lowercase() == "system administrator") {
+        true -> {
+            UserRoleState.Administrator
+        }
+
+        false -> {
+            UserRoleState.RegularUser(roleDto.name)
+        }
+    }

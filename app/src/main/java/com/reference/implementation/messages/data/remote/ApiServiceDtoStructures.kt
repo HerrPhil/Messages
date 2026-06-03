@@ -48,10 +48,10 @@ data class UserDto(
 @Serializable
 data class RoleDto(
     val id: Int,
-    val role: String,
+    val name: String,
     val targetUserId: Int,
     val permissionId: Int,
-    val userId: Int
+    val userId: Int // data owner aka administrator
 )
 
 fun LoginDto.toDomainModel() : LoginDomainModel = LoginDomainModel(this.accessToken, this.userDto.toDomainModel())

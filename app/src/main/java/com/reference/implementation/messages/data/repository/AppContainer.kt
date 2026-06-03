@@ -5,6 +5,7 @@ import com.reference.implementation.messages.BuildConfig
 import com.reference.implementation.messages.data.audit.SecurityAuditInterceptor
 import com.reference.implementation.messages.data.manager.AuthSessionManager
 import com.reference.implementation.messages.data.manager.RoleManager
+import com.reference.implementation.messages.data.manager.SessionManager
 import com.reference.implementation.messages.data.manager.TokenManager
 import com.reference.implementation.messages.data.remote.ApiService
 import com.reference.implementation.messages.domain.repository.LoginRepository
@@ -110,8 +111,8 @@ class AppMessageContainer(private val context: Context) : AppContainer {
             .create(ApiService::class.java)
     }
 
-    private val sessionRepository: SessionRepository by lazy {
-        SessionRepositoryImpl(tokenManager)
+    private val sessionManager by lazy {
+        SessionManager(tokenManager)
     }
 
     /**
@@ -125,16 +126,16 @@ class AppMessageContainer(private val context: Context) : AppContainer {
             tokenManager,
             authSessionManager,
             roleManager,
-            sessionRepository
+            sessionManager
         )
     }
 
     private val logoutRepository: LogoutRepository by lazy {
         LogoutRepositoryImpl(
-            sessionRepository = sessionRepository,
-            externalScope = applicationScope,
-            authSessionManager = authSessionManager,
-            roleManager = roleManager
+            sessionManager,
+            authSessionManager,
+            roleManager,
+            externalScope = applicationScope
         )
     }
 
