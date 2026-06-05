@@ -57,9 +57,6 @@ fun HomeScreen(
 @Composable
 fun HomeDetails(roleState: UserRoleState) {
     Column {
-
-        Text(text = "Welcome to the Home Screen!")
-
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -71,7 +68,7 @@ fun HomeDetails(roleState: UserRoleState) {
                 }
 
                 is UserRoleState.RegularUser -> {
-                    Text(text = "TODO create the regular user dashboard with role name: ${state.name}")
+                    Text(text = "TODO create the regular user dashboard")
                 }
 
                 is UserRoleState.Administrator -> {
@@ -79,7 +76,10 @@ fun HomeDetails(roleState: UserRoleState) {
                 }
 
                 is UserRoleState.Unknown -> {
-                    Text(text = "TODO create screen for unauthorized access", color = Color.Red)
+                    Column {
+                        CircularProgressIndicator(modifier = Modifier)
+                        Text(text = "Logging out", color = Color.DarkGray)
+                    }
                 }
             }
         }

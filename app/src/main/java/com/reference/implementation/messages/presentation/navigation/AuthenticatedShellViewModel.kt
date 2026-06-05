@@ -19,9 +19,7 @@ class AuthenticatedShellViewModel(
         logoutJob?.cancel()
 
         logoutJob = viewModelScope.launch {
-
             logoutUseCase()
-
         }
     }
 }
