@@ -1,6 +1,5 @@
 package com.reference.implementation.messages.data.repository
 
-import android.util.Log
 import com.reference.implementation.messages.data.manager.AuthSessionManager
 import com.reference.implementation.messages.data.manager.RoleManager
 import com.reference.implementation.messages.data.manager.SessionManager

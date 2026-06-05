@@ -7,6 +7,6 @@ sealed class NetworkSessionState {
     object NoSession : NetworkSessionState()
     data class ActiveSession(
         val user: UserDto,
-        val role: RoleDto,
+        val roles: List<RoleDto>,
     ) : NetworkSessionState()
 }

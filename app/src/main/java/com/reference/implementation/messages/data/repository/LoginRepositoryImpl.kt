@@ -48,13 +48,13 @@ class LoginRepositoryImpl(
 
                     val userDto = response.body()!!.userDto
 
-                    val roleDeferred = async { getRole(userDto.id, onRetry) }
-                    val networkResultRole = roleDeferred.await()
+                    val rolesDeferred = async { getRoles(userDto.id, onRetry) }
+                    val networkResultRole = rolesDeferred.await()
 
                     if (networkResultRole is NetworkResult.Success) {
-                        val roleDto = networkResultRole.data
-                        sessionManager.updateSession(userDto, roleDto)
-                        val userRoleState = getUserRoleState(roleDto)
+                        val roles = networkResultRole.data
+                        sessionManager.updateSession(userDto, roles)
+                        val userRoleState = getUserRoleState(roles)
                         roleManager.updateRole(userRoleState)
                     }
 
@@ -85,18 +85,18 @@ class LoginRepositoryImpl(
      * Since it scoped to this repository, there is no need to return a "RoleDomainModel".
      * In this instance, the result is not bubbling up to a use case.
      */
-    private suspend fun getRole(
+    private suspend fun getRoles(
         userId: Int,
         onRetry: suspend (Int) -> Unit
-    ): NetworkResult<RoleDto> {
+    ): NetworkResult<List<RoleDto>> {
         return withContext(Dispatchers.IO) {
             try {
                 val response = retryIO(times = 3, onRetry = onRetry) {
-                    apiService.getRole(targetUserId = userId)
+                    apiService.getRoles(targetUserId = userId)
                 }
                 if (response.isSuccessful && response.body() != null) {
-                    val roleDto = response.body()!!
-                    NetworkResult.Success(roleDto)
+                    val roles = response.body()!!
+                    NetworkResult.Success(roles)
                 } else {
                     // Transform unsuccessful Retrofit calls.
                     NetworkResult.Error(response.code(), response.message())
@@ -114,13 +114,15 @@ class LoginRepositoryImpl(
 
 }
 
-private fun getUserRoleState(roleDto: RoleDto): UserRoleState =
-    when (roleDto.name.lowercase() == "system administrator") {
+private fun getUserRoleState(roles: List<RoleDto>): UserRoleState =
+    when (roles.any { roleDto ->
+        roleDto.name.lowercase() == "system administrator"
+    }) {
         true -> {
             UserRoleState.Administrator
         }
 
         false -> {
-            UserRoleState.RegularUser(roleDto.name)
+            UserRoleState.RegularUser
         }
     }

@@ -50,7 +50,7 @@ data class RoleDto(
     val id: Int,
     val name: String,
     val targetUserId: Int,
-    val permissionId: Int,
+    val permissions: List<Int>,
     val userId: Int // data owner aka administrator
 )
 
