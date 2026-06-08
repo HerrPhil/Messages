@@ -8,11 +8,12 @@ import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface ApiService {
 
-    // TODO LOGIN REQUEST/RESPONSE; response contains access token to be used in header of
-    //      the following api declarations, via retrofit
+    // Response contains access token to be used in header of the following api declarations
+    // Retrofit is configured to do this in the app container
 
     @POST("login")
     suspend fun login(@Body loginRequestDto: LoginRequestDto): Response<LoginDto>
@@ -26,7 +27,7 @@ interface ApiService {
 
     // Get message(s) by user ID, expect one JSON list (array), empty when not found, otherwise populated
     @GET("messages/userId/{userId}")
-    suspend fun getMessages(@Path("userId") userId: Int): Response<MessageDto>
+    suspend fun getMessages(@Path("userId") userId: Int): Response<List<MessageDto>>
 
     @POST("messages")
     suspend fun addMessage(@Body messageRequestDto: MessageRequestDto): Response<MessageDto>
@@ -45,4 +46,8 @@ interface ApiService {
     // empty list when not found
     @GET("roles/targetUserId/{targetUserId}")
     suspend fun getRoles(@Path("targetUserId") targetUserId: Int): Response<List<RoleDto>>
+
+    @GET("permissions")
+    suspend fun getPermissions(@Query("id") permissionIds: List<Int>): Response<List<PermissionDto>>
+
 }

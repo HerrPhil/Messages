@@ -7,10 +7,8 @@ sealed class UserUiState {
     object Loading: UserUiState()
     data class Retrying(val attempt: Int): UserUiState()
     data class Success(
-        val userId: Int,
         val email: String,
-        val name: String,
-        val age: Int
+        val name: String
     ): UserUiState()
     data class Information(val message: String): UserUiState()
     data class Warning(val message: String): UserUiState()

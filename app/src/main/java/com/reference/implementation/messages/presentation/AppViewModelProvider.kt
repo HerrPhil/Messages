@@ -25,7 +25,7 @@ object AppViewModelProvider {
         // the home view model initializer.
         initializer {
             HomeViewModel(
-                messageApplication().container.roleManager
+                messageApplication().container.getUserDashboardUseCase
             )
         }
 

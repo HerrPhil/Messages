@@ -1,8 +1,7 @@
 package com.reference.implementation.messages.data.remote
 
-import com.reference.implementation.messages.domain.model.LoginDomainModel
 import com.reference.implementation.messages.domain.model.MessageDomainModel
-import com.reference.implementation.messages.domain.model.UserDomainModel
+import com.reference.implementation.messages.domain.model.LoginUserDomainModel
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -10,6 +9,7 @@ import kotlinx.serialization.Serializable
 data class MessageDto(
     val id: Int,
     val body: String,
+    val read: Boolean,
     val userId: Int
 )
 
@@ -54,14 +54,23 @@ data class RoleDto(
     val userId: Int // data owner aka administrator
 )
 
-fun LoginDto.toDomainModel() : LoginDomainModel = LoginDomainModel(this.accessToken, this.userDto.toDomainModel())
+@Serializable
+data class PermissionDto(
+    val id: Int,
+    val task: String,
+    val userId: Int // data owner aka administrator
+)
 
-fun UserDto.toDomainModel() : UserDomainModel = UserDomainModel(this.id, this.email, this.name, this.age)
+fun UserDto.toDomainModel(): LoginUserDomainModel = LoginUserDomainModel(this.email, this.name)
 
-fun MessageDto.toMessageDomainModel() : MessageDomainModel = MessageDomainModel(this.id, this. body, this.userId)
+fun MessageDto.toMessageDomainModel(): MessageDomainModel =
+    MessageDomainModel(this.id, this.body, this.read, this.userId)
 
-fun MessageDomainModel.toMessageDto() : MessageDto = MessageDto(this.id, this.body, this.userId)
+fun MessageDomainModel.toMessageDto(): MessageDto =
+    MessageDto(this.id, this.body, this.read, this.userId)
 
-fun MessageDomainModel.toPartialMessageRequestDto() : PartialMessageRequestDto = PartialMessageRequestDto(this.body)
+fun MessageDomainModel.toPartialMessageRequestDto(): PartialMessageRequestDto =
+    PartialMessageRequestDto(this.body)
 
-fun MessageDomainModel.toMessageRequestDto() : MessageRequestDto = MessageRequestDto(this.body, this.userId)
+fun MessageDomainModel.toMessageRequestDto(): MessageRequestDto =
+    MessageRequestDto(this.body, this.userId)

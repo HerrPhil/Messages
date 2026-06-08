@@ -10,6 +10,11 @@ import com.reference.implementation.messages.data.manager.TokenManager
 import com.reference.implementation.messages.data.remote.ApiService
 import com.reference.implementation.messages.domain.repository.LoginRepository
 import com.reference.implementation.messages.domain.repository.LogoutRepository
+import com.reference.implementation.messages.domain.repository.MessageRepository
+import com.reference.implementation.messages.domain.repository.PermissionRepository
+import com.reference.implementation.messages.domain.repository.RoleRepository
+import com.reference.implementation.messages.domain.repository.UserRepository
+import com.reference.implementation.messages.domain.use_case.GetUserDashboardUseCase
 import com.reference.implementation.messages.domain.use_case.LoginUseCase
 import com.reference.implementation.messages.domain.use_case.LogoutUseCase
 import kotlinx.coroutines.CoroutineScope
@@ -25,6 +30,7 @@ import retrofit2.converter.kotlinx.serialization.asConverterFactory
 interface AppContainer {
     val loginUseCase: LoginUseCase
     val logoutUseCase: LogoutUseCase
+    val getUserDashboardUseCase: GetUserDashboardUseCase
     val authSessionManager: AuthSessionManager
     val roleManager: RoleManager
 }
@@ -139,6 +145,22 @@ class AppMessageContainer(private val context: Context) : AppContainer {
         )
     }
 
+    private val userRepository: UserRepository by lazy {
+        UserRepositoryImpl(sessionManager)
+    }
+
+    private val messageRepository: MessageRepository by lazy {
+        MessageRepositoryImpl(apiService, sessionManager)
+    }
+
+    private val roleRepository: RoleRepository by lazy {
+        RoleRepositoryImpl(sessionManager)
+    }
+
+    private val permissionRepository: PermissionRepository by lazy {
+        PermissionRepositoryImpl(apiService, sessionManager)
+    }
+
     /**
      * On the journey of building up the app, the first point of contact is login.
      * Here is the implementation for the login use case.
@@ -150,6 +172,10 @@ class AppMessageContainer(private val context: Context) : AppContainer {
 
     override val logoutUseCase: LogoutUseCase by lazy {
         LogoutUseCase(logoutRepository)
+    }
+
+    override val getUserDashboardUseCase: GetUserDashboardUseCase by lazy {
+        GetUserDashboardUseCase(userRepository, messageRepository, roleRepository, permissionRepository)
     }
 
 }

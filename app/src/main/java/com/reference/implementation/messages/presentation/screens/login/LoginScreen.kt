@@ -40,11 +40,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.reference.implementation.messages.data.audit.Audit
 import com.reference.implementation.messages.presentation.AppViewModelProvider
-import com.reference.implementation.messages.presentation.screens.user.UserUiState
 
 @Composable
 fun LoginScreen(
-//    onLogin: () -> Unit,
     viewModel: LoginViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
 
@@ -68,7 +66,6 @@ fun LoginScreen(
             onLoginClick = { viewModel.login(email, password) },
             onEmailChange = { newEmail: String -> viewModel.onEmailChange(newEmail) },
             onPasswordChange = { newPassword: String -> viewModel.onPasswordChange(newPassword) },
-//            onSuccessAction = onLogin,
             contentPadding = innerPadding
         )
 
@@ -87,7 +84,6 @@ fun LoginBody(
     onLoginClick: () -> Unit,
     onEmailChange: (String) -> Unit,
     onPasswordChange: (String) -> Unit,
-//    onSuccessAction: () -> Unit,
     contentPadding: PaddingValues = PaddingValues(0.dp)
 ) {
     Box(
@@ -104,10 +100,7 @@ fun LoginBody(
             }
 
             is LoginUiState.Success -> {
-                SuccessMessage(uiState)
-
-                // TODO - stop doing this, here - it stays in RootAppNavigation
-//                onSuccessAction()
+                SuccessMessage(uiState) // for audit purposes
             }
 
             is LoginUiState.Error -> {
@@ -217,14 +210,8 @@ private fun RetryingMessage(
 
 @Composable
 fun SuccessMessage(loginUiState: LoginUiState.Success) {
-    val userName = when (loginUiState.userUiState) {
-        is UserUiState.Success -> loginUiState.userUiState.name
-        else -> "no name"
-    }
-    val email = when (loginUiState.userUiState) {
-        is UserUiState.Success -> loginUiState.userUiState.email
-        else -> "no email"
-    }
+    val userName = loginUiState.name
+    val email = loginUiState.email
     Log.d("LoginScreen", "Success: user $userName, email $email, is logged in successfully")
     Audit.createInstance()
         .writeLog("Success: user $userName, email $email, is logged in successfully")

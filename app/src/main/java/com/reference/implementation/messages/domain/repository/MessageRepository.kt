@@ -5,6 +5,9 @@ import com.reference.implementation.messages.domain.model.MessageDomainModel
 
 interface MessageRepository {
     suspend fun getMessages(onRetry: suspend (Int) -> Unit): NetworkResult<List<MessageDomainModel>>
+    suspend fun getMessagesByUser(
+        onRetry: suspend (Int) -> Unit
+    ): NetworkResult<List<MessageDomainModel>>
     suspend fun getMessage(
         id: Int,
         onRetry: suspend (Int) -> Unit

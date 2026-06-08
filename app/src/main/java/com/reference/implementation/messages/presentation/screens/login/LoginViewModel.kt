@@ -5,7 +5,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.reference.implementation.messages.domain.model.toUserUiState
 import com.reference.implementation.messages.domain.use_case.LoginUseCase
 import com.reference.implementation.messages.domain.use_case.Resource
 import kotlinx.coroutines.Job
@@ -70,11 +69,12 @@ class LoginViewModel(private val loginUseCase: LoginUseCase) : ViewModel() {
                 email,
                 password,
                 onRetry = { attempt -> uiState = LoginUiState.Retrying(attempt) }
-            )
+            ) // User Domain Model
 
             uiState = when (resource) {
                 is Resource.Success -> LoginUiState.Success(
-                    userUiState = resource.data.toUserUiState()
+                    name = resource.data.name,
+                    email = resource.data.email
                 )
 
                 is Resource.Error -> LoginUiState.Error(resource.message)

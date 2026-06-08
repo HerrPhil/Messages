@@ -1,8 +1,7 @@
 package com.reference.implementation.messages.domain.model
 
-data class MessageDomainModel(
+data class PermissionDomainModel(
     val id: Int,
-    val body: String,
-    val read: Boolean,
+    val task: String,
     val userId: Int
 )
