@@ -10,7 +10,7 @@ import com.reference.implementation.messages.data.remote.ApiService
 import com.reference.implementation.messages.data.remote.LoginRequestDto
 import com.reference.implementation.messages.data.remote.RoleDto
 import com.reference.implementation.messages.data.remote.toDomainModel
-import com.reference.implementation.messages.domain.model.UserDomainModel
+import com.reference.implementation.messages.domain.model.LoginUserDomainModel
 import com.reference.implementation.messages.domain.repository.LoginRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -29,7 +29,7 @@ class LoginRepositoryImpl(
         email: String,
         password: String,
         onRetry: suspend (Int) -> Unit
-    ): NetworkResult<UserDomainModel> {
+    ): NetworkResult<LoginUserDomainModel> {
 
         roleManager.updateRole(UserRoleState.Loading)
 

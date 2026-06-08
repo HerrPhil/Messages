@@ -25,6 +25,18 @@ class SessionManager(private val tokenManager: TokenManager) {
         }
     }
 
+    fun getSessionUserEmail(): SessionResult<String> {
+        return when (val currentSessionState = _sessionFlow.value) {
+            is NetworkSessionState.NoSession -> {
+                SessionResult.NoValue
+            }
+
+            is NetworkSessionState.ActiveSession -> {
+                SessionResult.Authenticated(currentSessionState.user.email)
+            }
+        }
+    }
+
     fun getSessionUserId(): SessionResult<Int> {
         return when (val currentSessionState = _sessionFlow.value) {
             is NetworkSessionState.NoSession -> {
@@ -37,18 +49,34 @@ class SessionManager(private val tokenManager: TokenManager) {
         }
     }
 
-//    fun getSessionRoleName(): SessionResult<String> {
-//        return when (val currentSessionState = _sessionFlow.value) {
-//            is NetworkSessionState.NoSession -> {
-//                SessionResult.NoValue
-//            }
-//
-//            is NetworkSessionState.ActiveSession -> {
-//                SessionResult.Authenticated(currentSessionState.role.name)
-//            }
-//        }
-//    }
-//
+    fun getSessionRoleNames(): SessionResult<List<String>> {
+        return when (val currentSessionState = _sessionFlow.value) {
+            is NetworkSessionState.NoSession -> {
+                SessionResult.NoValue
+            }
+
+            is NetworkSessionState.ActiveSession -> {
+                val names = currentSessionState.roles.map { it.name }
+                SessionResult.Authenticated(names)
+            }
+        }
+    }
+
+    fun getSessionPermissionIds(): SessionResult<List<Int>> {
+        return when (val currentSessionState = _sessionFlow.value) {
+            is NetworkSessionState.NoSession -> {
+                SessionResult.NoValue
+            }
+
+            is NetworkSessionState.ActiveSession -> {
+                val permissionIds = currentSessionState.roles.map { it.permissions }
+                val flattenedPermissionIds = permissionIds.flatten()
+                val distinctPermissionIds = flattenedPermissionIds.distinct()
+                SessionResult.Authenticated(distinctPermissionIds)
+            }
+        }
+    }
+
 //    fun getSessionRoleTargetUserId(): SessionResult<Int> {
 //        return when (val currentSessionState = _sessionFlow.value) {
 //            is NetworkSessionState.NoSession -> {

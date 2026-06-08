@@ -1,6 +1,8 @@
 package com.reference.implementation.messages.data.repository
 
 import com.reference.implementation.messages.data.audit.Audit
+import com.reference.implementation.messages.data.manager.SessionManager
+import com.reference.implementation.messages.data.manager.SessionResult
 import com.reference.implementation.messages.data.remote.ApiService
 import com.reference.implementation.messages.data.remote.toMessageDomainModel
 import com.reference.implementation.messages.data.remote.toMessageDto
@@ -12,7 +14,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 
-class MessagesRepositoryImpl(private val apiService: ApiService) : MessageRepository {
+class MessageRepositoryImpl(
+    private val apiService: ApiService,
+    private val sessionManager: SessionManager
+) : MessageRepository {
 
     override suspend fun getMessages(
         onRetry: suspend (Int) -> Unit
@@ -36,6 +41,36 @@ class MessagesRepositoryImpl(private val apiService: ApiService) : MessageReposi
             } finally {
                 withContext(NonCancellable) {
                     Audit.createInstance().writeLog("${auditLogTimestamp()} get messages ended")
+                }
+            }
+        }
+    }
+
+    override suspend fun getMessagesByUser(onRetry: suspend (Int) -> Unit): NetworkResult<List<MessageDomainModel>> {
+        // force the execution onto the IO thread pool
+        return withContext(Dispatchers.IO) {
+            try {
+                val userId = when (val userIdResult = sessionManager.getSessionUserId()) {
+                    is SessionResult.Authenticated -> userIdResult.data
+                    else -> 0
+                }
+                val response = retryIO(times = 3, onRetry = onRetry) {
+                    apiService.getMessages(userId)
+                }
+                if (response.isSuccessful && response.body() != null) {
+                    // DTO never leaves this layer!
+                    NetworkResult.Success(response.body()!!.map { it.toMessageDomainModel() })
+                } else {
+                    // Transform unsuccessful Retrofit calls.
+                    NetworkResult.Error(response.code(), response.message())
+                }
+            } catch (e: Exception) {
+                Audit.createInstance().writeLog(e.message ?: "no message")
+                NetworkResult.Exception(e)
+            } finally {
+                withContext(NonCancellable) {
+                    Audit.createInstance().writeLog("${auditLogTimestamp()} get messages ended")
+
                 }
             }
         }
@@ -120,7 +155,8 @@ class MessagesRepositoryImpl(private val apiService: ApiService) : MessageReposi
                 NetworkResult.Exception(e)
             } finally {
                 withContext(NonCancellable) {
-                    Audit.createInstance().writeLog("${auditLogTimestamp()} update message ended")
+                    Audit.createInstance()
+                        .writeLog("${auditLogTimestamp()} update message ended")
                 }
             }
         }

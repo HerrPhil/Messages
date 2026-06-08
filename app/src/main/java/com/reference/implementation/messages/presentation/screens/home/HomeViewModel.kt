@@ -1,25 +1,53 @@
 package com.reference.implementation.messages.presentation.screens.home
 
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.reference.implementation.messages.data.manager.RoleManager
-import com.reference.implementation.messages.domain.model.toUserUiState
-import com.reference.implementation.messages.domain.use_case.LogoutUseCase
+import com.reference.implementation.messages.domain.model.toHomeUiState
+import com.reference.implementation.messages.domain.use_case.GetUserDashboardUseCase
 import com.reference.implementation.messages.domain.use_case.Resource
-import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 
-class HomeViewModel(roleManager: RoleManager) : ViewModel() {
+class HomeViewModel(
+    private val getUserDashboardUseCase: GetUserDashboardUseCase,
+) : ViewModel() {
 
-    // Expose the application-layer user role state directly to the Home screen composition
-    val userRoleState = roleManager.roleState
+    // TODO re-factor userRoleState up to AuthenticatedMainHubViewModel to make the decision what route
+    //  to follow. Each route will go to a different screen. There the app can choose
+    //  the administrator route or regular user route and related screen based on the user role.
 
-    var uiState by mutableStateOf<HomeUiState>(HomeUiState.Idle)
+    // Expose the application-layer user role state directly to the Home screen composition.
+    // The StateFlow is managed in the RoleManager.
+//    val userRoleState = roleManager.roleState
 
-    fun cancel() {
-        uiState = HomeUiState.Idle
+    // 1. Define your private mutable state backing property
+    private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Idle)
+
+    // 2. Expose it as an immutable read-only state flow to the UI
+    val uiState = _uiState.asStateFlow()
+
+    init {
+        // 3. Automatically kick off the data loading when the ViewModel is created
+        loadDashboardData()
+    }
+
+    fun loadDashboardData() {
+        viewModelScope.launch {
+            getUserDashboardUseCase(onRetryString = { attempt ->
+                _uiState.value = HomeUiState.Retrying(attempt)
+            }).collectLatest { resource ->
+                // 5. Explicitly map your resource over to your ViewModel's UI State
+                _uiState.value = when (resource) {
+                    is Resource.Loading -> HomeUiState.Loading
+                    is Resource.Error -> HomeUiState.Error(resource.message)
+                    is Resource.Success -> resource.data.toHomeUiState()
+                    else -> {
+                        HomeUiState.Error("something went wrong")
+                    }
+                }
+            }
+        }
     }
 }
