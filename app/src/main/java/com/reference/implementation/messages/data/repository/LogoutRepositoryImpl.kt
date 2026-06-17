@@ -23,4 +23,12 @@ class LogoutRepositoryImpl(
         }
     }
 
+    override suspend fun forceLogout() {
+        externalScope.launch(Dispatchers.IO) {
+            sessionManager.logout()
+            authSessionManager.forceStopSession()
+            roleManager.clear()
+        }
+    }
+
 }

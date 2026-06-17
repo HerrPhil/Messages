@@ -4,6 +4,7 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
@@ -15,8 +16,14 @@ interface ApiService {
     // Response contains access token to be used in header of the following api declarations
     // Retrofit is configured to do this in the app container
 
-    @POST("login")
+    @POST("auth/login")
     suspend fun login(@Body loginRequestDto: LoginRequestDto): Response<LoginDto>
+
+    @POST("auth/refresh")
+    suspend fun refreshAccessToken(
+        @Body refreshToken: RefreshTokenRequestDto,
+        @Header("x-refresh-scenario") scenario: String?  = null // Dynamic test hook!!!!
+    ): Response<RefreshTokenDto>
 
     @GET("messages")
     suspend fun getMessages(): Response<List<MessageDto>>
