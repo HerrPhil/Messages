@@ -2,12 +2,10 @@ package com.reference.implementation.messages.domain.use_case
 
 import com.reference.implementation.messages.data.repository.NetworkResult
 import com.reference.implementation.messages.domain.model.UserDashboardDomainModel
-import com.reference.implementation.messages.domain.model.toHomeUiState
 import com.reference.implementation.messages.domain.repository.MessageRepository
 import com.reference.implementation.messages.domain.repository.PermissionRepository
 import com.reference.implementation.messages.domain.repository.RoleRepository
 import com.reference.implementation.messages.domain.repository.UserRepository
-import com.reference.implementation.messages.presentation.screens.home.HomeUiState
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
@@ -141,12 +139,12 @@ class GetUserDashboardUseCase(
                             else -> Resource.Error("Unknown error occurred")
                         }
 
-                        resource =  resourceException // value put in flow
+                        resource = resourceException // value put in flow
 
                     }
                 } else {
 
-                    resource =    Resource.Error("Something went wrong") // value put in flow
+                    resource = Resource.Error("Something went wrong") // value put in flow
 
                 }
             }

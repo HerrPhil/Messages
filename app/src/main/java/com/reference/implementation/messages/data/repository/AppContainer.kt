@@ -4,6 +4,7 @@ import android.content.Context
 import com.reference.implementation.messages.BuildConfig
 import com.reference.implementation.messages.data.audit.SecurityAuditInterceptor
 import com.reference.implementation.messages.data.manager.AuthSessionManager
+import com.reference.implementation.messages.data.manager.RefreshManager
 import com.reference.implementation.messages.data.manager.RoleManager
 import com.reference.implementation.messages.data.manager.SessionManager
 import com.reference.implementation.messages.data.manager.TokenManager
@@ -12,11 +13,14 @@ import com.reference.implementation.messages.domain.repository.LoginRepository
 import com.reference.implementation.messages.domain.repository.LogoutRepository
 import com.reference.implementation.messages.domain.repository.MessageRepository
 import com.reference.implementation.messages.domain.repository.PermissionRepository
+import com.reference.implementation.messages.domain.repository.RefreshTokenRepository
 import com.reference.implementation.messages.domain.repository.RoleRepository
 import com.reference.implementation.messages.domain.repository.UserRepository
+import com.reference.implementation.messages.domain.use_case.ForceLogoutUseCase
 import com.reference.implementation.messages.domain.use_case.GetUserDashboardUseCase
 import com.reference.implementation.messages.domain.use_case.LoginUseCase
 import com.reference.implementation.messages.domain.use_case.LogoutUseCase
+import com.reference.implementation.messages.domain.use_case.RefreshTokenUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -26,11 +30,14 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
+import kotlin.getValue
 
 interface AppContainer {
     val loginUseCase: LoginUseCase
     val logoutUseCase: LogoutUseCase
+    val forceLogoutUseCase: ForceLogoutUseCase
     val getUserDashboardUseCase: GetUserDashboardUseCase
+    val refreshTokenUseCase: RefreshTokenUseCase
     val authSessionManager: AuthSessionManager
     val roleManager: RoleManager
 }
@@ -42,8 +49,9 @@ interface AppContainer {
 
 class AppMessageContainer(private val context: Context) : AppContainer {
 
-
     private val tokenManager = TokenManager(context)
+
+    private val refreshManager = RefreshManager(context)
 
     /**
      * This is related to login/logout.
@@ -99,11 +107,30 @@ class AppMessageContainer(private val context: Context) : AppContainer {
             redactHeader("Authorization")
         }
 
+        // 2. Create the TokenAuthenticator and
+        // Defer assigning the use cases with the provider pattern.
+        //
+        // This transforms a strict data dependency (I need this object right now)
+        // into a behavioural dependency (I need a method to fetch this object later).
+        //
+        // This gives the compiler a clear boundary to stop execution.
+        // It compiles the apiService perfectly,
+        // leaves the contents of that lambda un-evaluated in memory,
+        // and moves on.
+        //
+        // By passing a provider lambda, the core networking infrastructure does not
+        // tightly couple itself to the concrete lifecycle of the data layer use cases.
+        val tokenAuthenticator = TokenAuthenticator(
+            refreshTokenUseCaseProvider = { refreshTokenUseCase },
+            forceLogoutUseCaseProvider = { forceLogoutUseCase }
+        )
+
         // 2. Create the OkHttpClient and add the interceptor
         val client = OkHttpClient.Builder()
             .addInterceptor(logging)
             .addInterceptor(SecurityAuditInterceptor())
             .addInterceptor(AuthInterceptor(tokenManager))
+            .authenticator(tokenAuthenticator)
             .build()
 
         val contentType = "application/json".toMediaType()
@@ -118,7 +145,7 @@ class AppMessageContainer(private val context: Context) : AppContainer {
     }
 
     private val sessionManager by lazy {
-        SessionManager(tokenManager)
+        SessionManager(tokenManager, refreshManager)
     }
 
     /**
@@ -130,6 +157,7 @@ class AppMessageContainer(private val context: Context) : AppContainer {
         LoginRepositoryImpl(
             apiService,
             tokenManager,
+            refreshManager,
             authSessionManager,
             roleManager,
             sessionManager
@@ -161,6 +189,10 @@ class AppMessageContainer(private val context: Context) : AppContainer {
         PermissionRepositoryImpl(apiService, sessionManager)
     }
 
+    private val refreshTokenRepository: RefreshTokenRepository by lazy {
+        RefreshTokenRepositoryImpl(apiService, tokenManager, refreshManager)
+    }
+
     /**
      * On the journey of building up the app, the first point of contact is login.
      * Here is the implementation for the login use case.
@@ -174,8 +206,21 @@ class AppMessageContainer(private val context: Context) : AppContainer {
         LogoutUseCase(logoutRepository)
     }
 
+    override val forceLogoutUseCase: ForceLogoutUseCase by lazy {
+        ForceLogoutUseCase(logoutRepository)
+    }
+
     override val getUserDashboardUseCase: GetUserDashboardUseCase by lazy {
-        GetUserDashboardUseCase(userRepository, messageRepository, roleRepository, permissionRepository)
+        GetUserDashboardUseCase(
+            userRepository,
+            messageRepository,
+            roleRepository,
+            permissionRepository
+        )
+    }
+
+    override val refreshTokenUseCase: RefreshTokenUseCase by lazy {
+        RefreshTokenUseCase(refreshTokenRepository)
     }
 
 }

@@ -2,6 +2,7 @@ package com.reference.implementation.messages.data.repository
 
 import com.reference.implementation.messages.data.audit.Audit
 import com.reference.implementation.messages.data.manager.AuthSessionManager
+import com.reference.implementation.messages.data.manager.RefreshManager
 import com.reference.implementation.messages.data.manager.RoleManager
 import com.reference.implementation.messages.data.manager.SessionManager
 import com.reference.implementation.messages.data.manager.TokenManager
@@ -20,6 +21,7 @@ import kotlinx.coroutines.withContext
 class LoginRepositoryImpl(
     private val apiService: ApiService,
     private val tokenManager: TokenManager, // an application scope
+    private val refreshManager: RefreshManager, // an application scope
     private val authSessionManager: AuthSessionManager, // Global state source (Application Layer)
     private val roleManager: RoleManager, // Global state source (Application Layer)
     private val sessionManager: SessionManager
@@ -45,18 +47,20 @@ class LoginRepositoryImpl(
                     // It never leaves this layer!
                     // Function is saveToken is a suspend function; inside withContext coroutine scope - OK
                     tokenManager.saveToken(response.body()!!.accessToken)
+                    refreshManager.saveRefresh(response.body()!!.refreshToken)
 
                     val userDto = response.body()!!.userDto
 
                     val rolesDeferred = async { getRoles(userDto.id, onRetry) }
                     val networkResultRole = rolesDeferred.await()
 
+                    var roles = emptyList<RoleDto>()
                     if (networkResultRole is NetworkResult.Success) {
-                        val roles = networkResultRole.data
-                        sessionManager.updateSession(userDto, roles)
+                        roles = networkResultRole.data
                         val userRoleState = getUserRoleState(roles)
                         roleManager.updateRole(userRoleState)
                     }
+                    sessionManager.updateSession(userDto, roles)
 
                     // Make a note that the auth session is "Authenticated"!
                     authSessionManager.startSession()

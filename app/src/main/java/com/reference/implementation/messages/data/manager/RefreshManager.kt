@@ -13,32 +13,32 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-private const val KEY_ALIAS = "token_manager_key"
+private const val KEY_ALIAS = "refresh_manager_key"
 private const val ANDROID_KEYSTORE = "AndroidKeyStore"
 
-class TokenManager(context: Context) {
+class RefreshManager(context: Context) {
 
     private val prefs = context.getSharedPreferences("secure_prefs", Context.MODE_PRIVATE)
 
     // --- Public API ---
-    suspend fun saveToken(token: String) = withContext(Dispatchers.IO) {
+    suspend fun saveRefresh(refresh: String) = withContext(Dispatchers.IO) {
 
-        val (encryptedToken, tokenIV) = encrypt(token)
+        val (encryptedRefresh, refreshIV) = encrypt(refresh)
 
         // Store both the encrypted data and the IV
         // The "apply()" is embedded in the edit {} body
         prefs.edit {
-            putString("encrypted_token", encryptedToken)
-            putString("token_iv", tokenIV)
+            putString("encrypted_refresh", encryptedRefresh)
+            putString("refresh_iv", refreshIV)
         }
     }
 
-    suspend fun getToken(): String? = withContext(Dispatchers.IO) {
+    suspend fun getRefresh(): String? = withContext(Dispatchers.IO) {
 
-        val encryptedToken = prefs.getString("encrypted_token", null) ?: return@withContext null
-        val iv = prefs.getString("token_iv", null) ?: return@withContext null
+        val encryptedRefresh = prefs.getString("encrypted_refresh", null) ?: return@withContext null
+        val iv = prefs.getString("refresh_iv", null) ?: return@withContext null
 
-        decrypt(encryptedToken, iv)
+        decrypt(encryptedRefresh, iv)
     }
 
     suspend fun logout() = withContext(Dispatchers.IO) {

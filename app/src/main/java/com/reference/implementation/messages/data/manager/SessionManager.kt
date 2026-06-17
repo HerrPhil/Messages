@@ -6,7 +6,10 @@ import com.reference.implementation.messages.data.remote.UserDto
 import com.reference.implementation.messages.data.repository.NetworkSessionState
 import kotlinx.coroutines.flow.MutableStateFlow
 
-class SessionManager(private val tokenManager: TokenManager) {
+class SessionManager(
+    private val tokenManager: TokenManager,
+    private val refreshManager: RefreshManager
+) {
 
     // 1. Define a private MutableStateFlow to hold the current state of "session user"
     //    returned by login.
@@ -124,7 +127,10 @@ class SessionManager(private val tokenManager: TokenManager) {
         // 1. Delegate to token manager to manage keystore and preferences.
         tokenManager.logout()
 
-        // 2. Remove the session user information - no one is logged in
+        // 2. Delegate to refresh manager to manage keystore and preferences.
+        refreshManager.logout()
+
+        // 3. Remove the session user information - no one is logged in
         _sessionFlow.value = NetworkSessionState.NoSession
 
         Audit.createInstance().writeLog("$sessionUserName is logged out!")
