@@ -1,11 +1,11 @@
 package com.reference.implementation.messages.data.repository
 
 import com.reference.implementation.messages.data.audit.Audit
+import com.reference.implementation.messages.data.manager.AccessTokenManager
 import com.reference.implementation.messages.data.manager.AuthSessionManager
-import com.reference.implementation.messages.data.manager.RefreshManager
+import com.reference.implementation.messages.data.manager.RefreshTokenManager
 import com.reference.implementation.messages.data.manager.RoleManager
 import com.reference.implementation.messages.data.manager.SessionManager
-import com.reference.implementation.messages.data.manager.TokenManager
 import com.reference.implementation.messages.data.manager.UserRoleState
 import com.reference.implementation.messages.data.remote.ApiService
 import com.reference.implementation.messages.data.remote.LoginRequestDto
@@ -20,8 +20,8 @@ import kotlinx.coroutines.withContext
 
 class LoginRepositoryImpl(
     private val apiService: ApiService,
-    private val tokenManager: TokenManager, // an application scope
-    private val refreshManager: RefreshManager, // an application scope
+    private val accessTokenManager: AccessTokenManager, // an application scope
+    private val refreshTokenManager: RefreshTokenManager, // an application scope
     private val authSessionManager: AuthSessionManager, // Global state source (Application Layer)
     private val roleManager: RoleManager, // Global state source (Application Layer)
     private val sessionManager: SessionManager
@@ -46,8 +46,8 @@ class LoginRepositoryImpl(
                     // The token is a technical detail of the data layer.
                     // It never leaves this layer!
                     // Function is saveToken is a suspend function; inside withContext coroutine scope - OK
-                    tokenManager.saveToken(response.body()!!.accessToken)
-                    refreshManager.saveRefresh(response.body()!!.refreshToken)
+                    accessTokenManager.saveToken(response.body()!!.accessToken)
+                    refreshTokenManager.saveToken(response.body()!!.refreshToken)
 
                     val userDto = response.body()!!.userDto
 

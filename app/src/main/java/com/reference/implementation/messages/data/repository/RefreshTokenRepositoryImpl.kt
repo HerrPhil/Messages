@@ -2,8 +2,8 @@ package com.reference.implementation.messages.data.repository
 
 import android.util.Log
 import com.reference.implementation.messages.data.audit.Audit
-import com.reference.implementation.messages.data.manager.RefreshManager
-import com.reference.implementation.messages.data.manager.TokenManager
+import com.reference.implementation.messages.data.manager.AccessTokenManager
+import com.reference.implementation.messages.data.manager.RefreshTokenManager
 import com.reference.implementation.messages.data.remote.ApiService
 import com.reference.implementation.messages.data.remote.RefreshTokenRequestDto
 import com.reference.implementation.messages.data.remote.toDomainModel
@@ -15,8 +15,8 @@ import kotlinx.coroutines.withContext
 
 class RefreshTokenRepositoryImpl(
     private val apiService: ApiService,
-    private val tokenManager: TokenManager, // an application scope
-    private val refreshManager: RefreshManager // an application scope
+    private val accessTokenManager: AccessTokenManager, // an application scope
+    private val refreshTokenManager: RefreshTokenManager
 ) : RefreshTokenRepository {
     override suspend fun refreshToken(tokenUsedByRequest: String): NetworkResult<RefreshTokenDomainModel> {
 
@@ -24,13 +24,13 @@ class RefreshTokenRepositoryImpl(
             // The MAGIC CHECK: If the token in storage has changed,
             // then another thread already fixed it!
             // DO NOT call the refresh endpoint again.
-            val tokenInStorage = tokenManager.getToken() ?: ""
+            val tokenInStorage = accessTokenManager.getToken() ?: ""
             if (tokenInStorage != tokenUsedByRequest) {
                 NetworkResult.Success(RefreshTokenDomainModel(tokenInStorage))
             }
 
             try {
-                val refreshToken = refreshManager.getRefresh() ?: ""
+                val refreshToken = refreshTokenManager.getToken() ?: ""
 
                 val refreshTokenRequestDto = RefreshTokenRequestDto(refreshToken)
 
@@ -47,7 +47,7 @@ class RefreshTokenRepositoryImpl(
                     // The token is a technical detail of the data layer.
                     // It never leaves this layer!
                     // Function is saveToken is a suspend function; inside withContext coroutine scope - OK
-                    tokenManager.saveToken(response.body()!!.accessToken)
+                    accessTokenManager.saveToken(response.body()!!.accessToken)
 
                     val refreshTokenDto = response.body()!!
 
