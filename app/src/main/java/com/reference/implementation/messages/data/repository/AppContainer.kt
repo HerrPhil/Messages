@@ -3,11 +3,11 @@ package com.reference.implementation.messages.data.repository
 import android.content.Context
 import com.reference.implementation.messages.BuildConfig
 import com.reference.implementation.messages.data.audit.SecurityAuditInterceptor
+import com.reference.implementation.messages.data.manager.AccessTokenManager
 import com.reference.implementation.messages.data.manager.AuthSessionManager
-import com.reference.implementation.messages.data.manager.RefreshManager
+import com.reference.implementation.messages.data.manager.RefreshTokenManager
 import com.reference.implementation.messages.data.manager.RoleManager
 import com.reference.implementation.messages.data.manager.SessionManager
-import com.reference.implementation.messages.data.manager.TokenManager
 import com.reference.implementation.messages.data.remote.ApiService
 import com.reference.implementation.messages.domain.repository.LoginRepository
 import com.reference.implementation.messages.domain.repository.LogoutRepository
@@ -30,7 +30,6 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
-import kotlin.getValue
 
 interface AppContainer {
     val loginUseCase: LoginUseCase
@@ -47,11 +46,20 @@ interface AppContainer {
  * and provides the needed repository value(s) to each use case.
  */
 
-class AppMessageContainer(private val context: Context) : AppContainer {
+class AppMessageContainer(context: Context) : AppContainer {
 
-    private val tokenManager = TokenManager(context)
+    private val accessTokenManager = AccessTokenManager(
+        context,
+        "access_token_manager_key",
+        "encrypted_access_token",
+        "access_token_iv")
 
-    private val refreshManager = RefreshManager(context)
+    private val refreshTokenManager = RefreshTokenManager(
+        context,
+        "refresh_token_manager_key",
+        "encrypted_refresh_token",
+        "refresh_token_iv")
+
 
     /**
      * This is related to login/logout.
@@ -129,7 +137,7 @@ class AppMessageContainer(private val context: Context) : AppContainer {
         val client = OkHttpClient.Builder()
             .addInterceptor(logging)
             .addInterceptor(SecurityAuditInterceptor())
-            .addInterceptor(AuthInterceptor(tokenManager))
+            .addInterceptor(AuthInterceptor(accessTokenManager))
             .authenticator(tokenAuthenticator)
             .build()
 
@@ -145,7 +153,7 @@ class AppMessageContainer(private val context: Context) : AppContainer {
     }
 
     private val sessionManager by lazy {
-        SessionManager(tokenManager, refreshManager)
+        SessionManager(accessTokenManager, refreshTokenManager)
     }
 
     /**
@@ -156,8 +164,8 @@ class AppMessageContainer(private val context: Context) : AppContainer {
         // The container provides ("injects") the api service to the re=pository.
         LoginRepositoryImpl(
             apiService,
-            tokenManager,
-            refreshManager,
+            accessTokenManager,
+            refreshTokenManager,
             authSessionManager,
             roleManager,
             sessionManager
@@ -190,7 +198,7 @@ class AppMessageContainer(private val context: Context) : AppContainer {
     }
 
     private val refreshTokenRepository: RefreshTokenRepository by lazy {
-        RefreshTokenRepositoryImpl(apiService, tokenManager, refreshManager)
+        RefreshTokenRepositoryImpl(apiService, accessTokenManager, refreshTokenManager)
     }
 
     /**

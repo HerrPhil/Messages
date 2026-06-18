@@ -7,8 +7,8 @@ import com.reference.implementation.messages.data.repository.NetworkSessionState
 import kotlinx.coroutines.flow.MutableStateFlow
 
 class SessionManager(
-    private val tokenManager: TokenManager,
-    private val refreshManager: RefreshManager
+    private val accessTokenManager: AccessTokenManager,
+    private val refreshTokenManager: RefreshTokenManager
 ) {
 
     // 1. Define a private MutableStateFlow to hold the current state of "session user"
@@ -124,11 +124,11 @@ class SessionManager(
 
         val sessionUserName = getSessionUserName()
 
-        // 1. Delegate to token manager to manage keystore and preferences.
-        tokenManager.logout()
+        // 1. Delegate to access token manager to manage keystore and preferences.
+        accessTokenManager.logout()
 
-        // 2. Delegate to refresh manager to manage keystore and preferences.
-        refreshManager.logout()
+        // 2. Delegate to refresh token manager to manage keystore and preferences.
+        refreshTokenManager.logout()
 
         // 3. Remove the session user information - no one is logged in
         _sessionFlow.value = NetworkSessionState.NoSession

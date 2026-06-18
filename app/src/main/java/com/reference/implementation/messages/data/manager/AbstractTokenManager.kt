@@ -13,10 +13,13 @@ import javax.crypto.KeyGenerator
 import javax.crypto.SecretKey
 import javax.crypto.spec.GCMParameterSpec
 
-private const val KEY_ALIAS = "token_manager_key"
 private const val ANDROID_KEYSTORE = "AndroidKeyStore"
 
-class TokenManager(context: Context) {
+abstract class AbstractTokenManager(context: Context) {
+
+    protected abstract val keyAlias: String
+    protected abstract val encryptedTokenKey: String
+    protected abstract val initializationVectorKey: String
 
     private val prefs = context.getSharedPreferences("secure_prefs", Context.MODE_PRIVATE)
 
@@ -28,15 +31,15 @@ class TokenManager(context: Context) {
         // Store both the encrypted data and the IV
         // The "apply()" is embedded in the edit {} body
         prefs.edit {
-            putString("encrypted_token", encryptedToken)
-            putString("token_iv", tokenIV)
+            putString(encryptedTokenKey, encryptedToken)
+            putString(initializationVectorKey, tokenIV)
         }
     }
 
     suspend fun getToken(): String? = withContext(Dispatchers.IO) {
 
-        val encryptedToken = prefs.getString("encrypted_token", null) ?: return@withContext null
-        val iv = prefs.getString("token_iv", null) ?: return@withContext null
+        val encryptedToken = prefs.getString(encryptedTokenKey, null) ?: return@withContext null
+        val iv = prefs.getString(initializationVectorKey, null) ?: return@withContext null
 
         decrypt(encryptedToken, iv)
     }
@@ -44,7 +47,7 @@ class TokenManager(context: Context) {
     suspend fun logout() = withContext(Dispatchers.IO) {
         // 1. Wipe the "Island" (Hardware)
         val keyStore = KeyStore.getInstance(ANDROID_KEYSTORE).apply { load(null) }
-        keyStore.deleteEntry(KEY_ALIAS)
+        keyStore.deleteEntry(keyAlias)
 
         // 2. Wipe the "Mess" (Persistence)
         prefs.edit { clear() }
@@ -85,7 +88,7 @@ class TokenManager(context: Context) {
         }
 
         // If the key already exists, just return it. Voila!
-        keyStore.getKey(KEY_ALIAS, null)?.let {
+        keyStore.getKey(keyAlias, null)?.let {
             return it as SecretKey
         }
 
@@ -96,7 +99,7 @@ class TokenManager(context: Context) {
         )
 
         val spec = KeyGenParameterSpec.Builder(
-            KEY_ALIAS,
+            keyAlias,
             KeyProperties.PURPOSE_ENCRYPT or KeyProperties.PURPOSE_DECRYPT
         )
             .setBlockModes(KeyProperties.BLOCK_MODE_GCM)
