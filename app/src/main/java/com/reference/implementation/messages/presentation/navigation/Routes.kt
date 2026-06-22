@@ -2,6 +2,8 @@ package com.reference.implementation.messages.presentation.navigation
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.ListAlt
+import androidx.compose.material.icons.filled.Business
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -23,6 +25,10 @@ sealed class Route {
     abstract val icon: ImageVector
     abstract val label: String
 
+    /**
+     * Here are the three routes for 'Regular User' accounts
+     */
+
     @Serializable
     data object Home : Route() {
         @Transient
@@ -41,12 +47,42 @@ sealed class Route {
         override val label = "Your Messages"
     }
 
+    /**
+     * Here are the three routes for 'Administrator' account
+     */
+
+
+    @Serializable
+    data object AdminHome : Route() {
+        @Transient
+        override val icon = Icons.Filled.Business
+
+        @Transient
+        override val label = "Admin Home"
+    }
+
+
+    @Serializable
+    data object AdminMessages : Route() {
+        @Transient
+        override val icon: ImageVector = Icons.AutoMirrored.Filled.ListAlt
+        @Transient
+        override val label = "All User Messages"
+    }
+
+    /**
+     * Here is the one route shared by both Regular and Administrator users
+     */
+
     @Serializable
     data object Bulletins : Route() {
         @Transient
         override val icon: ImageVector = Icons.AutoMirrored.Filled.List
-
         @Transient
         override val label = "Bulletins"
     }
+
+
+
+
 }

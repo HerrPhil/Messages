@@ -14,14 +14,6 @@ class HomeViewModel(
     private val getUserDashboardUseCase: GetUserDashboardUseCase,
 ) : ViewModel() {
 
-    // TODO re-factor userRoleState up to AuthenticatedMainHubViewModel to make the decision what route
-    //  to follow. Each route will go to a different screen. There the app can choose
-    //  the administrator route or regular user route and related screen based on the user role.
-
-    // Expose the application-layer user role state directly to the Home screen composition.
-    // The StateFlow is managed in the RoleManager.
-//    val userRoleState = roleManager.roleState
-
     // 1. Define your private mutable state backing property
     private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Idle)
 

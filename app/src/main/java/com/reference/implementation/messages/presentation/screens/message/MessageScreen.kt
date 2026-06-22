@@ -14,7 +14,7 @@ import com.reference.implementation.messages.presentation.screens.home.HomeViewM
 
 @Composable
 fun MessageScreen(
-    viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    viewModel: MessageViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
 
     // TODO finish screen that uses UI state
