@@ -11,6 +11,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavHost
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -24,12 +26,18 @@ import kotlinx.serialization.Serializable
 // They use class or data class for routes with arguments
 // Here is a sample if the app allows messages to be edited.
 @Serializable
-data class MessageEdit(val messageId: Int, val message: String)
+data class MessageEditXXX(val messageId: Int, val message: String)
 
 // 2. Authenticated Hub Level: Houses the drawer and layout
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AuthenticatedMainHub() {
+fun AuthenticatedMainParameterHub(
+    startDestination: Route,
+    defaultRoute: String,
+    titlesLambda: (String?) -> String,
+    bottomBarTabs: List<Route>,
+    screenNavBuilder: NavGraphBuilder.() -> Unit
+) {
 
     // Isolated NavController for the internal tabs
     val childNavController = rememberNavController()
@@ -39,13 +47,15 @@ fun AuthenticatedMainHub() {
     val currentDestination = navBackStackEntry?.destination
 
     // Dynamic title mapping based on current destination
-    val qualifiedRouteName = currentDestination?.route ?: Route.Home::class.qualifiedName
+    val qualifiedRouteName = currentDestination?.route ?: defaultRoute
 
-    val displayTitle = when (qualifiedRouteName) {
-        Route.Messages::class.qualifiedName -> "Message Centre"
-        Route.Bulletins::class.qualifiedName -> "Bulletin Board"
-        else -> "User Home Page" // Home title move to "else" to make "when" statement exhaustive.
-    }
+    val displayTitle = titlesLambda(qualifiedRouteName)
+
+//    val displayTitle = when (qualifiedRouteName) {
+//        Route.Messages::class.qualifiedName -> "Message Centre"
+//        Route.Bulletins::class.qualifiedName -> "Bulletin Board"
+//        else -> "User Home Page" // Home title move to "else" to make "when" statement exhaustive.
+//    }
 
     // --- Complex Back Handling ---
     // If the user presses back, we want the nested graph to pop its own stack first.
@@ -69,14 +79,13 @@ fun AuthenticatedMainHub() {
 
                 // For maximum, cleanest separation of concerns,
                 // the Route values are essentially the tabs!
-                val bottomBarTabs = listOf(Route.Home, Route.Messages, Route.Bulletins)
+//                val bottomBarTabs = listOf(Route.Home, Route.Messages, Route.Bulletins)
 
                 bottomBarTabs.forEach { route ->
 
                     val localQualifiedRouteName = route::class.qualifiedName!!
 
-                    val selected =
-                        qualifiedRouteName?.endsWith(suffix = localQualifiedRouteName) == true
+                    val selected = qualifiedRouteName.endsWith(suffix = localQualifiedRouteName)
 
                     NavigationBarItem(
                         selected = selected,
@@ -105,20 +114,27 @@ fun AuthenticatedMainHub() {
 
         // The inner area executes the nested NavHost graph
 
+//        NavHost(
+//            navController = childNavController,
+//            startDestination = Route.Home,
+//            modifier = Modifier.padding(paddingValues)
+//        ) {
+//            composable<Route.Home> {
+//                HomeScreen()
+//            }
+//            composable<Route.Messages> {
+//                MessageScreen()
+//            }
+//            composable<Route.Bulletins> {
+//                BulletinScreen()
+//            }
+//        }
         NavHost(
             navController = childNavController,
-            startDestination = Route.Home,
-            modifier = Modifier.padding(paddingValues)
-        ) {
-            composable<Route.Home> {
-                HomeScreen()
-            }
-            composable<Route.Messages> {
-                MessageScreen()
-            }
-            composable<Route.Bulletins> {
-                BulletinScreen()
-            }
-        }
+            startDestination = startDestination,
+            modifier = Modifier.padding(paddingValues),
+            builder = screenNavBuilder
+        )
+
     }
 }
