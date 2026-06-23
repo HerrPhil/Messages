@@ -4,6 +4,7 @@ import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -12,7 +13,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.reference.implementation.messages.data.audit.Audit
 import com.reference.implementation.messages.data.manager.AuthState
 import com.reference.implementation.messages.data.manager.UnauthReason
 import com.reference.implementation.messages.data.manager.UserRoleState
@@ -77,6 +77,12 @@ fun RootAppNavigation(
         }
     }
 
+    // NEW: Clean, isolated Logging Side-Effect
+    // This will ONLY run once per state change, completely off the main composition thread.
+    LaunchedEffect(userRoleState) {
+        viewModel.logRoleStateTransition(userRoleState)
+    }
+
     NavHost(navController = rootNavController, startDestination = Login) {
         // Unauthenticated
         composable<Login> {
@@ -85,99 +91,86 @@ fun RootAppNavigation(
         // Authenticated
         composable<MainHub> {
 
-            when (userRoleState) {
+            // Remember the config so it is only re-evaluated when the user role actually changes
+            val config = remember(userRoleState) {
+                when (userRoleState) {
+                    is UserRoleState.Administrator -> HubConfig(
+                        startDestination = Route.AdminHome,
+                        defaultRoute = Route.AdminHome::class.qualifiedName ?: "No route",
+                        titlesLambda = { qualifiedRouteName ->
+                            when (qualifiedRouteName) {
+                                Route.AdminMessages::class.qualifiedName -> "Administrator Message Centre"
+                                Route.Bulletins::class.qualifiedName -> "Bulletin Board"
+                                // Home title move to "else" to make "when" statement exhaustive.
+                                else -> "Administrator Home Page"
+                            }
 
-
-                is UserRoleState.Loading -> {
-                    LaunchedEffect(userRoleState) {
-                        Audit.createInstance().writeLog("Root App Navigation: still loading ...")
-                    }
-                }
-
-                is UserRoleState.Administrator -> {
-
-                    val startDestination = Route.AdminHome
-
-                    val defaultRoute = Route.AdminHome::class.qualifiedName ?: "No route"
-
-                    val titlesLambda: (String?) -> String = { qualifiedRouteName ->
-                        when (qualifiedRouteName) {
-                            Route.AdminMessages::class.qualifiedName -> "Administrator Message Centre"
-                            Route.Bulletins::class.qualifiedName -> "Bulletin Board"
-                            // Home title move to "else" to make "when" statement exhaustive.
-                            else -> "Administrator Home Page"
+                        },
+                        bottomBarTabs = listOf(
+                            Route.AdminHome,
+                            Route.AdminMessages,
+                            Route.Bulletins
+                        ),
+                        screenNavBuilder = {
+                            composable<Route.AdminHome> {
+                                AdminHomeScreen()
+                            }
+                            composable<Route.AdminMessages> {
+                                AdminMessageScreen()
+                            }
+                            composable<Route.Bulletins> {
+                                BulletinScreen()
+                            }
                         }
-                    }
-
-                    val bottomBarTabs =
-                        listOf(Route.AdminHome, Route.AdminMessages, Route.Bulletins)
-
-                    val screenNavBuilder: NavGraphBuilder.() -> Unit = {
-                        composable<Route.AdminHome> {
-                            AdminHomeScreen()
-                        }
-                        composable<Route.AdminMessages> {
-                            AdminMessageScreen()
-                        }
-                        composable<Route.Bulletins> {
-                            BulletinScreen()
-                        }
-                    }
-
-                    AuthenticatedMainParameterHub(
-                        startDestination,
-                        defaultRoute,
-                        titlesLambda,
-                        bottomBarTabs,
-                        screenNavBuilder
                     )
-                }
 
-                is UserRoleState.RegularUser -> {
-
-                    val startDestination = Route.Home
-
-                    val defaultRoute = Route.Home::class.qualifiedName ?: "No route"
-
-                    val titlesLambda: (String?) -> String = { qualifiedRouteName ->
-                        when (qualifiedRouteName) {
-                            Route.Messages::class.qualifiedName -> "Message Centre"
-                            Route.Bulletins::class.qualifiedName -> "Bulletin Board"
-                            // Home title move to "else" to make "when" statement exhaustive.
-                            else -> "User Home Page"
+                    is UserRoleState.RegularUser -> HubConfig(
+                        startDestination = Route.Home,
+                        defaultRoute = Route.Home::class.qualifiedName ?: "No route",
+                        titlesLambda = { qualifiedRouteName ->
+                            when (qualifiedRouteName) {
+                                Route.Messages::class.qualifiedName -> "Message Centre"
+                                Route.Bulletins::class.qualifiedName -> "Bulletin Board"
+                                // Home title move to "else" to make "when" statement exhaustive.
+                                else -> "User Home Page"
+                            }
+                        },
+                        bottomBarTabs = listOf(Route.Home, Route.Messages, Route.Bulletins),
+                        screenNavBuilder = {
+                            composable<Route.Home> {
+                                HomeScreen()
+                            }
+                            composable<Route.Messages> {
+                                MessageScreen()
+                            }
+                            composable<Route.Bulletins> {
+                                BulletinScreen()
+                            }
                         }
-                    }
-
-                    val bottomBarTabs = listOf(Route.Home, Route.Messages, Route.Bulletins)
-
-                    val screenNavBuilder: NavGraphBuilder.() -> Unit = {
-                        composable<Route.Home> {
-                            HomeScreen()
-                        }
-                        composable<Route.Messages> {
-                            MessageScreen()
-                        }
-                        composable<Route.Bulletins> {
-                            BulletinScreen()
-                        }
-                    }
-
-                    AuthenticatedMainParameterHub(
-                        startDestination,
-                        defaultRoute,
-                        titlesLambda,
-                        bottomBarTabs,
-                        screenNavBuilder
                     )
-                }
 
-                is UserRoleState.Unknown -> {
-                    LaunchedEffect(userRoleState) {
-                        Audit.createInstance()
-                            .writeLog("Root App Navigation: The user role is cleared - logout event")
-                    }
+                    else -> null
                 }
+            }
+
+            // Only render the hub if a valid authorized configuration is mapped
+            config?.let {
+                AuthenticatedMainParameterHub(
+                    startDestination = it.startDestination,
+                    defaultRoute = it.defaultRoute,
+                    titlesLambda = it.titlesLambda,
+                    bottomBarTabs = it.bottomBarTabs,
+                    screenNavBuilder = it.screenNavBuilder
+                )
             }
         }
     }
 }
+
+private data class HubConfig(
+    val startDestination: Route,
+    val defaultRoute: String,
+    val titlesLambda: (String?) -> String,
+    val bottomBarTabs: List<Route>,
+    val screenNavBuilder: NavGraphBuilder.() -> Unit
+)
