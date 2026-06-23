@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.asStateFlow
 
 // Singleton
 class RoleManager {
-    private val _roleState = MutableStateFlow<UserRoleState>(UserRoleState.Unknown)
+    private val _roleState = MutableStateFlow<UserRoleState>(UserRoleState.Idle)
     val roleState: StateFlow<UserRoleState> = _roleState.asStateFlow()
 
     fun updateRole(newRole: UserRoleState) {

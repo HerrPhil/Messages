@@ -51,12 +51,6 @@ fun AuthenticatedMainParameterHub(
 
     val displayTitle = titlesLambda(qualifiedRouteName)
 
-//    val displayTitle = when (qualifiedRouteName) {
-//        Route.Messages::class.qualifiedName -> "Message Centre"
-//        Route.Bulletins::class.qualifiedName -> "Bulletin Board"
-//        else -> "User Home Page" // Home title move to "else" to make "when" statement exhaustive.
-//    }
-
     // --- Complex Back Handling ---
     // If the user presses back, we want the nested graph to pop its own stack first.
     // If the child graph is already at its starting destination (Home), we let the system
@@ -79,8 +73,6 @@ fun AuthenticatedMainParameterHub(
 
                 // For maximum, cleanest separation of concerns,
                 // the Route values are essentially the tabs!
-//                val bottomBarTabs = listOf(Route.Home, Route.Messages, Route.Bulletins)
-
                 bottomBarTabs.forEach { route ->
 
                     val localQualifiedRouteName = route::class.qualifiedName!!
@@ -111,30 +103,13 @@ fun AuthenticatedMainParameterHub(
             }
         }
     ) { paddingValues ->
-
-        // The inner area executes the nested NavHost graph
-
-//        NavHost(
-//            navController = childNavController,
-//            startDestination = Route.Home,
-//            modifier = Modifier.padding(paddingValues)
-//        ) {
-//            composable<Route.Home> {
-//                HomeScreen()
-//            }
-//            composable<Route.Messages> {
-//                MessageScreen()
-//            }
-//            composable<Route.Bulletins> {
-//                BulletinScreen()
-//            }
-//        }
+        // The inner area executes the nested NavHost graph, picks a screen from a route.
+        // That is the content() of the authenticated shell.
         NavHost(
             navController = childNavController,
             startDestination = startDestination,
             modifier = Modifier.padding(paddingValues),
             builder = screenNavBuilder
         )
-
     }
 }
