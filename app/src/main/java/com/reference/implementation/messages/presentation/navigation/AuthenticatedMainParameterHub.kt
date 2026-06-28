@@ -1,25 +1,34 @@
 package com.reference.implementation.messages.presentation.navigation
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavGraphBuilder
-import androidx.navigation.NavHost
 import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.reference.implementation.messages.presentation.screens.bulletin.BulletinScreen
-import com.reference.implementation.messages.presentation.screens.home.HomeScreen
-import com.reference.implementation.messages.presentation.screens.message.MessageScreen
 import kotlinx.serialization.Serializable
 
 // Remember we can create compile-time strongly typed destinations
@@ -79,26 +88,111 @@ fun AuthenticatedMainParameterHub(
 
                     val selected = qualifiedRouteName.endsWith(suffix = localQualifiedRouteName)
 
+//                    NavigationBarItem(
+//                        selected = selected,
+//                        label = { Text(route.label) },
+//                        icon = { Icon(imageVector = route.icon, contentDescription = route.label) },
+//                        onClick = {
+//                            // The user changed destinations
+//                            childNavController.navigate(route) {
+//                                // Pop up to the start destination of the graph
+//                                // to avoid building up a large stack of destinations.
+//                                popUpTo(childNavController.graph.findStartDestination().id) {
+//                                    saveState = true
+//                                }
+//                                // Avoid multiple copies of the same destination
+//                                // when re-selecting the same item.
+//                                launchSingleTop = true
+//                                // Restore state when re-selecting a previously selected item
+//                                restoreState = true
+//                            }
+//                        }
+//                    )
+
+                    // navigation bar item option: bigger highlight size
+                    // Learn how to roll my own highlight
                     NavigationBarItem(
                         selected = selected,
                         label = { Text(route.label) },
-                        icon = { Icon(imageVector = route.icon, contentDescription = route.label) },
                         onClick = {
-                            // The user changed destinations
-                            childNavController.navigate(route) {
-                                // Pop up to the start destination of the graph
-                                // to avoid building up a large stack of destinations.
-                                popUpTo(childNavController.graph.findStartDestination().id) {
-                                    saveState = true
-                                }
-                                // Avoid multiple copies of the same destination
-                                // when re-selecting the same item.
-                                launchSingleTop = true
-                                // Restore state when re-selecting a previously selected item
-                                restoreState = true
+//                            // The user changed destinations
+//                            childNavController.navigate(route) {
+//                                // Pop up to the start destination of the graph
+//                                // to avoid building up a large stack of destinations.
+//                                popUpTo(childNavController.graph.findStartDestination().id) {
+//                                    saveState = true
+//                                }
+//                                // Avoid multiple copies of the same destination
+//                                // when re-selecting the same item.
+//                                launchSingleTop = true
+//                                // Restore state when re-selecting a previously selected item
+//                                restoreState = true
+//                            }
+                        },
+                        // 1. Turn off the default M3 indicator by making it Transparent
+                        colors = NavigationBarItemDefaults.colors(
+                            indicatorColor = Color.Transparent,
+                            // CRUCIAL: Force the native, misaligned item ripple to completely turn off
+                            selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        icon = {
+                            // 2. Build your own roomy custom background container
+                            Box(
+                                modifier = Modifier
+                                    // Tune these dimensions to make the highlight as large as you want!
+                                    .size(width = 80.dp, height = 40.dp)
+                                    // A. Force clip to your exact visual shape token first
+                                    .clip(MaterialTheme.shapes.medium)
+                                    // B. Apply your custom background color
+                                    .background(
+                                        color = if (selected) {
+                                            MaterialTheme.colorScheme.secondaryContainer
+                                        } else {
+                                            Color.Transparent
+                                        }
+                                    )
+                                    // C. Attach the clickable action directly to the box layout
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        // Inject a clean M3 bounded ripple that matches the clipped shape
+                                        indication = ripple(
+                                            bounded = true,
+                                            color = MaterialTheme.colorScheme.primary // Optional override
+                                        ),
+                                        onClick = {
+                                            /* Trigger navigation route switch here */
+                                            // The user changed destinations
+                                            childNavController.navigate(route) {
+                                                // Pop up to the start destination of the graph
+                                                // to avoid building up a large stack of destinations.
+                                                popUpTo(childNavController.graph.findStartDestination().id) {
+                                                    saveState = true
+                                                }
+                                                // Avoid multiple copies of the same destination
+                                                // when re-selecting the same item.
+                                                launchSingleTop = true
+                                                // Restore state when re-selecting a previously selected item
+                                                restoreState = true
+                                            }
+                                        }
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = route.icon,
+                                    contentDescription = route.label,
+                                    tint = if (selected) {
+                                        MaterialTheme.colorScheme.onSecondaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    }
+                                )
                             }
                         }
                     )
+
+
                 }
             }
         }
