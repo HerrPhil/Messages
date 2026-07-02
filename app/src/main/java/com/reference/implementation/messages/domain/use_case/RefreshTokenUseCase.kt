@@ -11,6 +11,7 @@ class RefreshTokenUseCase(private val repo: RefreshTokenRepository) {
         tokenUsedByRequest: String
     ): Resource<RefreshTokenDomainModel> {
         return when (val refreshTokenNetworkResult = repo.refreshToken(tokenUsedByRequest)) {
+            is NetworkResult.Loading -> Resource.Loading
             is NetworkResult.Success -> {
                 Resource.Success(data = refreshTokenNetworkResult.data)
             }

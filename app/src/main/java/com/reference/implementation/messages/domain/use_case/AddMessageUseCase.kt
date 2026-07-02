@@ -12,6 +12,7 @@ class AddMessageUseCase(private val repo: MessageRepository) {
         onRetry: suspend (Int) -> Unit
     ): Resource<MessageDomainModel> {
         return when (val addMessageNetworkResult = repo.addMessage(message, onRetry)) {
+            is NetworkResult.Loading -> Resource.Loading
             is NetworkResult.Success -> {
                 Resource.Success(data = addMessageNetworkResult.data) // pass the domain model
             }

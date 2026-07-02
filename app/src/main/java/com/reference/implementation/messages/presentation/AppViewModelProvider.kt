@@ -48,7 +48,8 @@ object AppViewModelProvider {
         // The message view model initializer.
         initializer {
             MessageViewModel(
-                // TODO add use case(s) to get message info
+                messageApplication().container.loadActiveMessagesUseCase,
+                messageApplication().container.getActiveMessagesUseCase
             )
         }
 

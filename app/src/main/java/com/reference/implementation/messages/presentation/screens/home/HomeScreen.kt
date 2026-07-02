@@ -1,12 +1,11 @@
 package com.reference.implementation.messages.presentation.screens.home
 
-import android.R
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -238,6 +237,7 @@ fun HomeDetails(
     Scaffold(
         modifier = modifier
             .fillMaxSize()
+            // 2(a). Pass the scroll behavior down into the nested scroll system
             .nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             // 3. The shell top app bar is handling the resting state for now
@@ -264,7 +264,6 @@ fun HomeDetails(
             // Re-factoring exercise: make roles a sub-heading with permissions details
             RolesAndPermissions(currentState.roles, currentState.permissions)
         }
-
     }
 }
 
@@ -318,7 +317,7 @@ fun ProfileHeader(username: String, email: String) {
             verticalArrangement = Arrangement.Center
         ) {
             Text(
-                text = "User: $username",
+                text = username,
                 // Your sharp display font
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onSurface
@@ -327,7 +326,7 @@ fun ProfileHeader(username: String, email: String) {
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = "Email: $email",
+                text = email,
                 // Your clean, legible body font
                 style = MaterialTheme.typography.bodyMedium,
                 // Mutes the email slightly for visual contrast
@@ -435,7 +434,6 @@ fun RolesAndPermissions(roles: List<String>, permissions: List<String>) {
         ) {
             Text(
                 text = roles.joinToString(separator = ", "),
-//                text = roles.joinToString { it },
                 style = MaterialTheme.typography.titleMedium,
                 // My display font only does regular and Bold
                 fontWeight = FontWeight.SemiBold
@@ -463,7 +461,5 @@ fun RolesAndPermissions(roles: List<String>, permissions: List<String>) {
                 }
             }
         }
-
-
     }
 }

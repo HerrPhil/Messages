@@ -8,6 +8,7 @@ import retrofit2.HttpException
 class RemoveMessageUseCase(private val repo: MessageRepository) {
     suspend operator fun invoke(id: Int, onRetry: suspend (Int) -> Unit): Resource<Nothing> {
         return when (val removeMessageNetworkResult = repo.removeMessage(id, onRetry)) {
+            is NetworkResult.Loading -> Resource.Loading
             is NetworkResult.Success -> {
                 Resource.Deleted(Information.Outcome.DELETED)
             }
