@@ -11,13 +11,16 @@ import com.reference.implementation.messages.data.manager.SessionManager
 import com.reference.implementation.messages.data.remote.ApiService
 import com.reference.implementation.messages.domain.repository.LoginRepository
 import com.reference.implementation.messages.domain.repository.LogoutRepository
+import com.reference.implementation.messages.domain.repository.MessageCacheRepository
 import com.reference.implementation.messages.domain.repository.MessageRepository
 import com.reference.implementation.messages.domain.repository.PermissionRepository
 import com.reference.implementation.messages.domain.repository.RefreshTokenRepository
 import com.reference.implementation.messages.domain.repository.RoleRepository
 import com.reference.implementation.messages.domain.repository.UserRepository
 import com.reference.implementation.messages.domain.use_case.ForceLogoutUseCase
+import com.reference.implementation.messages.domain.use_case.GetActiveMessagesUseCase
 import com.reference.implementation.messages.domain.use_case.GetUserDashboardUseCase
+import com.reference.implementation.messages.domain.use_case.LoadActiveMessagesUseCase
 import com.reference.implementation.messages.domain.use_case.LoginUseCase
 import com.reference.implementation.messages.domain.use_case.LogoutUseCase
 import com.reference.implementation.messages.domain.use_case.RefreshTokenUseCase
@@ -37,6 +40,8 @@ interface AppContainer {
     val forceLogoutUseCase: ForceLogoutUseCase
     val getUserDashboardUseCase: GetUserDashboardUseCase
     val refreshTokenUseCase: RefreshTokenUseCase
+    val loadActiveMessagesUseCase: LoadActiveMessagesUseCase
+    val getActiveMessagesUseCase: GetActiveMessagesUseCase
     val authSessionManager: AuthSessionManager
     val roleManager: RoleManager
 }
@@ -201,6 +206,10 @@ class AppMessageContainer(context: Context) : AppContainer {
         RefreshTokenRepositoryImpl(apiService, accessTokenManager, refreshTokenManager)
     }
 
+    private val messageCacheRepository: MessageCacheRepository by lazy {
+        MessageCacheRepositoryImpl(apiService, sessionManager)
+    }
+
     /**
      * On the journey of building up the app, the first point of contact is login.
      * Here is the implementation for the login use case.
@@ -229,6 +238,14 @@ class AppMessageContainer(context: Context) : AppContainer {
 
     override val refreshTokenUseCase: RefreshTokenUseCase by lazy {
         RefreshTokenUseCase(refreshTokenRepository)
+    }
+
+    override val loadActiveMessagesUseCase: LoadActiveMessagesUseCase by lazy {
+        LoadActiveMessagesUseCase(messageCacheRepository)
+    }
+
+    override val getActiveMessagesUseCase: GetActiveMessagesUseCase by lazy {
+        GetActiveMessagesUseCase(messageCacheRepository)
     }
 
 }

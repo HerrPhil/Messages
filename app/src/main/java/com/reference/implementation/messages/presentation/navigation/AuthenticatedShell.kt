@@ -16,10 +16,12 @@ import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.reference.implementation.messages.presentation.AppViewModelProvider
@@ -72,7 +74,12 @@ fun AuthenticatedShell(
         Scaffold(
             topBar = {
                 TopAppBar(
-                    title = { Text(text = title) },
+                    title = {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.headlineMedium
+                        )
+                            },
                     navigationIcon = {
                         IconButton(
                             onClick = {

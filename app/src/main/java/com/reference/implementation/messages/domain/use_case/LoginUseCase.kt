@@ -13,6 +13,7 @@ class LoginUseCase(private val repo: LoginRepository) {
         onRetry: suspend (Int) -> Unit
     ): Resource<LoginUserDomainModel> {
         return when (val loginNetworkResult = repo.login(email, password, onRetry)) {
+            is NetworkResult.Loading -> Resource.Loading
             is NetworkResult.Success -> {
                 Resource.Success(data = loginNetworkResult.data) // pass the user domain model
             }

@@ -13,6 +13,7 @@ class PartialUpdateMessageUseCase(private val repo: MessageRepository) {
     ): Resource<MessageDomainModel> {
         return when (val partialUpdateMessageNetworkResult =
             repo.partialUpdateMessage(message, onRetry)) {
+            is NetworkResult.Loading -> Resource.Loading
             is NetworkResult.Success -> {
                 Resource.Success(data = partialUpdateMessageNetworkResult.data) // pass the domain model
             }
