@@ -2,7 +2,6 @@ package com.reference.implementation.messages.presentation.screens.home
 
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,7 +20,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AssistChip
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -34,7 +32,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -42,6 +39,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.reference.implementation.messages.presentation.AppViewModelProvider
+import com.reference.implementation.messages.presentation.components.ErrorContent
+import com.reference.implementation.messages.presentation.components.LoadingContent
+import com.reference.implementation.messages.presentation.components.RetryingContent
+import com.reference.implementation.messages.presentation.components.Welcome
 import com.reference.implementation.messages.ui.theme.MessagesTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -52,11 +53,6 @@ fun HomeScreen(
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // TODO re-factor roleState up to AuthenticatedMainHub to make the decision what route to follow.
-    //  Each route will go to a different screen. There the app can choose the administrator
-    //  route and screen based on the user role.
-//    val roleState by viewModel.userRoleState.collectAsStateWithLifecycle()
-
     // When you use Compose elements like AnimatedContent or CrossFade, to mention two examples,
     // they pass a local snapshot copy of the state into the lambda block (usually named "it",
     // or renamed to "currentState").
@@ -65,7 +61,8 @@ fun HomeScreen(
     AnimatedContent(targetState = uiState, label = "DashboardStateTransition") { currentState ->
         when (currentState) {
             is HomeUiState.Idle -> {
-                WelcomeHome()
+                Welcome("Home")
+//                WelcomeHome()
             }
 
             is HomeUiState.Loading -> {
@@ -77,125 +74,15 @@ fun HomeScreen(
                 RetryingContent(retryAttempt)
             }
 
-            is HomeUiState.Success -> {
-                HomeDetails(currentState)
-            }
-
             is HomeUiState.Error -> {
                 ErrorContent(currentState.message)
             }
+
+            is HomeUiState.Success -> {
+                HomeDetails(currentState)
+            }
         }
     }
-}
-
-@Preview(name = "Light Mode", showBackground = true)
-@Preview(
-    name = "Dark Mode",
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
-    showBackground = true
-)
-@Composable
-fun WelcomeHomePreview() {
-    MessagesTheme {
-        WelcomeHome()
-    }
-}
-
-@Composable
-fun WelcomeHome() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = "Welcome Home")
-    }
-}
-
-@Preview(name = "Light Mode", showBackground = true)
-@Preview(
-    name = "Dark Mode",
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
-    showBackground = true
-)
-@Composable
-fun LoadingContentPreview() {
-    MessagesTheme {
-        LoadingContent()
-    }
-}
-
-@Composable
-fun LoadingContent() {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-    }
-}
-
-@Preview(name = "Light Mode", showBackground = true)
-@Preview(
-    name = "Dark Mode",
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
-    showBackground = true
-)
-@Composable
-fun RetryingContentPreview() {
-    MessagesTheme {
-        RetryingContent("Attempt #2")
-    }
-}
-
-@Composable
-fun RetryingContent(retryAttempt: String) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-
-        val orangeColor = Color(0xFFFF9800)
-
-        CircularProgressIndicator(
-            color = orangeColor,
-            trackColor = Color.LightGray
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = "Connection jittery...Retry attempt $retryAttempt",
-            color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.labelSmall
-        )
-    }
-}
-
-@Preview(name = "Light Mode", showBackground = true)
-@Preview(
-    name = "Dark Mode",
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
-    showBackground = true
-)
-@Composable
-fun ErrorContentPreview() {
-    MessagesTheme {
-        ErrorContent("Something went wrong")
-    }
-}
-
-@Composable
-fun ErrorContent(message: String) {
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        Text(text = message)
-    }
-
 }
 
 @Preview(name = "Light Mode", showBackground = true)
@@ -219,7 +106,6 @@ fun HomeDetailsPreview() {
         )
     }
 }
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

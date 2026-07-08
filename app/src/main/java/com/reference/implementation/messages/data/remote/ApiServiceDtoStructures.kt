@@ -9,6 +9,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class MessageDto(
     val id: Int,
+    val subject: String,
     val body: String,
     val read: Boolean,
     val userId: Int
@@ -76,10 +77,10 @@ data class PermissionDto(
 fun UserDto.toDomainModel(): LoginUserDomainModel = LoginUserDomainModel(this.email, this.name)
 
 fun MessageDto.toMessageDomainModel(): MessageDomainModel =
-    MessageDomainModel(this.id, this.body, this.read, this.userId)
+    MessageDomainModel(this.id, this.subject, this.body, this.read, this.userId)
 
 fun MessageDomainModel.toMessageDto(): MessageDto =
-    MessageDto(this.id, this.body, this.read, this.userId)
+    MessageDto(this.id, this.subject, this.body, this.read, this.userId)
 
 fun MessageDomainModel.toPartialMessageRequestDto(): PartialMessageRequestDto =
     PartialMessageRequestDto(this.body)

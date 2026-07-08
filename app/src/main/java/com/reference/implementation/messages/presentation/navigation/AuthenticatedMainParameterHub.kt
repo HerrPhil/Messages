@@ -7,7 +7,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -25,17 +24,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import kotlinx.serialization.Serializable
-
-// Remember we can create compile-time strongly typed destinations
-// They use class or data class for routes with arguments
-// Here is a sample if the app allows messages to be edited.
-@Serializable
-data class MessageEditXXX(val messageId: Int, val message: String)
+import androidx.navigation.toRoute
+import com.reference.implementation.messages.presentation.screens.adminhome.AdminHomeScreen
+import com.reference.implementation.messages.presentation.screens.adminmessage.AdminMessageScreen
+import com.reference.implementation.messages.presentation.screens.bulletin.BulletinScreen
+import com.reference.implementation.messages.presentation.screens.home.HomeScreen
+import com.reference.implementation.messages.presentation.screens.message.MessageDetailScreen
+import com.reference.implementation.messages.presentation.screens.message.MessageScreen
 
 // 2. Authenticated Hub Level: Houses the drawer and layout
 @OptIn(ExperimentalMaterial3Api::class)
@@ -43,13 +42,13 @@ data class MessageEditXXX(val messageId: Int, val message: String)
 fun AuthenticatedMainParameterHub(
     startDestination: Route,
     defaultRoute: String,
-    titlesLambda: (String?) -> String,
+    onRouteSelectTitle: (String?) -> String,
     bottomBarTabs: List<Route>,
-    screenNavBuilder: NavGraphBuilder.() -> Unit
 ) {
 
     // Isolated NavController for the internal tabs
     val childNavController = rememberNavController()
+
 
     // Track the current backstack destination to highlight the correct bottom bar icon
     val navBackStackEntry by childNavController.currentBackStackEntryAsState()
@@ -58,7 +57,7 @@ fun AuthenticatedMainParameterHub(
     // Dynamic title mapping based on current destination
     val qualifiedRouteName = currentDestination?.route ?: defaultRoute
 
-    val displayTitle = titlesLambda(qualifiedRouteName)
+    val displayTitle = onRouteSelectTitle(qualifiedRouteName)
 
     // --- Complex Back Handling ---
     // If the user presses back, we want the nested graph to pop its own stack first.
@@ -88,46 +87,15 @@ fun AuthenticatedMainParameterHub(
 
                     val selected = qualifiedRouteName.endsWith(suffix = localQualifiedRouteName)
 
-//                    NavigationBarItem(
-//                        selected = selected,
-//                        label = { Text(route.label) },
-//                        icon = { Icon(imageVector = route.icon, contentDescription = route.label) },
-//                        onClick = {
-//                            // The user changed destinations
-//                            childNavController.navigate(route) {
-//                                // Pop up to the start destination of the graph
-//                                // to avoid building up a large stack of destinations.
-//                                popUpTo(childNavController.graph.findStartDestination().id) {
-//                                    saveState = true
-//                                }
-//                                // Avoid multiple copies of the same destination
-//                                // when re-selecting the same item.
-//                                launchSingleTop = true
-//                                // Restore state when re-selecting a previously selected item
-//                                restoreState = true
-//                            }
-//                        }
-//                    )
-
                     // navigation bar item option: bigger highlight size
                     // Learn how to roll my own highlight
                     NavigationBarItem(
                         selected = selected,
                         label = { Text(route.label) },
                         onClick = {
-//                            // The user changed destinations
-//                            childNavController.navigate(route) {
-//                                // Pop up to the start destination of the graph
-//                                // to avoid building up a large stack of destinations.
-//                                popUpTo(childNavController.graph.findStartDestination().id) {
-//                                    saveState = true
-//                                }
-//                                // Avoid multiple copies of the same destination
-//                                // when re-selecting the same item.
-//                                launchSingleTop = true
-//                                // Restore state when re-selecting a previously selected item
-//                                restoreState = true
-//                            }
+                            // Old location of childNavController.navigate(route) {...}
+                            // It moved to the Box(modifier = Modifier.clickable(onClick = {...}))
+                            // See below
                         },
                         // 1. Turn off the default M3 indicator by making it Transparent
                         colors = NavigationBarItemDefaults.colors(
@@ -199,11 +167,51 @@ fun AuthenticatedMainParameterHub(
     ) { paddingValues ->
         // The inner area executes the nested NavHost graph, picks a screen from a route.
         // That is the content() of the authenticated shell.
+        // All the composable are co-located here.
+        // The routes assigned to the bottom tab bar items ensure the correct route is followed.
+        // The addition of childNavController.navigate(...) calls to detail/edit screens
+        // require this so that these drill-down navigations are handled by the childNavController.
         NavHost(
             navController = childNavController,
             startDestination = startDestination,
-            modifier = Modifier.padding(paddingValues),
-            builder = screenNavBuilder
-        )
+            modifier = Modifier.padding(paddingValues)
+        ) {
+
+            composable<Route.AdminHome> {
+                AdminHomeScreen()
+            }
+
+            composable<Route.AdminMessages> {
+                AdminMessageScreen()
+            }
+
+            composable<Route.Home> {
+                HomeScreen()
+            }
+
+            composable<Route.Messages> {
+                MessageScreen(
+                    onMessageClicked = { messageId ->
+                        // The hub owns the controller and executes the actual routing
+                        childNavController.navigate(Route.MessageDetail(id = messageId))
+                    }
+                )
+            }
+
+            composable<Route.MessageDetail> { backStackEntry ->
+                val detailRoute: Route.MessageDetail = backStackEntry.toRoute<Route.MessageDetail>()
+                val messageId = detailRoute.id
+                MessageDetailScreen(
+                    messageId = detailRoute.id,
+                    // Executing popBackStack clears this destination off the stack
+                    // and returns the user back to the message list smoothly
+                    onNavigateBack = { childNavController.popBackStack() }
+                )
+            }
+
+            composable<Route.Bulletins> {
+                BulletinScreen()
+            }
+        }
     }
 }

@@ -1,5 +1,6 @@
 package com.reference.implementation.messages.presentation.screens.message
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.reference.implementation.messages.domain.model.toMessageUiDetail
@@ -57,6 +58,14 @@ class MessageViewModel(
 
     fun onSearchChanged(newQuery: String) {
         _searchQuery.value = newQuery
+    }
+
+    fun onDeleteMessage(messageId: Int) {
+        Log.d("MessageViewModel", "TODO complete the use case and repository to delete message with ID $messageId")
+    }
+
+    fun onToggleReadStatus(messageId: Int, newReadStatus:Boolean) {
+        Log.d("MessageViewModel", "TODO complete the use case and repository to toggle read status to $newReadStatus with ID $messageId")
     }
 
     private fun loadMessageData() {

@@ -114,7 +114,7 @@ fun AuthenticatedMainHub() {
                 HomeScreen()
             }
             composable<Route.Messages> {
-                MessageScreen()
+                MessageScreen(onMessageClicked = {})
             }
             composable<Route.Bulletins> {
                 BulletinScreen()
