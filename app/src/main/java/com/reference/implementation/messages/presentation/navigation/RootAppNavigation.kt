@@ -1,5 +1,6 @@
 package com.reference.implementation.messages.presentation.navigation
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -8,7 +9,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavGraphBuilder
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -17,12 +17,7 @@ import com.reference.implementation.messages.data.manager.AuthState
 import com.reference.implementation.messages.data.manager.UnauthReason
 import com.reference.implementation.messages.data.manager.UserRoleState
 import com.reference.implementation.messages.presentation.AppViewModelProvider
-import com.reference.implementation.messages.presentation.screens.adminhome.AdminHomeScreen
-import com.reference.implementation.messages.presentation.screens.adminmessage.AdminMessageScreen
-import com.reference.implementation.messages.presentation.screens.bulletin.BulletinScreen
-import com.reference.implementation.messages.presentation.screens.home.HomeScreen
 import com.reference.implementation.messages.presentation.screens.login.LoginScreen
-import com.reference.implementation.messages.presentation.screens.message.MessageScreen
 import kotlinx.serialization.Serializable
 
 // 1. Define compile-time strongly typed destinations
@@ -97,7 +92,7 @@ fun RootAppNavigation(
                     is UserRoleState.Administrator -> HubConfig(
                         startDestination = Route.AdminHome,
                         defaultRoute = Route.AdminHome::class.qualifiedName ?: "No route",
-                        titlesLambda = { qualifiedRouteName ->
+                        onRouteSelectTitle = { qualifiedRouteName ->
                             when (qualifiedRouteName) {
                                 Route.AdminMessages::class.qualifiedName -> "Administrator Message Centre"
                                 Route.Bulletins::class.qualifiedName -> "Bulletin Board"
@@ -110,43 +105,28 @@ fun RootAppNavigation(
                             Route.AdminHome,
                             Route.AdminMessages,
                             Route.Bulletins
-                        ),
-                        screenNavBuilder = {
-                            composable<Route.AdminHome> {
-                                AdminHomeScreen()
-                            }
-                            composable<Route.AdminMessages> {
-                                AdminMessageScreen()
-                            }
-                            composable<Route.Bulletins> {
-                                BulletinScreen()
-                            }
-                        }
+                        )
                     )
 
                     is UserRoleState.RegularUser -> HubConfig(
                         startDestination = Route.Home,
                         defaultRoute = Route.Home::class.qualifiedName ?: "No route",
-                        titlesLambda = { qualifiedRouteName ->
+                        onRouteSelectTitle = { qualifiedRouteName ->
                             when (qualifiedRouteName) {
                                 Route.Messages::class.qualifiedName -> "Message Centre"
+                                // Reduce title flicker when NavHost state changes instantly,
+                                // and top bar visibility slide up and fade out are still processing.
+                                Route.MessageDetail::class.qualifiedName + "/{id}" -> "Message Centre"
                                 Route.Bulletins::class.qualifiedName -> "Bulletin Board"
                                 // Home title move to "else" to make "when" statement exhaustive.
                                 else -> "User Home Page"
                             }
                         },
-                        bottomBarTabs = listOf(Route.Home, Route.Messages, Route.Bulletins),
-                        screenNavBuilder = {
-                            composable<Route.Home> {
-                                HomeScreen()
-                            }
-                            composable<Route.Messages> {
-                                MessageScreen()
-                            }
-                            composable<Route.Bulletins> {
-                                BulletinScreen()
-                            }
-                        }
+                        bottomBarTabs = listOf(
+                            Route.Home,
+                            Route.Messages,
+                            Route.Bulletins
+                        )
                     )
 
                     else -> null
@@ -158,9 +138,8 @@ fun RootAppNavigation(
                 AuthenticatedMainParameterHub(
                     startDestination = it.startDestination,
                     defaultRoute = it.defaultRoute,
-                    titlesLambda = it.titlesLambda,
-                    bottomBarTabs = it.bottomBarTabs,
-                    screenNavBuilder = it.screenNavBuilder
+                    onRouteSelectTitle = it.onRouteSelectTitle,
+                    bottomBarTabs = it.bottomBarTabs
                 )
             }
         }
@@ -170,7 +149,6 @@ fun RootAppNavigation(
 private data class HubConfig(
     val startDestination: Route,
     val defaultRoute: String,
-    val titlesLambda: (String?) -> String,
-    val bottomBarTabs: List<Route>,
-    val screenNavBuilder: NavGraphBuilder.() -> Unit
+    val onRouteSelectTitle: (String?) -> String,
+    val bottomBarTabs: List<Route>
 )

@@ -4,6 +4,7 @@ import com.reference.implementation.messages.presentation.screens.message.Messag
 
 data class MessageDomainModel(
     val id: Int,
+    val subject: String,
     val body: String,
     val read: Boolean,
     val userId: Int
@@ -12,6 +13,7 @@ data class MessageDomainModel(
 fun MessageDomainModel.toMessageUiDetail(): MessageUiDetail =
     MessageUiDetail(
         id = this.id,
+        subject = this.subject,
         body = this.body,
         read = this.read,
         userId = this.userId
