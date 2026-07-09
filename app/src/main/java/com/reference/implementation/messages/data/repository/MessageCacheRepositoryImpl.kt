@@ -69,9 +69,16 @@ class MessageCacheRepositoryImpl(
             } finally {
                 withContext(NonCancellable) {
                     Audit.createInstance().writeLog("${auditLogTimestamp()} get messages ended")
-
                 }
             }
         }
+    }
+
+    override suspend fun markMessageAsRead(messageId: Int) {
+        TODO("Not yet implemented")
+    }
+
+    override suspend fun markMessageAsUnread(messageId: Int) {
+        TODO("Not yet implemented")
     }
 }

@@ -23,6 +23,8 @@ import com.reference.implementation.messages.domain.use_case.GetUserDashboardUse
 import com.reference.implementation.messages.domain.use_case.LoadActiveMessagesUseCase
 import com.reference.implementation.messages.domain.use_case.LoginUseCase
 import com.reference.implementation.messages.domain.use_case.LogoutUseCase
+import com.reference.implementation.messages.domain.use_case.MarkMessageAsReadUseCase
+import com.reference.implementation.messages.domain.use_case.MarkMessageAsUnreadUseCase
 import com.reference.implementation.messages.domain.use_case.RefreshTokenUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -42,6 +44,8 @@ interface AppContainer {
     val refreshTokenUseCase: RefreshTokenUseCase
     val loadActiveMessagesUseCase: LoadActiveMessagesUseCase
     val getActiveMessagesUseCase: GetActiveMessagesUseCase
+    val markMessageAsReadUseCase: MarkMessageAsReadUseCase
+    val markMessageAsUnreadUseCase: MarkMessageAsUnreadUseCase
     val authSessionManager: AuthSessionManager
     val roleManager: RoleManager
 }
@@ -246,6 +250,14 @@ class AppMessageContainer(context: Context) : AppContainer {
 
     override val getActiveMessagesUseCase: GetActiveMessagesUseCase by lazy {
         GetActiveMessagesUseCase(messageCacheRepository)
+    }
+
+    override val markMessageAsReadUseCase: MarkMessageAsReadUseCase by lazy {
+        MarkMessageAsReadUseCase(messageCacheRepository)
+    }
+
+    override val markMessageAsUnreadUseCase: MarkMessageAsUnreadUseCase by lazy {
+        MarkMessageAsUnreadUseCase(messageCacheRepository)
     }
 
 }

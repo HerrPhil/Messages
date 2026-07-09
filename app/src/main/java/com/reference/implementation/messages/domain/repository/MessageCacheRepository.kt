@@ -9,4 +9,6 @@ interface MessageCacheRepository {
 
     ): Flow<NetworkResult<List<MessageDomainModel>>>
     suspend fun refreshMessagesByUser(onRetry: suspend (Int) -> Unit)
+    suspend fun markMessageAsRead(messageId: Int)
+    suspend fun markMessageAsUnread(messageId: Int)
 }
