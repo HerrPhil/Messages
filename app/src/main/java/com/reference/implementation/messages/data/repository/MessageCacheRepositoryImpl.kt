@@ -1,13 +1,13 @@
 package com.reference.implementation.messages.data.repository
 
+import android.util.Log
 import com.reference.implementation.messages.data.audit.Audit
 import com.reference.implementation.messages.data.manager.SessionManager
 import com.reference.implementation.messages.data.manager.SessionResult
 import com.reference.implementation.messages.data.remote.ApiService
+import com.reference.implementation.messages.data.remote.MarkMessageAsReadDto
+import com.reference.implementation.messages.data.remote.MarkMessageAsUnreadDto
 import com.reference.implementation.messages.data.remote.toMessageDomainModel
-import com.reference.implementation.messages.data.remote.toMessageDto
-import com.reference.implementation.messages.data.remote.toMessageRequestDto
-import com.reference.implementation.messages.data.remote.toPartialMessageRequestDto
 import com.reference.implementation.messages.domain.model.MessageDomainModel
 import com.reference.implementation.messages.domain.repository.MessageCacheRepository
 import kotlinx.coroutines.Dispatchers
@@ -75,10 +75,82 @@ class MessageCacheRepositoryImpl(
     }
 
     override suspend fun markMessageAsRead(messageId: Int) {
-        TODO("Not yet implemented")
+        val response = withContext(Dispatchers.IO) {
+            try {
+                val response = retryIO(times = 3, onRetry = { attempt ->
+                    Log.d("markMessageAsRead", "number of retries is $attempt")
+                    // TODO play with passing a UIEvent of Retrying
+                }) {
+                    apiService.markMessageAsRead(messageId, MarkMessageAsReadDto())
+                }
+                if (response.isSuccessful) {
+                    // Success! We have a MessageDto with the updated 'read' value
+                    // DTO never leaves this layer - see the DTO extension function!
+                    // Update the SSOT cache with fresh data!
+                    response.body()?.let { messageDto ->
+                        NetworkResult.Success(messageDto.toMessageDomainModel())
+                    } ?: NetworkResult.Error(400, "Response body was empty")
+                } else {
+                    // Transform unsuccessful Retrofit calls.
+                    // Update the SSOT cache with the network result error!
+                    NetworkResult.Error(response.code(), response.message())
+                }
+            } catch (e: Exception) {
+                Audit.createInstance().writeLog(e.message ?: "no message")
+                NetworkResult.Exception(e)
+            } finally {
+                withContext(NonCancellable) {
+                    Audit.createInstance()
+                        .writeLog("${auditLogTimestamp()} mark message as read ended")
+                }
+            }
+        }
+        if (response is NetworkResult.Success) {
+            Log.d(
+                "markMessageAsRead",
+                "The updated value of read is ${response.data.read} for message ID ${response.data.id}"
+            )
+        }
+        // TODO figure out how to flow this response back to the UI as a "UIEvent""
     }
 
     override suspend fun markMessageAsUnread(messageId: Int) {
-        TODO("Not yet implemented")
+        val response = withContext(Dispatchers.IO) {
+            try {
+                val response = retryIO(times = 3, onRetry = { attempt ->
+                    Log.d("markMessageAsRead", "number of retries is $attempt")
+                    // TODO play with passing a UIEvent of Retrying
+                }) {
+                    apiService.markMessageAsUnread(messageId, MarkMessageAsUnreadDto())
+                }
+                if (response.isSuccessful) {
+                    // Success! We have a MessageDto with the updated 'read' value
+                    // DTO never leaves this layer - see the DTO extension function!
+                    // Update the SSOT cache with fresh data!
+                    response.body()?.let { messageDto ->
+                        NetworkResult.Success(messageDto.toMessageDomainModel())
+                    } ?: NetworkResult.Error(400, "Response body was empty")
+                } else {
+                    // Transform unsuccessful Retrofit calls.
+                    // Update the SSOT cache with the network result error!
+                    NetworkResult.Error(response.code(), response.message())
+                }
+            } catch (e: Exception) {
+                Audit.createInstance().writeLog(e.message ?: "no message")
+                NetworkResult.Exception(e)
+            } finally {
+                withContext(NonCancellable) {
+                    Audit.createInstance()
+                        .writeLog("${auditLogTimestamp()} mark message as read ended")
+                }
+            }
+        }
+        if (response is NetworkResult.Success) {
+            Log.d(
+                "markMessageAsRead",
+                "The updated value of read is ${response.data.read} for message ID ${response.data.id}"
+            )
+        }
+        // TODO figure out how to flow this response back to the UI as a "UIEvent""
     }
 }

@@ -213,7 +213,9 @@ fun MessageDetails(
                         SwipeableMessageItem(
                             message = message,
                             onDelete = { onDelete(message.id) },
-                            onToggleReadStatus = { onToggleReadStatus(message.id, !message.read) },
+                            onToggleReadStatus = {
+                                onToggleReadStatus(message.id, !message.read)
+                            },
                             onItemClicked = { onMessageClicked(message.id) },
                             // THE FIX: Generate the scoped modifier here where the scope is valid!
                             modifier = Modifier.animateItem()

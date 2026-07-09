@@ -73,6 +73,7 @@ class MessageViewModel(
     }
 
     fun onToggleReadStatus(messageId: Int, newReadStatus: Boolean) {
+
         // I had a idea. I want to follow a suggestion from Gemini AI.
         // The new read status, a UI copy of the original data, never leaves the UI/viewModel.
         // The use-case/repository will provide to calls
