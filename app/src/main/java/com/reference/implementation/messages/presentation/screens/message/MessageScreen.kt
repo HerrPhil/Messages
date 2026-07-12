@@ -1,5 +1,6 @@
 package com.reference.implementation.messages.presentation.screens.message
 
+import android.widget.Toast
 import androidx.compose.animation.core.exponentialDecay
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.rememberSplineBasedDecay
@@ -54,6 +55,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.font.FontWeight
@@ -62,7 +64,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.reference.implementation.messages.presentation.AppViewModelProvider
 import com.reference.implementation.messages.presentation.components.EmptyListContent
@@ -73,6 +78,7 @@ import com.reference.implementation.messages.presentation.components.Welcome
 import com.reference.implementation.messages.ui.theme.MessagesTheme
 import com.reference.implementation.messages.ui.theme.Purple40
 import com.reference.implementation.messages.ui.theme.Purple80
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -84,6 +90,26 @@ fun MessageScreen(
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    // Grab the lifecycle owner from the current composition context
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val context = LocalContext.current
+
+    // Observe the hot event channel safely across UI lifecycles
+    LaunchedEffect(viewModel) {
+        viewModel.uiEvents
+            .flowWithLifecycle(lifecycleOwner.lifecycle, Lifecycle.State.STARTED)
+            .collect { event ->
+                when (event) {
+                    is MessageUiEvent.showToast -> {
+                        Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
+                    }
+
+                    is MessageUiEvent.showAlertDialog -> {
+                        // TODO Trigger state to show a Material 3 AlertDialog Composable
+                    }
+                }
+            }
+    }
 
     // When you use Compose elements like AnimatedContent or CrossFade, to mention two examples,
     // they pass a local snapshot copy of the state into the lambda block (usually named "it",
@@ -213,7 +239,9 @@ fun MessageDetails(
                         SwipeableMessageItem(
                             message = message,
                             onDelete = { onDelete(message.id) },
-                            onToggleReadStatus = { onToggleReadStatus(message.id, !message.read) },
+                            onToggleReadStatus = {
+                                onToggleReadStatus(message.id, !message.read)
+                            },
                             onItemClicked = { onMessageClicked(message.id) },
                             // THE FIX: Generate the scoped modifier here where the scope is valid!
                             modifier = Modifier.animateItem()

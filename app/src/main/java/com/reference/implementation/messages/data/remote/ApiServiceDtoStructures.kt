@@ -26,6 +26,16 @@ data class PartialMessageRequestDto(
 )
 
 @Serializable
+data class MarkMessageAsReadDto(
+    val read: Boolean = true
+)
+
+@Serializable
+data class MarkMessageAsUnreadDto(
+    val read: Boolean = false
+)
+
+@Serializable
 data class LoginRequestDto(
     val email: String,
     val password: String

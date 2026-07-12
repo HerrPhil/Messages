@@ -1,27 +1,32 @@
 package com.reference.implementation.messages.data.repository
 
+import android.util.Log
 import com.reference.implementation.messages.data.audit.Audit
 import com.reference.implementation.messages.data.manager.SessionManager
 import com.reference.implementation.messages.data.manager.SessionResult
 import com.reference.implementation.messages.data.remote.ApiService
+import com.reference.implementation.messages.data.remote.MarkMessageAsReadDto
+import com.reference.implementation.messages.data.remote.MarkMessageAsUnreadDto
 import com.reference.implementation.messages.data.remote.toMessageDomainModel
-import com.reference.implementation.messages.data.remote.toMessageDto
-import com.reference.implementation.messages.data.remote.toMessageRequestDto
-import com.reference.implementation.messages.data.remote.toPartialMessageRequestDto
 import com.reference.implementation.messages.domain.model.MessageDomainModel
 import com.reference.implementation.messages.domain.repository.MessageCacheRepository
+import com.reference.implementation.messages.presentation.screens.message.MessageUiEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.withContext
 
 class MessageCacheRepositoryImpl(
     private val apiService: ApiService,
     private val sessionManager: SessionManager
 ) : MessageCacheRepository {
+
+    private val _uiEventChannel = Channel<MessageUiEvent>(Channel.BUFFERED)
 
     // 1. The Local Memory Cache (The Single Source of Truth)
     private val _messagesByUserCache =
@@ -34,6 +39,11 @@ class MessageCacheRepositoryImpl(
     // 2(b). The Other Read-Only Stream (flavour): Anyone can listen to this at any time too
     val messagesByUserCache: StateFlow<NetworkResult<List<MessageDomainModel>>> =
         _messagesByUserCache.asStateFlow()
+
+    override fun getMessageUiEvents(): Flow<MessageUiEvent> =
+        _uiEventChannel.receiveAsFlow()
+    override val uiEvents = _uiEventChannel.receiveAsFlow()
+
 
     override suspend fun refreshMessagesByUser(onRetry: suspend (Int) -> Unit) {
 
@@ -69,9 +79,116 @@ class MessageCacheRepositoryImpl(
             } finally {
                 withContext(NonCancellable) {
                     Audit.createInstance().writeLog("${auditLogTimestamp()} get messages ended")
-
                 }
             }
+        }
+    }
+
+    override suspend fun markMessageAsRead(messageId: Int) {
+//        val response: NetworkResult<Nothing> = NetworkResult.Error(400, "Something went wrong when marking message as unread")
+//        Log.d("markMessageAsRead", "something went wrong")
+
+
+
+        val response = withContext(Dispatchers.IO) {
+            try {
+                val response = retryIO(times = 3, onRetry = { attempt ->
+                    Log.d("markMessageAsRead", "number of retries is $attempt")
+                    // TODO play with passing a UIEvent of Retrying
+                }) {
+                    apiService.markMessageAsRead(messageId, MarkMessageAsReadDto())
+                }
+                if (response.isSuccessful) {
+                    // Success! We have a MessageDto with the updated 'read' value
+                    // DTO never leaves this layer - see the DTO extension function!
+                    // Update the SSOT cache with fresh data!
+                    response.body()?.let { messageDto ->
+                        NetworkResult.Success(messageDto.toMessageDomainModel())
+                    } ?: NetworkResult.Error(400, "Response body was empty")
+                } else {
+                    // Transform unsuccessful Retrofit calls.
+                    // Update the SSOT cache with the network result error!
+                    NetworkResult.Error(response.code(), response.message())
+                }
+            } catch (e: Exception) {
+                Audit.createInstance().writeLog(e.message ?: "no message")
+                NetworkResult.Exception(e)
+            } finally {
+                withContext(NonCancellable) {
+                    Audit.createInstance()
+                        .writeLog("${auditLogTimestamp()} mark message as read ended")
+                }
+            }
+        }
+
+        if (response is NetworkResult.Success) {
+            toggleReadStatus(messageId) // Internal update of hot Status Flow
+        } else {
+            Log.d("markMessageAsRead", "send a message UI event")
+            _uiEventChannel.send(MessageUiEvent.showToast("Unable to update read status"))
+        }
+    }
+
+    override suspend fun markMessageAsUnread(messageId: Int) {
+//        val response: NetworkResult<Nothing> = NetworkResult.Error(400, "Something went wrong when marking message as unread")
+//        Log.d("markMessageAsRead", "something went wrong")
+
+
+
+
+        val response = withContext(Dispatchers.IO) {
+            try {
+                val response = retryIO(times = 3, onRetry = { attempt ->
+                    Log.d("markMessageAsRead", "number of retries is $attempt")
+                    // TODO play with passing a UIEvent of Retrying
+                }) {
+                    apiService.markMessageAsUnread(messageId, MarkMessageAsUnreadDto())
+                }
+                if (response.isSuccessful) {
+                    // Success! We have a MessageDto with the updated 'read' value
+                    // DTO never leaves this layer - see the DTO extension function!
+                    // Update the SSOT cache with fresh data!
+                    response.body()?.let { messageDto ->
+                        NetworkResult.Success(messageDto.toMessageDomainModel())
+                    } ?: NetworkResult.Error(400, "Response body was empty")
+                } else {
+                    // Transform unsuccessful Retrofit calls.
+                    // Update the SSOT cache with the network result error!
+                    NetworkResult.Error(response.code(), response.message())
+                }
+            } catch (e: Exception) {
+                Audit.createInstance().writeLog(e.message ?: "no message")
+                NetworkResult.Exception(e)
+            } finally {
+                withContext(NonCancellable) {
+                    Audit.createInstance()
+                        .writeLog("${auditLogTimestamp()} mark message as read ended")
+                }
+            }
+        }
+
+        if (response is NetworkResult.Success) {
+            toggleReadStatus(messageId) // Internal update of hot Status Flow
+        } else {
+            Log.d("markMessageAsUnread", "send a message UI event")
+            _uiEventChannel.send(MessageUiEvent.showToast("Unable to update read status"))
+        }
+    }
+
+    override suspend fun toggleReadStatus(messageId: Int) {
+        val currentResult = _messagesByUserCache.value // NetworkResult<List<MessageDomainModel>>
+        // via smart-casting
+        if (currentResult is NetworkResult.Success) {
+            val updatedList = currentResult.data.map { messageDomainModel ->
+                if (messageDomainModel.id == messageId) {
+                    // Return a copy with the INVERSE read status
+                    messageDomainModel.copy(read = !messageDomainModel.read)
+                } else {
+                    // Leave other messages untouched
+                    messageDomainModel
+                }
+            }
+            _messagesByUserCache.value = NetworkResult.Success(updatedList)
         }
     }
 }

@@ -45,6 +45,12 @@ interface ApiService {
     @PATCH("messages/{id}")
     suspend fun partialUpdateMessage(@Path("id") id: Int, @Body patchMessageRequestDto: PartialMessageRequestDto): Response<MessageDto>
 
+    @PATCH("messages/{id}")
+    suspend fun markMessageAsRead(@Path("id") id: Int, @Body markMessageAsReadDto: MarkMessageAsReadDto): Response<MessageDto>
+
+    @PATCH("messages/{id}")
+    suspend fun markMessageAsUnread(@Path("id") id: Int, @Body markMessageAsUnreadDto: MarkMessageAsUnreadDto): Response<MessageDto>
+
     @DELETE("messages/{id}")
     suspend fun removeMessage(@Path("id") id: Int): Response<Unit>
 

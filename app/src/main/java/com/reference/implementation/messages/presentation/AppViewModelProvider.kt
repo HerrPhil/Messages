@@ -49,7 +49,10 @@ object AppViewModelProvider {
         initializer {
             MessageViewModel(
                 messageApplication().container.loadActiveMessagesUseCase,
-                messageApplication().container.getActiveMessagesUseCase
+                messageApplication().container.getActiveMessagesUseCase,
+                messageApplication().container.markMessageAsReadUseCase,
+                messageApplication().container.markMessageAsUnreadUseCase,
+                messageApplication().container.getMessageUiEventsUseCase
             )
         }
 
