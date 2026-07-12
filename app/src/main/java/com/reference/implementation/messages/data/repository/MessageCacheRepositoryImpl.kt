@@ -10,18 +10,23 @@ import com.reference.implementation.messages.data.remote.MarkMessageAsUnreadDto
 import com.reference.implementation.messages.data.remote.toMessageDomainModel
 import com.reference.implementation.messages.domain.model.MessageDomainModel
 import com.reference.implementation.messages.domain.repository.MessageCacheRepository
+import com.reference.implementation.messages.presentation.screens.message.MessageUiEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.withContext
 
 class MessageCacheRepositoryImpl(
     private val apiService: ApiService,
     private val sessionManager: SessionManager
 ) : MessageCacheRepository {
+
+    private val _uiEventChannel = Channel<MessageUiEvent>(Channel.BUFFERED)
 
     // 1. The Local Memory Cache (The Single Source of Truth)
     private val _messagesByUserCache =
@@ -34,6 +39,11 @@ class MessageCacheRepositoryImpl(
     // 2(b). The Other Read-Only Stream (flavour): Anyone can listen to this at any time too
     val messagesByUserCache: StateFlow<NetworkResult<List<MessageDomainModel>>> =
         _messagesByUserCache.asStateFlow()
+
+    override fun getMessageUiEvents(): Flow<MessageUiEvent> =
+        _uiEventChannel.receiveAsFlow()
+    override val uiEvents = _uiEventChannel.receiveAsFlow()
+
 
     override suspend fun refreshMessagesByUser(onRetry: suspend (Int) -> Unit) {
 
@@ -75,6 +85,11 @@ class MessageCacheRepositoryImpl(
     }
 
     override suspend fun markMessageAsRead(messageId: Int) {
+//        val response: NetworkResult<Nothing> = NetworkResult.Error(400, "Something went wrong when marking message as unread")
+//        Log.d("markMessageAsRead", "something went wrong")
+
+
+
         val response = withContext(Dispatchers.IO) {
             try {
                 val response = retryIO(times = 3, onRetry = { attempt ->
@@ -105,16 +120,22 @@ class MessageCacheRepositoryImpl(
                 }
             }
         }
+
         if (response is NetworkResult.Success) {
-            Log.d(
-                "markMessageAsRead",
-                "The updated value of read is ${response.data.read} for message ID ${response.data.id}"
-            )
+            toggleReadStatus(messageId) // Internal update of hot Status Flow
+        } else {
+            Log.d("markMessageAsRead", "send a message UI event")
+            _uiEventChannel.send(MessageUiEvent.showToast("Unable to update read status"))
         }
-        // TODO figure out how to flow this response back to the UI as a "UIEvent""
     }
 
     override suspend fun markMessageAsUnread(messageId: Int) {
+//        val response: NetworkResult<Nothing> = NetworkResult.Error(400, "Something went wrong when marking message as unread")
+//        Log.d("markMessageAsRead", "something went wrong")
+
+
+
+
         val response = withContext(Dispatchers.IO) {
             try {
                 val response = retryIO(times = 3, onRetry = { attempt ->
@@ -145,12 +166,29 @@ class MessageCacheRepositoryImpl(
                 }
             }
         }
+
         if (response is NetworkResult.Success) {
-            Log.d(
-                "markMessageAsRead",
-                "The updated value of read is ${response.data.read} for message ID ${response.data.id}"
-            )
+            toggleReadStatus(messageId) // Internal update of hot Status Flow
+        } else {
+            Log.d("markMessageAsUnread", "send a message UI event")
+            _uiEventChannel.send(MessageUiEvent.showToast("Unable to update read status"))
         }
-        // TODO figure out how to flow this response back to the UI as a "UIEvent""
+    }
+
+    override suspend fun toggleReadStatus(messageId: Int) {
+        val currentResult = _messagesByUserCache.value // NetworkResult<List<MessageDomainModel>>
+        // via smart-casting
+        if (currentResult is NetworkResult.Success) {
+            val updatedList = currentResult.data.map { messageDomainModel ->
+                if (messageDomainModel.id == messageId) {
+                    // Return a copy with the INVERSE read status
+                    messageDomainModel.copy(read = !messageDomainModel.read)
+                } else {
+                    // Leave other messages untouched
+                    messageDomainModel
+                }
+            }
+            _messagesByUserCache.value = NetworkResult.Success(updatedList)
+        }
     }
 }

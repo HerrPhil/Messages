@@ -1,10 +1,12 @@
 package com.reference.implementation.messages.presentation.screens.message
 
 import android.util.Log
+import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.reference.implementation.messages.domain.model.toMessageUiDetail
 import com.reference.implementation.messages.domain.use_case.GetActiveMessagesUseCase
+import com.reference.implementation.messages.domain.use_case.GetMessageUiEventsUseCase
 import com.reference.implementation.messages.domain.use_case.LoadActiveMessagesUseCase
 import com.reference.implementation.messages.domain.use_case.MarkMessageAsReadUseCase
 import com.reference.implementation.messages.domain.use_case.MarkMessageAsUnreadUseCase
@@ -21,7 +23,8 @@ class MessageViewModel(
     private val loadActiveMessagesUseCase: LoadActiveMessagesUseCase,
     getActiveMessagesUseCase: GetActiveMessagesUseCase,
     private val markMessageAsReadUseCase: MarkMessageAsReadUseCase,
-    private val markMessageAsUnreadUseCase: MarkMessageAsUnreadUseCase
+    private val markMessageAsUnreadUseCase: MarkMessageAsUnreadUseCase,
+    getMessageUiEventsUseCase: GetMessageUiEventsUseCase
 ) : ViewModel() {
 
     private val _searchQuery = MutableStateFlow("")
@@ -56,6 +59,8 @@ class MessageViewModel(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = MessageUiState.Loading
         )
+
+    val uiEvents = getMessageUiEventsUseCase()
 
     init {
         loadMessageData()

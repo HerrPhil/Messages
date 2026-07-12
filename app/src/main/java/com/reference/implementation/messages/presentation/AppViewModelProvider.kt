@@ -51,7 +51,8 @@ object AppViewModelProvider {
                 messageApplication().container.loadActiveMessagesUseCase,
                 messageApplication().container.getActiveMessagesUseCase,
                 messageApplication().container.markMessageAsReadUseCase,
-                messageApplication().container.markMessageAsUnreadUseCase
+                messageApplication().container.markMessageAsUnreadUseCase,
+                messageApplication().container.getMessageUiEventsUseCase
             )
         }
 

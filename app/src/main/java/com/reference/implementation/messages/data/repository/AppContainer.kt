@@ -19,6 +19,7 @@ import com.reference.implementation.messages.domain.repository.RoleRepository
 import com.reference.implementation.messages.domain.repository.UserRepository
 import com.reference.implementation.messages.domain.use_case.ForceLogoutUseCase
 import com.reference.implementation.messages.domain.use_case.GetActiveMessagesUseCase
+import com.reference.implementation.messages.domain.use_case.GetMessageUiEventsUseCase
 import com.reference.implementation.messages.domain.use_case.GetUserDashboardUseCase
 import com.reference.implementation.messages.domain.use_case.LoadActiveMessagesUseCase
 import com.reference.implementation.messages.domain.use_case.LoginUseCase
@@ -46,6 +47,7 @@ interface AppContainer {
     val getActiveMessagesUseCase: GetActiveMessagesUseCase
     val markMessageAsReadUseCase: MarkMessageAsReadUseCase
     val markMessageAsUnreadUseCase: MarkMessageAsUnreadUseCase
+    val getMessageUiEventsUseCase: GetMessageUiEventsUseCase
     val authSessionManager: AuthSessionManager
     val roleManager: RoleManager
 }
@@ -258,6 +260,10 @@ class AppMessageContainer(context: Context) : AppContainer {
 
     override val markMessageAsUnreadUseCase: MarkMessageAsUnreadUseCase by lazy {
         MarkMessageAsUnreadUseCase(messageCacheRepository)
+    }
+
+    override val getMessageUiEventsUseCase: GetMessageUiEventsUseCase by lazy {
+        GetMessageUiEventsUseCase(messageCacheRepository)
     }
 
 }
