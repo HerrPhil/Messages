@@ -5,6 +5,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.reference.implementation.messages.domain.model.toMessageUiDetail
+import com.reference.implementation.messages.domain.use_case.DeleteMessageUseCase
 import com.reference.implementation.messages.domain.use_case.GetActiveMessagesUseCase
 import com.reference.implementation.messages.domain.use_case.GetMessageUiEventsUseCase
 import com.reference.implementation.messages.domain.use_case.LoadActiveMessagesUseCase
@@ -24,6 +25,7 @@ class MessageViewModel(
     getActiveMessagesUseCase: GetActiveMessagesUseCase,
     private val markMessageAsReadUseCase: MarkMessageAsReadUseCase,
     private val markMessageAsUnreadUseCase: MarkMessageAsUnreadUseCase,
+    private val deleteMessageUseCase: DeleteMessageUseCase,
     getMessageUiEventsUseCase: GetMessageUiEventsUseCase
 ) : ViewModel() {
 
@@ -71,10 +73,9 @@ class MessageViewModel(
     }
 
     fun onDeleteMessage(messageId: Int) {
-        Log.d(
-            "MessageViewModel",
-            "TODO complete the use case and repository to delete message with ID $messageId"
-        )
+        viewModelScope.launch {
+            deleteMessageUseCase(messageId)
+        }
     }
 
     fun onToggleReadStatus(messageId: Int, newReadStatus: Boolean) {
