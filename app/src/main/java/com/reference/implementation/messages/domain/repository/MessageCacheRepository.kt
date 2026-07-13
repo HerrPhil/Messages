@@ -13,5 +13,6 @@ interface MessageCacheRepository {
     suspend fun markMessageAsRead(messageId: Int)
     suspend fun markMessageAsUnread(messageId: Int)
     suspend fun toggleReadStatus(messageId: Int)
+    suspend fun deleteMessage(messageId: Int)
     fun getMessageUiEvents(): Flow<MessageUiEvent>
 }

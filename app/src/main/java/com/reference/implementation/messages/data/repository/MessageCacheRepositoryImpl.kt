@@ -1,6 +1,7 @@
 package com.reference.implementation.messages.data.repository
 
 import android.util.Log
+import android.view.PixelCopy.Request
 import com.reference.implementation.messages.data.audit.Audit
 import com.reference.implementation.messages.data.manager.SessionManager
 import com.reference.implementation.messages.data.manager.SessionResult
@@ -20,6 +21,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.withContext
+import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.Protocol
+import okhttp3.Response
+import okhttp3.ResponseBody
 
 class MessageCacheRepositoryImpl(
     private val apiService: ApiService,
@@ -42,6 +48,7 @@ class MessageCacheRepositoryImpl(
 
     override fun getMessageUiEvents(): Flow<MessageUiEvent> =
         _uiEventChannel.receiveAsFlow()
+
     override val uiEvents = _uiEventChannel.receiveAsFlow()
 
 
@@ -89,7 +96,6 @@ class MessageCacheRepositoryImpl(
 //        Log.d("markMessageAsRead", "something went wrong")
 
 
-
         val response = withContext(Dispatchers.IO) {
             try {
                 val response = retryIO(times = 3, onRetry = { attempt ->
@@ -132,8 +138,6 @@ class MessageCacheRepositoryImpl(
     override suspend fun markMessageAsUnread(messageId: Int) {
 //        val response: NetworkResult<Nothing> = NetworkResult.Error(400, "Something went wrong when marking message as unread")
 //        Log.d("markMessageAsRead", "something went wrong")
-
-
 
 
         val response = withContext(Dispatchers.IO) {
@@ -189,6 +193,67 @@ class MessageCacheRepositoryImpl(
                 }
             }
             _messagesByUserCache.value = NetworkResult.Success(updatedList)
+        }
+    }
+
+    override suspend fun deleteMessage(messageId: Int) {
+        // 1. Capture the safety net snapshot of the current state
+        val originalState = _messagesByUserCache.value
+
+        // 2. OPTIMISTIC UPDATE: Apply the filter immediately so the UI snaps closed
+        if (originalState is NetworkResult.Success) {
+            val updatedList = originalState.data.filter { it.id != messageId }
+            _messagesByUserCache.value = NetworkResult.Success(updatedList)
+        }
+
+        withContext(Dispatchers.IO) {
+            try {
+                // 3. Make your live network call to Express backend
+                val response = retryIO(times = 3, onRetry = { attempt ->
+                    Log.d("markMessageAsRead", "number of retries is $attempt")
+                    // TODO play with passing a UIEvent of Retrying
+                }) {
+                    apiService.removeMessage(messageId)
+                }
+
+//                val responze = Response.Builder()
+//                    .request(okhttp3.Request.Builder().url("http://www.test.com").build())
+//                    .protocol(Protocol.HTTP_1_1)
+//                    .code(404)
+//                    .message("error")
+//                    .body(ResponseBody.create(
+//                        "application/json".toMediaTypeOrNull(),
+//                        ""
+//                    ))
+//                    .build()
+//                throw Exception("tragic failure")
+
+//                if (responze.isSuccessful) {
+                if (response.isSuccessful) {
+                    // Success! We have an empty JSON object, {}.
+                    _uiEventChannel.send(MessageUiEvent.showToast("Successfully deleted message"))
+                } else {
+                    // 4. ROLLBACK: Put the original state back into the Flow.
+                    // The UI will automatically detect this and smoothly animate the card back
+                    _messagesByUserCache.value = originalState
+
+                    // 5. Alert the user via your one-shot event channel
+                    _uiEventChannel.send(MessageUiEvent.showToast("Unable to delete message. Please try again."))
+                }
+            } catch (e: Exception) {
+                Audit.createInstance().writeLog(e.message ?: "no message")
+                // 4. ROLLBACK: Put the original state back into the Flow.
+                // The UI will automatically detect this and smoothly animate the card back
+                _messagesByUserCache.value = originalState
+
+                // 5. Alert the user via your one-shot event channel
+                _uiEventChannel.send(MessageUiEvent.showToast("Unable to delete message. Please try again."))
+            } finally {
+                withContext(NonCancellable) {
+                    Audit.createInstance()
+                        .writeLog("${auditLogTimestamp()} delete message ended")
+                }
+            }
         }
     }
 }
