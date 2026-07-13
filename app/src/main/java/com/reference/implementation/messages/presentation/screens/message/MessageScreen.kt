@@ -11,6 +11,7 @@ import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.anchoredDraggable
 import androidx.compose.foundation.gestures.animateTo
+import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -43,10 +44,15 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBoxDefaults.positionalThreshold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipAnchorPosition
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -54,6 +60,8 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -479,26 +487,63 @@ fun MessageSwipeActions(
     ) {
         Row(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .pointerInput(Unit) { /* Let pointer events pass through to children */ }
         ) {
-
             // Option Action #1: Toggle Read State
-            IconButton(onClick = onToggleRead) {
-                Icon(
-                    imageVector = if (currentReadStatus) Icons.Default.MarkEmailUnread else Icons.Default.MarkEmailRead,
-                    contentDescription = "Toggle Read Status",
-                    tint = MaterialTheme.colorScheme.onErrorContainer
-                )
-            }
-
+            SwipeActionButtonWithTooltip(
+                icon = if (currentReadStatus) Icons.Default.MarkEmailUnread else Icons.Default.MarkEmailRead,
+                contentDescription = "Toggle Read Status",
+                tooltipText = if (currentReadStatus) "mark unread" else "mark read",
+                onClick = onToggleRead
+            )
             // Optional Action #2: Delete Action
-            IconButton(onClick = onDelete) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Delete Action",
-                    tint = MaterialTheme.colorScheme.onErrorContainer
-                )
+            SwipeActionButtonWithTooltip(
+                icon = Icons.Default.Delete,
+                contentDescription = "Delete Action",
+                tooltipText = "Delete",
+                onClick = onDelete
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SwipeActionButtonWithTooltip(
+    icon: ImageVector,
+    contentDescription: String,
+    tooltipText: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    // 1. Maintain the visibility state of the tooltip automatically
+    val tooltipState = rememberTooltipState(isPersistent = false)
+
+    TooltipBox(
+        positionProvider =
+            TooltipDefaults.rememberTooltipPositionProvider(
+                TooltipAnchorPosition.Above,
+                2.dp
+            ),
+        tooltip = {
+            // 2. The visual popup bubble design
+            PlainTooltip {
+                Text(text = tooltipText)
             }
+        },
+        state = tooltipState
+    ) {
+        // 3. The anchor element that triggers the tooltip on hover
+        IconButton(
+            onClick = onClick,
+            modifier = modifier
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription
+            )
         }
     }
 }
