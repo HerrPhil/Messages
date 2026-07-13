@@ -157,6 +157,7 @@ class AppMessageContainer(context: Context) : AppContainer {
         val contentType = "application/json".toMediaType()
 
         Retrofit.Builder()
+//            .baseUrl("http://192.168.215.165:4000/")
             .baseUrl("http://10.0.2.2:4000/")
             .client(client) // This is incorporating the logging of the HTTP client
             // This is the magic line for Kotlinx Serialization
