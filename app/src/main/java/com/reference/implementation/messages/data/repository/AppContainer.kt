@@ -28,6 +28,7 @@ import com.reference.implementation.messages.domain.use_case.LogoutUseCase
 import com.reference.implementation.messages.domain.use_case.MarkMessageAsReadUseCase
 import com.reference.implementation.messages.domain.use_case.MarkMessageAsUnreadUseCase
 import com.reference.implementation.messages.domain.use_case.RefreshTokenUseCase
+import com.reference.implementation.messages.domain.use_case.RestoreMessageUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -49,6 +50,7 @@ interface AppContainer {
     val markMessageAsReadUseCase: MarkMessageAsReadUseCase
     val markMessageAsUnreadUseCase: MarkMessageAsUnreadUseCase
     val deleteMessageUseCase: DeleteMessageUseCase
+    val restoreMessageUseCase: RestoreMessageUseCase
     val getMessageUiEventsUseCase: GetMessageUiEventsUseCase
     val authSessionManager: AuthSessionManager
     val roleManager: RoleManager
@@ -267,6 +269,10 @@ class AppMessageContainer(context: Context) : AppContainer {
 
     override val deleteMessageUseCase: DeleteMessageUseCase by lazy {
         DeleteMessageUseCase(messageCacheRepository)
+    }
+
+    override val restoreMessageUseCase: RestoreMessageUseCase by lazy {
+        RestoreMessageUseCase(messageCacheRepository)
     }
 
     override val getMessageUiEventsUseCase: GetMessageUiEventsUseCase by lazy {

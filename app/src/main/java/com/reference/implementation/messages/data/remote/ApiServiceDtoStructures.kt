@@ -15,8 +15,12 @@ data class MessageDto(
     val userId: Int
 )
 
+@Serializable
 data class MessageRequestDto(
+    val id: Int,
     val body: String,
+    val subject: String,
+    val read: Boolean,
     val userId: Int
 )
 
@@ -96,6 +100,6 @@ fun MessageDomainModel.toPartialMessageRequestDto(): PartialMessageRequestDto =
     PartialMessageRequestDto(this.body)
 
 fun MessageDomainModel.toMessageRequestDto(): MessageRequestDto =
-    MessageRequestDto(this.body, this.userId)
+    MessageRequestDto(this.id, this.body, this.subject, this.read, this.userId)
 
 fun RefreshTokenDto.toDomainModel(): RefreshTokenDomainModel = RefreshTokenDomainModel(this.accessToken)
