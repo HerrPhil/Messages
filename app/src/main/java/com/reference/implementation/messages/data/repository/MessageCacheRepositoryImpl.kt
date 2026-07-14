@@ -9,6 +9,8 @@ import com.reference.implementation.messages.data.remote.ApiService
 import com.reference.implementation.messages.data.remote.MarkMessageAsReadDto
 import com.reference.implementation.messages.data.remote.MarkMessageAsUnreadDto
 import com.reference.implementation.messages.data.remote.toMessageDomainModel
+import com.reference.implementation.messages.data.remote.toMessageDto
+import com.reference.implementation.messages.data.remote.toMessageRequestDto
 import com.reference.implementation.messages.domain.model.MessageDomainModel
 import com.reference.implementation.messages.domain.repository.MessageCacheRepository
 import com.reference.implementation.messages.presentation.screens.message.MessageUiEvent
@@ -201,20 +203,27 @@ class MessageCacheRepositoryImpl(
         val originalState = _messagesByUserCache.value
 
         // 2. OPTIMISTIC UPDATE: Apply the filter immediately so the UI snaps closed
-        if (originalState is NetworkResult.Success) {
+        if (originalState is NetworkResult.Success) { // due diligence - proceed when previously got data
+
+            // 3. Find the target message first and grab its reference; otherwise return
+            val targetMessage = originalState.data.find { it.id == messageId } ?: return
+
+            // 4. Perform your optimistic update by filtering the list
             val updatedList = originalState.data.filter { it.id != messageId }
             _messagesByUserCache.value = NetworkResult.Success(updatedList)
-        }
 
-        withContext(Dispatchers.IO) {
-            try {
-                // 3. Make your live network call to Express backend
-                val response = retryIO(times = 3, onRetry = { attempt ->
-                    Log.d("markMessageAsRead", "number of retries is $attempt")
-                    // TODO play with passing a UIEvent of Retrying
-                }) {
-                    apiService.removeMessage(messageId)
-                }
+            // This is inside the originalState is NetworkResult.Success if-condition
+            // because the deletion action is DEPENDENT on of the state of _messagesByUserCache.value.
+            // The message must exist to delete.
+            withContext(Dispatchers.IO) {
+                try {
+                    // 3. Make your live network call to Express backend
+                    val response = retryIO(times = 3, onRetry = { attempt ->
+                        Log.d("markMessageAsRead", "number of retries is $attempt")
+                        // TODO play with passing a UIEvent of Retrying
+                    }) {
+                        apiService.removeMessage(messageId)
+                    }
 
 //                val responze = Response.Builder()
 //                    .request(okhttp3.Request.Builder().url("http://www.test.com").build())
@@ -229,29 +238,75 @@ class MessageCacheRepositoryImpl(
 //                throw Exception("tragic failure")
 
 //                if (responze.isSuccessful) {
-                if (response.isSuccessful) {
-                    // Success! We have an empty JSON object, {}.
-                    _uiEventChannel.send(MessageUiEvent.showToast("Successfully deleted message"))
-                } else {
+                    if (response.isSuccessful) {
+                        // Success! We have an empty JSON object, {}.
+//                    _uiEventChannel.send(MessageUiEvent.showToast("Successfully deleted message"))
+                        _uiEventChannel.send(MessageUiEvent.showDeleteSnackbar(targetMessage))
+                    } else {
+                        // 4. ROLLBACK: Put the original state back into the Flow.
+                        // The UI will automatically detect this and smoothly animate the card back
+                        _messagesByUserCache.value = originalState
+
+                        // 5. Alert the user via your one-shot event channel
+                        _uiEventChannel.send(MessageUiEvent.showToast("Unable to delete message. Please try again."))
+                    }
+                } catch (e: Exception) {
+                    Audit.createInstance().writeLog(e.message ?: "no message")
                     // 4. ROLLBACK: Put the original state back into the Flow.
                     // The UI will automatically detect this and smoothly animate the card back
                     _messagesByUserCache.value = originalState
 
                     // 5. Alert the user via your one-shot event channel
                     _uiEventChannel.send(MessageUiEvent.showToast("Unable to delete message. Please try again."))
+                } finally {
+                    withContext(NonCancellable) {
+                        Audit.createInstance()
+                            .writeLog("${auditLogTimestamp()} delete message ended")
+                    }
+                }
+            }
+        }
+    }
+
+    override suspend fun restoreMessage(deletedMessage: MessageDomainModel) {
+        // 1. Snapshot the current state in case the network restore network call fails
+        val backupState = _messagesByUserCache.value
+
+        // 2. OPTIMISTIC RESTORE: Shove the message back into the list manually
+        if (backupState is NetworkResult.Success) {
+            // Re-insert it - append it
+            val restoredList = backupState.data + deletedMessage
+            _messagesByUserCache.value = NetworkResult.Success(restoredList)
+        }
+
+        // This is outside the backupState is NetworkResult.Success if-condition
+        // because the domain is already in hand and needs to restore
+        // INDEPENDENT of the state of _messagesByUserCache.value.
+        withContext(Dispatchers.IO) {
+            try {
+                val messageRequestDto = deletedMessage.toMessageRequestDto()
+                val response = retryIO(times = 3, onRetry = { attempt ->
+                    Log.d("markMessageAsRead", "number of retries is $attempt")
+                    // TODO play with passing a UIEvent of Retrying
+                }) {
+                    apiService.addMessage(messageRequestDto)
+                }
+                if (response.isSuccessful) {
+                    _uiEventChannel.send(MessageUiEvent.showToast("Deleted message restored"))
+                } else {
+                    // ROLLBACK UNDO: If the server failed to restore, then remove it again
+                    _messagesByUserCache.value = backupState
+                    _uiEventChannel.send(MessageUiEvent.showToast("Could not restore message"))
                 }
             } catch (e: Exception) {
                 Audit.createInstance().writeLog(e.message ?: "no message")
-                // 4. ROLLBACK: Put the original state back into the Flow.
-                // The UI will automatically detect this and smoothly animate the card back
-                _messagesByUserCache.value = originalState
-
-                // 5. Alert the user via your one-shot event channel
-                _uiEventChannel.send(MessageUiEvent.showToast("Unable to delete message. Please try again."))
+                // ROLLBACK UNDO: If the server failed to restore, then remove it again
+                _messagesByUserCache.value = backupState
+                _uiEventChannel.send(MessageUiEvent.showToast("Could not restore message"))
             } finally {
                 withContext(NonCancellable) {
                     Audit.createInstance()
-                        .writeLog("${auditLogTimestamp()} delete message ended")
+                        .writeLog("${auditLogTimestamp()} restore message ended")
                 }
             }
         }

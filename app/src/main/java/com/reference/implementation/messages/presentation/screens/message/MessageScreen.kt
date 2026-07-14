@@ -46,6 +46,11 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBoxDefaults.positionalThreshold
 import androidx.compose.material3.Text
@@ -58,6 +63,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -96,8 +102,11 @@ fun MessageScreen(
     viewModel: MessageViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
 
+
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+
     // Grab the lifecycle owner from the current composition context
     val lifecycleOwner = LocalLifecycleOwner.current
     val context = LocalContext.current
@@ -114,6 +123,23 @@ fun MessageScreen(
 
                     is MessageUiEvent.showAlertDialog -> {
                         // TODO Trigger state to show a Material 3 AlertDialog Composable
+                    }
+
+                    is MessageUiEvent.showDeleteSnackbar -> {
+                        // This suspends until an action happens or it fades away
+                        val result = snackbarHostState.showSnackbar(
+                            message = "Message deleted",
+                            actionLabel = "UNDO",
+                            // FOR TESTING PURPOSES:
+                            // when actionLabel is not null (e.g. UNDO)
+                            // then by not setting duration the duration defaults to INDEFINITE
+//                            duration = SnackbarDuration.Short
+                        )
+
+                        if (result == SnackbarResult.ActionPerformed) {
+                            // The user clicked UNDO! Fire and forget back into the UDF loop!
+                            viewModel.onRestoreMessage(event.deletedMessage)
+                        }
                     }
                 }
             }
@@ -156,7 +182,8 @@ fun MessageScreen(
                     viewModel.onToggleReadStatus(messageId, newReadStatus)
                 },
                 onMessageClicked = onMessageClicked,
-                list = list
+                list = list,
+                snackbarHostState = snackbarHostState
             )
         }
     }
@@ -190,7 +217,8 @@ fun MessageDetailsPreview() {
                 onDelete = {},
                 onToggleReadStatus = { id, newReadStatus -> },
                 onMessageClicked = {},
-                list
+                list = list,
+                snackbarHostState = SnackbarHostState(),
             )
         }
     }
@@ -204,12 +232,16 @@ fun MessageDetails(
     onToggleReadStatus: (Int, Boolean) -> Unit,
     onMessageClicked: (Int) -> Unit,
     list: List<MessageUiDetail>,
+    snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier
 ) {
 
     // Here is the search-and-scroll feature for message details
 
     Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        },
         modifier = modifier
             .fillMaxSize(),
         topBar = {

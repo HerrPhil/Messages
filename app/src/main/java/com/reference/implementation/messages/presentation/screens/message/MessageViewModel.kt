@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.reference.implementation.messages.domain.model.MessageDomainModel
 import com.reference.implementation.messages.domain.model.toMessageUiDetail
 import com.reference.implementation.messages.domain.use_case.DeleteMessageUseCase
 import com.reference.implementation.messages.domain.use_case.GetActiveMessagesUseCase
@@ -12,6 +13,7 @@ import com.reference.implementation.messages.domain.use_case.LoadActiveMessagesU
 import com.reference.implementation.messages.domain.use_case.MarkMessageAsReadUseCase
 import com.reference.implementation.messages.domain.use_case.MarkMessageAsUnreadUseCase
 import com.reference.implementation.messages.domain.use_case.Resource
+import com.reference.implementation.messages.domain.use_case.RestoreMessageUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +28,7 @@ class MessageViewModel(
     private val markMessageAsReadUseCase: MarkMessageAsReadUseCase,
     private val markMessageAsUnreadUseCase: MarkMessageAsUnreadUseCase,
     private val deleteMessageUseCase: DeleteMessageUseCase,
+    private val restoreMessageUseCase: RestoreMessageUseCase,
     getMessageUiEventsUseCase: GetMessageUiEventsUseCase
 ) : ViewModel() {
 
@@ -75,6 +78,12 @@ class MessageViewModel(
     fun onDeleteMessage(messageId: Int) {
         viewModelScope.launch {
             deleteMessageUseCase(messageId)
+        }
+    }
+
+    fun onRestoreMessage(deletedMessage: MessageDomainModel) {
+        viewModelScope.launch {
+            restoreMessageUseCase(deletedMessage)
         }
     }
 
