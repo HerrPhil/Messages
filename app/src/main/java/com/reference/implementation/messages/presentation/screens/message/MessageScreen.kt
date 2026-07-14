@@ -1,9 +1,6 @@
 package com.reference.implementation.messages.presentation.screens.message
 
 import android.widget.Toast
-import androidx.compose.animation.core.exponentialDecay
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.rememberSplineBasedDecay
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.AnchoredDraggableState
@@ -11,7 +8,6 @@ import androidx.compose.foundation.gestures.DraggableAnchors
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.anchoredDraggable
 import androidx.compose.foundation.gestures.animateTo
-import androidx.compose.foundation.hoverable
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -46,13 +42,10 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Snackbar
-import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
-import androidx.compose.material3.SwipeToDismissBoxDefaults.positionalThreshold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipBox
@@ -63,7 +56,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -89,10 +81,10 @@ import com.reference.implementation.messages.presentation.components.ErrorConten
 import com.reference.implementation.messages.presentation.components.LoadingContent
 import com.reference.implementation.messages.presentation.components.RetryingContent
 import com.reference.implementation.messages.presentation.components.Welcome
+import com.reference.implementation.messages.presentation.components.getRelativeTimeString
 import com.reference.implementation.messages.ui.theme.MessagesTheme
 import com.reference.implementation.messages.ui.theme.Purple40
 import com.reference.implementation.messages.ui.theme.Purple80
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -204,7 +196,8 @@ fun MessageDetailsPreview() {
             subject = "test subject",
             body = "test message $index",
             read = false,
-            userId = 123
+            userId = 123,
+            createdAt = "2026-07-13T22:28:56.321Z"
         )
     })
     MessagesTheme {
@@ -368,7 +361,8 @@ fun SwipeableMessageItemPreview() {
         subject = "test message item",
         body = "Here is a preview test",
         read = false,
-        userId = 456
+        userId = 456,
+        createdAt = "2026-07-13T22:28:56.321Z"
     )
     MessagesTheme {
         Surface(
@@ -594,7 +588,8 @@ fun MessageItemCardPreview() {
         subject = "test message item",
         body = "Here is a preview test",
         read = false,
-        userId = 456
+        userId = 456,
+        createdAt = "2026-07-13T22:28:56.321Z"
     )
     MessagesTheme {
         Surface(
@@ -624,6 +619,7 @@ fun MessageItemCard(message: MessageUiDetail, onItemClicked: () -> Unit) {
         ) {
             SubjectLine(message.subject, message.read)
             BodyLine(message.body)
+            CreatedAtLine(message.createdAt)
         }
     }
 }
@@ -728,8 +724,37 @@ fun BodyLinePreview() {
 fun BodyLine(body: String) {
     Text(
         text = body,
+        style = MaterialTheme.typography.bodyMedium,
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.fillMaxWidth()
+    )
+}
+
+@Preview(name = "Light Mode", showBackground = true)
+@Preview(
+    name = "Dark Mode",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+    showBackground = true
+)
+@Composable
+fun CreatedAtLinePreview() {
+    MessagesTheme {
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.padding(16.dp)
+        ) {
+            CreatedAtLine("2026-07-13T22:28:56.321Z")
+        }
+    }
+}
+
+@Composable
+fun CreatedAtLine(createdAt: String) {
+    Text(
+        text = "Created ${getRelativeTimeString(createdAt)}",
+        style = MaterialTheme.typography.bodySmall,
+        maxLines = 1,
         modifier = Modifier.fillMaxWidth()
     )
 }

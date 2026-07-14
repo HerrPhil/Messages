@@ -12,7 +12,8 @@ data class MessageDto(
     val subject: String,
     val body: String,
     val read: Boolean,
-    val userId: Int
+    val userId: Int,
+    val createdAt: String // Kept as raw ISO 8601 String (e.g. 2026-07-13T22:28:56.321Z = GMT+0)
 )
 
 @Serializable
@@ -21,7 +22,8 @@ data class MessageRequestDto(
     val body: String,
     val subject: String,
     val read: Boolean,
-    val userId: Int
+    val userId: Int,
+    val createdAt: String // Kept as raw ISO 8601 String (e.g. 2026-07-13T22:28:56.321Z = GMT+0)
 )
 
 @Serializable
@@ -71,7 +73,6 @@ data class UserDto(
     val age: Int
 )
 
-// TODO left off here. create the Role DTO to receive the role, for example, by target User ID
 @Serializable
 data class RoleDto(
     val id: Int,
@@ -91,15 +92,15 @@ data class PermissionDto(
 fun UserDto.toDomainModel(): LoginUserDomainModel = LoginUserDomainModel(this.email, this.name)
 
 fun MessageDto.toMessageDomainModel(): MessageDomainModel =
-    MessageDomainModel(this.id, this.subject, this.body, this.read, this.userId)
+    MessageDomainModel(this.id, this.subject, this.body, this.read, this.userId, this.createdAt)
 
 fun MessageDomainModel.toMessageDto(): MessageDto =
-    MessageDto(this.id, this.subject, this.body, this.read, this.userId)
+    MessageDto(this.id, this.subject, this.body, this.read, this.userId, this.createdAt)
 
 fun MessageDomainModel.toPartialMessageRequestDto(): PartialMessageRequestDto =
     PartialMessageRequestDto(this.body)
 
 fun MessageDomainModel.toMessageRequestDto(): MessageRequestDto =
-    MessageRequestDto(this.id, this.body, this.subject, this.read, this.userId)
+    MessageRequestDto(this.id, this.body, this.subject, this.read, this.userId, this.createdAt)
 
 fun RefreshTokenDto.toDomainModel(): RefreshTokenDomainModel = RefreshTokenDomainModel(this.accessToken)

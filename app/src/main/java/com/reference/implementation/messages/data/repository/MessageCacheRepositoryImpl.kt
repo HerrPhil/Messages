@@ -1,7 +1,6 @@
 package com.reference.implementation.messages.data.repository
 
 import android.util.Log
-import android.view.PixelCopy.Request
 import com.reference.implementation.messages.data.audit.Audit
 import com.reference.implementation.messages.data.manager.SessionManager
 import com.reference.implementation.messages.data.manager.SessionResult
@@ -9,7 +8,6 @@ import com.reference.implementation.messages.data.remote.ApiService
 import com.reference.implementation.messages.data.remote.MarkMessageAsReadDto
 import com.reference.implementation.messages.data.remote.MarkMessageAsUnreadDto
 import com.reference.implementation.messages.data.remote.toMessageDomainModel
-import com.reference.implementation.messages.data.remote.toMessageDto
 import com.reference.implementation.messages.data.remote.toMessageRequestDto
 import com.reference.implementation.messages.domain.model.MessageDomainModel
 import com.reference.implementation.messages.domain.repository.MessageCacheRepository
@@ -23,11 +21,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType
-import okhttp3.MediaType.Companion.toMediaTypeOrNull
-import okhttp3.Protocol
-import okhttp3.Response
-import okhttp3.ResponseBody
 
 class MessageCacheRepositoryImpl(
     private val apiService: ApiService,
@@ -94,10 +87,6 @@ class MessageCacheRepositoryImpl(
     }
 
     override suspend fun markMessageAsRead(messageId: Int) {
-//        val response: NetworkResult<Nothing> = NetworkResult.Error(400, "Something went wrong when marking message as unread")
-//        Log.d("markMessageAsRead", "something went wrong")
-
-
         val response = withContext(Dispatchers.IO) {
             try {
                 val response = retryIO(times = 3, onRetry = { attempt ->
@@ -138,10 +127,6 @@ class MessageCacheRepositoryImpl(
     }
 
     override suspend fun markMessageAsUnread(messageId: Int) {
-//        val response: NetworkResult<Nothing> = NetworkResult.Error(400, "Something went wrong when marking message as unread")
-//        Log.d("markMessageAsRead", "something went wrong")
-
-
         val response = withContext(Dispatchers.IO) {
             try {
                 val response = retryIO(times = 3, onRetry = { attempt ->
@@ -177,7 +162,7 @@ class MessageCacheRepositoryImpl(
             toggleReadStatus(messageId) // Internal update of hot Status Flow
         } else {
             Log.d("markMessageAsUnread", "send a message UI event")
-            _uiEventChannel.send(MessageUiEvent.showToast("Unable to update read status"))
+            _uiEventChannel.send(MessageUiEvent.showToast("Unable to toggle read status"))
         }
     }
 
@@ -225,22 +210,8 @@ class MessageCacheRepositoryImpl(
                         apiService.removeMessage(messageId)
                     }
 
-//                val responze = Response.Builder()
-//                    .request(okhttp3.Request.Builder().url("http://www.test.com").build())
-//                    .protocol(Protocol.HTTP_1_1)
-//                    .code(404)
-//                    .message("error")
-//                    .body(ResponseBody.create(
-//                        "application/json".toMediaTypeOrNull(),
-//                        ""
-//                    ))
-//                    .build()
-//                throw Exception("tragic failure")
-
-//                if (responze.isSuccessful) {
                     if (response.isSuccessful) {
                         // Success! We have an empty JSON object, {}.
-//                    _uiEventChannel.send(MessageUiEvent.showToast("Successfully deleted message"))
                         _uiEventChannel.send(MessageUiEvent.showDeleteSnackbar(targetMessage))
                     } else {
                         // 4. ROLLBACK: Put the original state back into the Flow.

@@ -7,7 +7,8 @@ data class MessageDomainModel(
     val subject: String,
     val body: String,
     val read: Boolean,
-    val userId: Int
+    val userId: Int,
+    val createdAt: String
 )
 
 fun MessageDomainModel.toMessageUiDetail(): MessageUiDetail =
@@ -16,5 +17,6 @@ fun MessageDomainModel.toMessageUiDetail(): MessageUiDetail =
         subject = this.subject,
         body = this.body,
         read = this.read,
-        userId = this.userId
+        userId = this.userId,
+        createdAt = this.createdAt
     )
