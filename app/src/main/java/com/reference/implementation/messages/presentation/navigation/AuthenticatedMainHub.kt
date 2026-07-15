@@ -117,7 +117,7 @@ fun AuthenticatedMainHub() {
                 MessageScreen(onMessageClicked = {})
             }
             composable<Route.Bulletins> {
-                BulletinScreen()
+                BulletinScreen({/* TODO */})
             }
         }
     }

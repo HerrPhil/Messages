@@ -9,6 +9,7 @@ import com.reference.implementation.messages.presentation.navigation.Authenticat
 import com.reference.implementation.messages.presentation.navigation.RootViewModel
 import com.reference.implementation.messages.presentation.screens.adminhome.AdminHomeViewModel
 import com.reference.implementation.messages.presentation.screens.adminmessage.AdminMessageViewModel
+import com.reference.implementation.messages.presentation.screens.bulletin.BulletinViewModel
 import com.reference.implementation.messages.presentation.screens.home.HomeViewModel
 import com.reference.implementation.messages.presentation.screens.login.LoginViewModel
 import com.reference.implementation.messages.presentation.screens.message.MessageViewModel
@@ -69,6 +70,14 @@ object AppViewModelProvider {
         initializer {
             AdminMessageViewModel(
                 // TODO add use case(s) to get admin message info
+            )
+        }
+
+        initializer {
+            BulletinViewModel(
+                messageApplication().container.loadAllBulletinsUseCase,
+                messageApplication().container.getAllBulletinsUseCase,
+                messageApplication().container.getBulletinUiEventsUseCase
             )
         }
 

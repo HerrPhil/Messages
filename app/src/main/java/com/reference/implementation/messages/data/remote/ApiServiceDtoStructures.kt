@@ -1,5 +1,6 @@
 package com.reference.implementation.messages.data.remote
 
+import com.reference.implementation.messages.domain.model.BulletinDomainModel
 import com.reference.implementation.messages.domain.model.MessageDomainModel
 import com.reference.implementation.messages.domain.model.LoginUserDomainModel
 import com.reference.implementation.messages.domain.model.RefreshTokenDomainModel
@@ -89,6 +90,14 @@ data class PermissionDto(
     val userId: Int // data owner aka administrator
 )
 
+@Serializable
+data class BulletinDto(
+    val id: Int,
+    val userId: Int,
+    val title: String,
+    val post: String,
+    val timestamp: String // Kept as raw ISO 8601 String (e.g. 2026-07-13T22:28:56.321Z = GMT+0)
+)
 fun UserDto.toDomainModel(): LoginUserDomainModel = LoginUserDomainModel(this.email, this.name)
 
 fun MessageDto.toMessageDomainModel(): MessageDomainModel =
@@ -104,3 +113,6 @@ fun MessageDomainModel.toMessageRequestDto(): MessageRequestDto =
     MessageRequestDto(this.id, this.body, this.subject, this.read, this.userId, this.createdAt)
 
 fun RefreshTokenDto.toDomainModel(): RefreshTokenDomainModel = RefreshTokenDomainModel(this.accessToken)
+
+fun BulletinDto.toBulletinDomainModel(): BulletinDomainModel =
+    BulletinDomainModel(this.id, this.userId, this.title, this.post, this.timestamp)

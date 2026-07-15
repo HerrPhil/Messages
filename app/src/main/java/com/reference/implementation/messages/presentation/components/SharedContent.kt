@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
@@ -195,4 +196,34 @@ fun getRelativeTimeString(
     } catch (e: Exception) {
         "Unknown time"
     }
+}
+
+
+
+@Preview(name = "Light Mode", showBackground = true)
+@Preview(
+    name = "Dark Mode",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+    showBackground = true
+)
+@Composable
+fun CreatedAtLinePreview() {
+    MessagesTheme {
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.padding(16.dp)
+        ) {
+            CreatedAtLine("2026-07-13T22:28:56.321Z")
+        }
+    }
+}
+
+@Composable
+fun CreatedAtLine(createdAt: String) {
+    Text(
+        text = "Created ${getRelativeTimeString(createdAt)}",
+        style = MaterialTheme.typography.bodySmall,
+        maxLines = 1,
+        modifier = Modifier.fillMaxWidth()
+    )
 }

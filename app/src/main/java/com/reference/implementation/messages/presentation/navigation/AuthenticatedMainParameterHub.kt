@@ -210,7 +210,7 @@ fun AuthenticatedMainParameterHub(
             }
 
             composable<Route.Bulletins> {
-                BulletinScreen()
+                BulletinScreen({/* TODO */})
             }
         }
     }
