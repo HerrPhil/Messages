@@ -63,4 +63,7 @@ interface ApiService {
     @GET("permissions")
     suspend fun getPermissions(@Query("id") permissionIds: List<Int>): Response<List<PermissionDto>>
 
+    @GET("bulletins")
+    suspend fun getBulletins(): Response<List<BulletinDto>>
+
 }

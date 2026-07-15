@@ -42,6 +42,7 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
@@ -76,6 +77,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.reference.implementation.messages.presentation.AppViewModelProvider
+import com.reference.implementation.messages.presentation.components.CreatedAtLine
 import com.reference.implementation.messages.presentation.components.EmptyListContent
 import com.reference.implementation.messages.presentation.components.ErrorContent
 import com.reference.implementation.messages.presentation.components.LoadingContent
@@ -93,7 +95,6 @@ fun MessageScreen(
     onMessageClicked: (Int) -> Unit,
     viewModel: MessageViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
-
 
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
@@ -113,10 +114,6 @@ fun MessageScreen(
                         Toast.makeText(context, event.message, Toast.LENGTH_SHORT).show()
                     }
 
-                    is MessageUiEvent.showAlertDialog -> {
-                        // TODO Trigger state to show a Material 3 AlertDialog Composable
-                    }
-
                     is MessageUiEvent.showDeleteSnackbar -> {
                         // This suspends until an action happens or it fades away
                         val result = snackbarHostState.showSnackbar(
@@ -125,7 +122,7 @@ fun MessageScreen(
                             // FOR TESTING PURPOSES:
                             // when actionLabel is not null (e.g. UNDO)
                             // then by not setting duration the duration defaults to INDEFINITE
-//                            duration = SnackbarDuration.Short
+                            duration = SnackbarDuration.Short
                         )
 
                         if (result == SnackbarResult.ActionPerformed) {
@@ -235,11 +232,7 @@ fun MessageDetails(
         snackbarHost = {
             SnackbarHost(hostState = snackbarHostState)
         },
-        modifier = modifier
-            .fillMaxSize(),
-        topBar = {
-            // Your main shell screen header goes here if you have one
-        }
+        modifier = modifier.fillMaxSize()
     ) { innerPadding ->
         // The root content container is a standard Column
         Column(
@@ -731,30 +724,30 @@ fun BodyLine(body: String) {
     )
 }
 
-@Preview(name = "Light Mode", showBackground = true)
-@Preview(
-    name = "Dark Mode",
-    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
-    showBackground = true
-)
-@Composable
-fun CreatedAtLinePreview() {
-    MessagesTheme {
-        Surface(
-            color = MaterialTheme.colorScheme.surface,
-            modifier = Modifier.padding(16.dp)
-        ) {
-            CreatedAtLine("2026-07-13T22:28:56.321Z")
-        }
-    }
-}
-
-@Composable
-fun CreatedAtLine(createdAt: String) {
-    Text(
-        text = "Created ${getRelativeTimeString(createdAt)}",
-        style = MaterialTheme.typography.bodySmall,
-        maxLines = 1,
-        modifier = Modifier.fillMaxWidth()
-    )
-}
+//@Preview(name = "Light Mode", showBackground = true)
+//@Preview(
+//    name = "Dark Mode",
+//    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+//    showBackground = true
+//)
+//@Composable
+//fun CreatedAtLinePreview() {
+//    MessagesTheme {
+//        Surface(
+//            color = MaterialTheme.colorScheme.surface,
+//            modifier = Modifier.padding(16.dp)
+//        ) {
+//            CreatedAtLine("2026-07-13T22:28:56.321Z")
+//        }
+//    }
+//}
+//
+//@Composable
+//fun CreatedAtLine(createdAt: String) {
+//    Text(
+//        text = "Created ${getRelativeTimeString(createdAt)}",
+//        style = MaterialTheme.typography.bodySmall,
+//        maxLines = 1,
+//        modifier = Modifier.fillMaxWidth()
+//    )
+//}

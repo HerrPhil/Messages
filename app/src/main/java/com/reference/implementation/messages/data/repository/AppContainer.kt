@@ -9,6 +9,7 @@ import com.reference.implementation.messages.data.manager.RefreshTokenManager
 import com.reference.implementation.messages.data.manager.RoleManager
 import com.reference.implementation.messages.data.manager.SessionManager
 import com.reference.implementation.messages.data.remote.ApiService
+import com.reference.implementation.messages.domain.repository.BulletinCacheRepository
 import com.reference.implementation.messages.domain.repository.LoginRepository
 import com.reference.implementation.messages.domain.repository.LogoutRepository
 import com.reference.implementation.messages.domain.repository.MessageCacheRepository
@@ -20,9 +21,12 @@ import com.reference.implementation.messages.domain.repository.UserRepository
 import com.reference.implementation.messages.domain.use_case.DeleteMessageUseCase
 import com.reference.implementation.messages.domain.use_case.ForceLogoutUseCase
 import com.reference.implementation.messages.domain.use_case.GetActiveMessagesUseCase
+import com.reference.implementation.messages.domain.use_case.GetAllBulletinsUseCase
+import com.reference.implementation.messages.domain.use_case.GetBulletinUiEventsUseCase
 import com.reference.implementation.messages.domain.use_case.GetMessageUiEventsUseCase
 import com.reference.implementation.messages.domain.use_case.GetUserDashboardUseCase
 import com.reference.implementation.messages.domain.use_case.LoadActiveMessagesUseCase
+import com.reference.implementation.messages.domain.use_case.LoadAllBulletinsUseCase
 import com.reference.implementation.messages.domain.use_case.LoginUseCase
 import com.reference.implementation.messages.domain.use_case.LogoutUseCase
 import com.reference.implementation.messages.domain.use_case.MarkMessageAsReadUseCase
@@ -52,6 +56,9 @@ interface AppContainer {
     val deleteMessageUseCase: DeleteMessageUseCase
     val restoreMessageUseCase: RestoreMessageUseCase
     val getMessageUiEventsUseCase: GetMessageUiEventsUseCase
+    val loadAllBulletinsUseCase: LoadAllBulletinsUseCase
+    val getAllBulletinsUseCase: GetAllBulletinsUseCase
+    val getBulletinUiEventsUseCase: GetBulletinUiEventsUseCase
     val authSessionManager: AuthSessionManager
     val roleManager: RoleManager
 }
@@ -221,6 +228,10 @@ class AppMessageContainer(context: Context) : AppContainer {
         MessageCacheRepositoryImpl(apiService, sessionManager)
     }
 
+    private val bulletinCacheRepository: BulletinCacheRepository by lazy {
+        BulletinCacheRepositoryImpl(apiService)
+    }
+
     /**
      * On the journey of building up the app, the first point of contact is login.
      * Here is the implementation for the login use case.
@@ -277,6 +288,18 @@ class AppMessageContainer(context: Context) : AppContainer {
 
     override val getMessageUiEventsUseCase: GetMessageUiEventsUseCase by lazy {
         GetMessageUiEventsUseCase(messageCacheRepository)
+    }
+
+    override val loadAllBulletinsUseCase: LoadAllBulletinsUseCase by lazy {
+        LoadAllBulletinsUseCase(bulletinCacheRepository)
+    }
+
+    override val getAllBulletinsUseCase: GetAllBulletinsUseCase by lazy {
+        GetAllBulletinsUseCase(bulletinCacheRepository)
+    }
+
+    override val getBulletinUiEventsUseCase: GetBulletinUiEventsUseCase by lazy {
+        GetBulletinUiEventsUseCase(bulletinCacheRepository)
     }
 
 }

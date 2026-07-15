@@ -41,15 +41,13 @@ class MessageCacheRepositoryImpl(
     val messagesByUserCache: StateFlow<NetworkResult<List<MessageDomainModel>>> =
         _messagesByUserCache.asStateFlow()
 
-    override fun getMessageUiEvents(): Flow<MessageUiEvent> =
-        _uiEventChannel.receiveAsFlow()
+    override fun getMessageUiEvents(): Flow<MessageUiEvent> = _uiEventChannel.receiveAsFlow()
 
     override val uiEvents = _uiEventChannel.receiveAsFlow()
 
-
     override suspend fun refreshMessagesByUser(onRetry: suspend (Int) -> Unit) {
 
-        // Force the cache to show "Loading" if it a manual retry/refresh action
+        // Force the cache to show "Loading" if it is a manual retry/refresh action
         _messagesByUserCache.value = NetworkResult.Loading
 
         // force the execution onto the IO thread pool
@@ -76,11 +74,10 @@ class MessageCacheRepositoryImpl(
             } catch (e: Exception) {
                 Audit.createInstance().writeLog(e.message ?: "no message")
                 // Update the SSOT cache with the network result exception!
-                _messagesByUserCache.value =
-                    NetworkResult.Exception(e)
+                _messagesByUserCache.value = NetworkResult.Exception(e)
             } finally {
                 withContext(NonCancellable) {
-                    Audit.createInstance().writeLog("${auditLogTimestamp()} get messages ended")
+                    Audit.createInstance().writeLog("${auditLogTimestamp()} refresh messages by user ended")
                 }
             }
         }
