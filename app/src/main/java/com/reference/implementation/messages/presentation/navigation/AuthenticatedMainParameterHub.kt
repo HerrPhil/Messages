@@ -23,14 +23,19 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.reference.implementation.messages.presentation.AppViewModelProvider
 import com.reference.implementation.messages.presentation.screens.adminhome.AdminHomeScreen
 import com.reference.implementation.messages.presentation.screens.adminmessage.AdminMessageScreen
+import com.reference.implementation.messages.presentation.screens.bulletin.BulletinDetailScreen
+import com.reference.implementation.messages.presentation.screens.bulletin.BulletinDetailViewModel
 import com.reference.implementation.messages.presentation.screens.bulletin.BulletinScreen
 import com.reference.implementation.messages.presentation.screens.home.HomeScreen
 import com.reference.implementation.messages.presentation.screens.message.MessageDetailScreen
@@ -202,7 +207,7 @@ fun AuthenticatedMainParameterHub(
                 val detailRoute: Route.MessageDetail = backStackEntry.toRoute<Route.MessageDetail>()
                 val messageId = detailRoute.id
                 MessageDetailScreen(
-                    messageId = detailRoute.id,
+                    messageId = messageId,
                     // Executing popBackStack clears this destination off the stack
                     // and returns the user back to the message list smoothly
                     onNavigateBack = { childNavController.popBackStack() }
@@ -210,7 +215,26 @@ fun AuthenticatedMainParameterHub(
             }
 
             composable<Route.Bulletins> {
-                BulletinScreen({/* TODO */})
+                BulletinScreen(
+                    onBulletinClicked = {bulletinId ->
+                        // The hub owns the controller and executes the actual routing
+                        childNavController.navigate(Route.BulletinDetail(id = bulletinId))
+                    }
+                )
+            }
+
+            composable<Route.BulletinDetail> {
+                // ViewModel is automatically constructed with the correct ID inside the SavedStateHandle!
+                val viewModel: BulletinDetailViewModel = viewModel( factory = AppViewModelProvider.Factory)
+                // Grab the data stream from the ViewModel
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+                BulletinDetailScreen(
+                    uiState = uiState,
+                    // Executing popBackStack clears this destination off the stack
+                    // and returns the user back to the message list smoothly
+                    onNavigateBack = { childNavController.popBackStack() }
+                )
             }
         }
     }

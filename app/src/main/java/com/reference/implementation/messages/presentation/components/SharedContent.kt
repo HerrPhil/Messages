@@ -207,21 +207,21 @@ fun getRelativeTimeString(
     showBackground = true
 )
 @Composable
-fun CreatedAtLinePreview() {
+fun DateTimeLabelPreview() {
     MessagesTheme {
         Surface(
             color = MaterialTheme.colorScheme.surface,
             modifier = Modifier.padding(16.dp)
         ) {
-            CreatedAtLine("2026-07-13T22:28:56.321Z")
+            DateTimeLabel("Created","2026-07-13T22:28:56.321Z")
         }
     }
 }
 
 @Composable
-fun CreatedAtLine(createdAt: String) {
+fun DateTimeLabel(label:String, theTimestamp: String) {
     Text(
-        text = "Created ${getRelativeTimeString(createdAt)}",
+        text = "$label ${getRelativeTimeString(theTimestamp)}",
         style = MaterialTheme.typography.bodySmall,
         maxLines = 1,
         modifier = Modifier.fillMaxWidth()

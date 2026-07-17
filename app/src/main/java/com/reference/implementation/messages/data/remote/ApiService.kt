@@ -66,4 +66,8 @@ interface ApiService {
     @GET("bulletins")
     suspend fun getBulletins(): Response<List<BulletinDto>>
 
+    // Get bulletin by unique ID, expect one JSON object, empty when not found, otherwise populated
+    @GET("bulletins/{id}")
+    suspend fun getBulletin(@Path("id") id: Int): Response<BulletinDto>
+
 }

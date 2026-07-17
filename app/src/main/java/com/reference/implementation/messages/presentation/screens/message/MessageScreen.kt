@@ -77,13 +77,12 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.reference.implementation.messages.presentation.AppViewModelProvider
-import com.reference.implementation.messages.presentation.components.CreatedAtLine
+import com.reference.implementation.messages.presentation.components.DateTimeLabel
 import com.reference.implementation.messages.presentation.components.EmptyListContent
 import com.reference.implementation.messages.presentation.components.ErrorContent
 import com.reference.implementation.messages.presentation.components.LoadingContent
 import com.reference.implementation.messages.presentation.components.RetryingContent
 import com.reference.implementation.messages.presentation.components.Welcome
-import com.reference.implementation.messages.presentation.components.getRelativeTimeString
 import com.reference.implementation.messages.ui.theme.MessagesTheme
 import com.reference.implementation.messages.ui.theme.Purple40
 import com.reference.implementation.messages.ui.theme.Purple80
@@ -612,7 +611,7 @@ fun MessageItemCard(message: MessageUiDetail, onItemClicked: () -> Unit) {
         ) {
             SubjectLine(message.subject, message.read)
             BodyLine(message.body)
-            CreatedAtLine(message.createdAt)
+            DateTimeLabel("Created at", message.createdAt)
         }
     }
 }
@@ -723,31 +722,3 @@ fun BodyLine(body: String) {
         modifier = Modifier.fillMaxWidth()
     )
 }
-
-//@Preview(name = "Light Mode", showBackground = true)
-//@Preview(
-//    name = "Dark Mode",
-//    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
-//    showBackground = true
-//)
-//@Composable
-//fun CreatedAtLinePreview() {
-//    MessagesTheme {
-//        Surface(
-//            color = MaterialTheme.colorScheme.surface,
-//            modifier = Modifier.padding(16.dp)
-//        ) {
-//            CreatedAtLine("2026-07-13T22:28:56.321Z")
-//        }
-//    }
-//}
-//
-//@Composable
-//fun CreatedAtLine(createdAt: String) {
-//    Text(
-//        text = "Created ${getRelativeTimeString(createdAt)}",
-//        style = MaterialTheme.typography.bodySmall,
-//        maxLines = 1,
-//        modifier = Modifier.fillMaxWidth()
-//    )
-//}

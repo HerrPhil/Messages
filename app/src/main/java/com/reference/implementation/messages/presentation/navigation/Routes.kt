@@ -87,6 +87,9 @@ sealed class Route {
     @Serializable
     data class MessageDetail(val id: Int)
 
+    @Serializable
+    data class BulletinDetail(val id: Int)
+
 
 
 

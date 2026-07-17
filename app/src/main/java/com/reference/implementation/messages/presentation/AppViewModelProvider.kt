@@ -1,6 +1,7 @@
 package com.reference.implementation.messages.presentation
 
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -9,6 +10,7 @@ import com.reference.implementation.messages.presentation.navigation.Authenticat
 import com.reference.implementation.messages.presentation.navigation.RootViewModel
 import com.reference.implementation.messages.presentation.screens.adminhome.AdminHomeViewModel
 import com.reference.implementation.messages.presentation.screens.adminmessage.AdminMessageViewModel
+import com.reference.implementation.messages.presentation.screens.bulletin.BulletinDetailViewModel
 import com.reference.implementation.messages.presentation.screens.bulletin.BulletinViewModel
 import com.reference.implementation.messages.presentation.screens.home.HomeViewModel
 import com.reference.implementation.messages.presentation.screens.login.LoginViewModel
@@ -78,6 +80,18 @@ object AppViewModelProvider {
                 messageApplication().container.loadAllBulletinsUseCase,
                 messageApplication().container.getAllBulletinsUseCase,
                 messageApplication().container.getBulletinUiEventsUseCase
+            )
+        }
+
+        initializer {
+            // 1. grab the SavedStateHandle from CreationExtras ('this' parameter)
+            val savedStateHandle = this.createSavedStateHandle()
+
+            // 2. Instantiate the ViewModel cleanly
+            BulletinDetailViewModel(
+                savedStateHandle,
+                messageApplication().container.loadBulletinUseCase,
+                messageApplication().container.getBulletinUseCase
             )
         }
 
