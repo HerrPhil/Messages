@@ -33,9 +33,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.reference.implementation.messages.presentation.AppViewModelProvider
-import com.reference.implementation.messages.presentation.components.CreatedAtLine
+import com.reference.implementation.messages.presentation.components.DateTimeLabel
 import com.reference.implementation.messages.presentation.components.ErrorContent
 import com.reference.implementation.messages.presentation.components.LoadingContent
+import com.reference.implementation.messages.presentation.components.RetryingContent
 import com.reference.implementation.messages.presentation.components.Welcome
 import com.reference.implementation.messages.ui.theme.MessagesTheme
 
@@ -58,6 +59,7 @@ fun BulletinScreen(
 
         is BulletinUiState.Retrying -> {
             val retryAttempt = "attempt #${currentState.attempt}"
+            RetryingContent(retryAttempt)
         }
 
         is BulletinUiState.Error -> {
@@ -173,7 +175,7 @@ fun BulletinItemCard(bulletin: BulletinUiDetail, onItemClicked: () -> Unit) {
         ) {
             TitleLine(bulletin.title)
             Post(bulletin.post) // multi-line
-            CreatedAtLine(bulletin.timestamp)
+            DateTimeLabel("Created",  bulletin.timestamp)
         }
     }
 }

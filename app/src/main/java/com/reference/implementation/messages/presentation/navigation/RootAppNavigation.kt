@@ -114,10 +114,17 @@ fun RootAppNavigation(
                         onRouteSelectTitle = { qualifiedRouteName ->
                             when (qualifiedRouteName) {
                                 Route.Messages::class.qualifiedName -> "Message Centre"
-                                // Reduce title flicker when NavHost state changes instantly,
-                                // and top bar visibility slide up and fade out are still processing.
+                                // The following option reduces title flicker
+                                // when NavHost state changes instantly,
+                                // and top bar visibility slide up
+                                // and fade out are still processing.
                                 Route.MessageDetail::class.qualifiedName + "/{id}" -> "Message Centre"
                                 Route.Bulletins::class.qualifiedName -> "Bulletin Board"
+                                // The following option reduces title flicker
+                                // when NavHost state changes instantly,
+                                // and top bar visibility slide up
+                                // and fade out are still processing.
+                                Route.BulletinDetail::class.qualifiedName + "/{id}" -> "Bulletin Board"
                                 // Home title move to "else" to make "when" statement exhaustive.
                                 else -> "User Home Page"
                             }
