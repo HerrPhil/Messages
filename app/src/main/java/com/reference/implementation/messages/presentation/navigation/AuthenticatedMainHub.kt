@@ -25,7 +25,7 @@ import com.reference.implementation.messages.presentation.screens.message.Messag
 
 
 // 2. Authenticated Hub Level: Houses the drawer and layout
-@OptIn(ExperimentalMaterial3Api::class)
+//@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthenticatedMainHub() {
 
