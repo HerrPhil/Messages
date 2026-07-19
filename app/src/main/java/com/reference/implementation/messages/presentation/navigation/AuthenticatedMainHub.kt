@@ -22,7 +22,6 @@ import com.reference.implementation.messages.presentation.screens.bulletin.Bulle
 import com.reference.implementation.messages.presentation.screens.bulletin.BulletinViewModel
 import com.reference.implementation.messages.presentation.screens.home.HomeScreen
 import com.reference.implementation.messages.presentation.screens.message.MessageScreen
-import kotlinx.serialization.Serializable
 
 
 // 2. Authenticated Hub Level: Houses the drawer and layout
