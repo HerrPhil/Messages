@@ -22,6 +22,7 @@ import com.reference.implementation.messages.presentation.screens.bulletin.Bulle
 import com.reference.implementation.messages.presentation.screens.home.HomeScreen
 import com.reference.implementation.messages.presentation.screens.message.MessageScreen
 
+fun DoesNothing() {}
 
 // 2. Authenticated Hub Level: Houses the drawer and layout
 @Composable
