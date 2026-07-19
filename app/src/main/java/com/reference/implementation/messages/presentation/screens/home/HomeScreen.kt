@@ -35,7 +35,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import com.reference.implementation.messages.presentation.components.ErrorContent
 import com.reference.implementation.messages.presentation.components.LoadingContent
 import com.reference.implementation.messages.presentation.components.RetryingContent
@@ -47,7 +46,7 @@ import com.reference.implementation.messages.ui.theme.MessagesTheme
 fun HomeScreen(
     uiState: HomeUiState
 ) {
-    
+
     // When you use Compose elements like AnimatedContent or CrossFade, to mention two examples,
     // they pass a local snapshot copy of the state into the lambda block (usually named "it",
     // or renamed to "currentState").
