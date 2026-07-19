@@ -10,12 +10,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.reference.implementation.messages.presentation.AppViewModelProvider
 import com.reference.implementation.messages.presentation.screens.bulletin.BulletinScreen
+import com.reference.implementation.messages.presentation.screens.bulletin.BulletinViewModel
 import com.reference.implementation.messages.presentation.screens.home.HomeScreen
 import com.reference.implementation.messages.presentation.screens.message.MessageScreen
 import kotlinx.serialization.Serializable
@@ -117,7 +121,13 @@ fun AuthenticatedMainHub() {
                 MessageScreen(onMessageClicked = {})
             }
             composable<Route.Bulletins> {
-                BulletinScreen({/* TODO */})
+                val viewModel: BulletinViewModel = viewModel(factory = AppViewModelProvider.Factory)
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+                BulletinScreen(
+                    uiState = uiState,
+                    onBulletinClicked = {}
+                )
             }
         }
     }

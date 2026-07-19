@@ -78,8 +78,7 @@ object AppViewModelProvider {
         initializer {
             BulletinViewModel(
                 messageApplication().container.loadAllBulletinsUseCase,
-                messageApplication().container.getAllBulletinsUseCase,
-                messageApplication().container.getBulletinUiEventsUseCase
+                messageApplication().container.getAllBulletinsUseCase
             )
         }
 

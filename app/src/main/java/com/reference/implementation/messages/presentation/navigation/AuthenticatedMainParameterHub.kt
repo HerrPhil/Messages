@@ -37,6 +37,7 @@ import com.reference.implementation.messages.presentation.screens.adminmessage.A
 import com.reference.implementation.messages.presentation.screens.bulletin.BulletinDetailScreen
 import com.reference.implementation.messages.presentation.screens.bulletin.BulletinDetailViewModel
 import com.reference.implementation.messages.presentation.screens.bulletin.BulletinScreen
+import com.reference.implementation.messages.presentation.screens.bulletin.BulletinViewModel
 import com.reference.implementation.messages.presentation.screens.home.HomeScreen
 import com.reference.implementation.messages.presentation.screens.message.MessageDetailScreen
 import com.reference.implementation.messages.presentation.screens.message.MessageScreen
@@ -215,7 +216,11 @@ fun AuthenticatedMainParameterHub(
             }
 
             composable<Route.Bulletins> {
+                val viewModel: BulletinViewModel = viewModel(factory = AppViewModelProvider.Factory)
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
                 BulletinScreen(
+                    uiState = uiState,
                     onBulletinClicked = {bulletinId ->
                         // The hub owns the controller and executes the actual routing
                         childNavController.navigate(Route.BulletinDetail(id = bulletinId))

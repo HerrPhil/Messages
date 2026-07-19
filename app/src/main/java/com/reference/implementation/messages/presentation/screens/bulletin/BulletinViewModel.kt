@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.reference.implementation.messages.domain.model.toBulletinUiDetail
 import com.reference.implementation.messages.domain.use_case.GetAllBulletinsUseCase
-import com.reference.implementation.messages.domain.use_case.GetBulletinUiEventsUseCase
 import com.reference.implementation.messages.domain.use_case.LoadAllBulletinsUseCase
 import com.reference.implementation.messages.domain.use_case.Resource
 import kotlinx.coroutines.flow.SharingStarted
@@ -15,8 +14,7 @@ import kotlinx.coroutines.launch
 
 class BulletinViewModel(
     private val loadAllBulletinsUseCase: LoadAllBulletinsUseCase,
-    getAllBulletinsUseCase: GetAllBulletinsUseCase,
-    getBulletinUiEventsUseCase: GetBulletinUiEventsUseCase
+    getAllBulletinsUseCase: GetAllBulletinsUseCase
 ) : ViewModel() {
 
     val uiState: StateFlow<BulletinUiState> = getAllBulletinsUseCase()
@@ -40,9 +38,6 @@ class BulletinViewModel(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = BulletinUiState.Loading
         )
-
-
-    val uiEvents = getBulletinUiEventsUseCase()
 
     init {
         loadBulletinData()
