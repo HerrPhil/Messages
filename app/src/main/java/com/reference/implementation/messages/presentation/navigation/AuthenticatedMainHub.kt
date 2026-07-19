@@ -20,6 +20,7 @@ import com.reference.implementation.messages.presentation.AppViewModelProvider
 import com.reference.implementation.messages.presentation.screens.bulletin.BulletinScreen
 import com.reference.implementation.messages.presentation.screens.bulletin.BulletinViewModel
 import com.reference.implementation.messages.presentation.screens.home.HomeScreen
+import com.reference.implementation.messages.presentation.screens.home.HomeUiState
 import com.reference.implementation.messages.presentation.screens.message.MessageScreen
 import com.reference.implementation.messages.presentation.screens.message.MessageUiState
 import kotlinx.coroutines.flow.emptyFlow
@@ -108,7 +109,7 @@ fun AuthenticatedMainHub() {
             modifier = Modifier.padding(paddingValues)
         ) {
             composable<Route.Home> {
-                HomeScreen()
+                HomeScreen(HomeUiState.Loading)
             }
             composable<Route.Messages> {
                 MessageScreen(

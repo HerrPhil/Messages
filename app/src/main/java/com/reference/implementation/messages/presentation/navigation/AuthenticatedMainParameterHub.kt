@@ -40,6 +40,7 @@ import com.reference.implementation.messages.presentation.screens.bulletin.Bulle
 import com.reference.implementation.messages.presentation.screens.bulletin.BulletinScreen
 import com.reference.implementation.messages.presentation.screens.bulletin.BulletinViewModel
 import com.reference.implementation.messages.presentation.screens.home.HomeScreen
+import com.reference.implementation.messages.presentation.screens.home.HomeViewModel
 import com.reference.implementation.messages.presentation.screens.message.MessageDetailScreen
 import com.reference.implementation.messages.presentation.screens.message.MessageScreen
 import com.reference.implementation.messages.presentation.screens.message.MessageViewModel
@@ -196,7 +197,9 @@ fun AuthenticatedMainParameterHub(
             }
 
             composable<Route.Home> {
-                HomeScreen()
+                val viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory)
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                HomeScreen(uiState)
             }
 
             composable<Route.Messages> {

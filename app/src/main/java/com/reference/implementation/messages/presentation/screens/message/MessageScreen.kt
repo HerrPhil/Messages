@@ -98,11 +98,8 @@ fun MessageScreen(
     onSearchChanged: (String) -> Unit,
     onDeleteMessage: (Int) -> Unit,
     onToggleReadStatus: (Int, Boolean) -> Unit
-//    viewModel: MessageViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
 
-//    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-//    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Grab the lifecycle owner from the current composition context
@@ -110,9 +107,7 @@ fun MessageScreen(
     val context = LocalContext.current
 
     // Observe the hot event channel safely across UI lifecycles
-//    LaunchedEffect(viewModel) {
     LaunchedEffect(key) {
-//        viewModel.uiEvents
         uiEvents
             .flowWithLifecycle(lifecycleOwner.lifecycle, Lifecycle.State.STARTED)
             .collect { event ->
@@ -170,15 +165,12 @@ fun MessageScreen(
             MessageDetails(
                 searchQuery = searchQuery,
                 onSearchValueChanged = { searchInput ->
-//                    viewModel.onSearchChanged(newQuery = searchInput)
                     onSearchChanged(searchInput)
                 },
                 onDelete = { messageId ->
-//                    viewModel.onDeleteMessage(messageId)
                     onDeleteMessage(messageId)
                 },
                 onToggleReadStatus = { messageId, newReadStatus ->
-//                    viewModel.onToggleReadStatus(messageId, newReadStatus)
                     onToggleReadStatus(messageId, newReadStatus)
                 },
                 onMessageClicked = onMessageClicked,
