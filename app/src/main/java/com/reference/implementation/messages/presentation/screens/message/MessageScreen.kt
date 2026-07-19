@@ -80,7 +80,6 @@ import com.reference.implementation.messages.presentation.components.ErrorConten
 import com.reference.implementation.messages.presentation.components.LoadingContent
 import com.reference.implementation.messages.presentation.components.RetryingContent
 import com.reference.implementation.messages.presentation.components.Welcome
-import com.reference.implementation.messages.presentation.navigation.MyKeyObject
 import com.reference.implementation.messages.ui.theme.MessagesTheme
 import com.reference.implementation.messages.ui.theme.Purple40
 import com.reference.implementation.messages.ui.theme.Purple80
