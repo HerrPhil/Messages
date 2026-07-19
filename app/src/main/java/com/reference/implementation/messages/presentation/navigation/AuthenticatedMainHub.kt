@@ -24,11 +24,6 @@ import com.reference.implementation.messages.presentation.screens.home.HomeScree
 import com.reference.implementation.messages.presentation.screens.message.MessageScreen
 import kotlinx.serialization.Serializable
 
-// Remember we can create compile-time strongly typed destinations
-// They use class or data class for routes with arguments
-// Here is a sample if the app allows messages to be edited.
-@Serializable
-data class MessageEdit(val messageId: Int, val message: String)
 
 // 2. Authenticated Hub Level: Houses the drawer and layout
 @OptIn(ExperimentalMaterial3Api::class)

@@ -5,15 +5,11 @@ import com.reference.implementation.messages.data.remote.ApiService
 import com.reference.implementation.messages.data.remote.toBulletinDomainModel
 import com.reference.implementation.messages.domain.model.BulletinDomainModel
 import com.reference.implementation.messages.domain.repository.BulletinCacheRepository
-import com.reference.implementation.messages.presentation.screens.bulletin.BulletinUiEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.withContext
 
 class BulletinCacheRepositoryImpl(
