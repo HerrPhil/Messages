@@ -23,16 +23,12 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.reference.implementation.messages.presentation.AppViewModelProvider
 import com.reference.implementation.messages.presentation.components.DateTimeLabel
 import com.reference.implementation.messages.presentation.components.ErrorContent
 import com.reference.implementation.messages.presentation.components.LoadingContent
@@ -42,11 +38,9 @@ import com.reference.implementation.messages.ui.theme.MessagesTheme
 
 @Composable
 fun BulletinScreen(
-    onBulletinClicked: (Int) -> Unit,
-    viewModel: BulletinViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    uiState: BulletinUiState,
+    onBulletinClicked: (Int) -> Unit
 ) {
-
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     when (val currentState = uiState) {
         is BulletinUiState.Idle -> {
@@ -84,7 +78,6 @@ fun BulletinScreen(
 )
 @Composable
 fun BulletinDetailsPreview() {
-    val searchQuery = "test"
     val list = List(4, { index ->
         BulletinUiDetail(
             id = index,

@@ -50,7 +50,11 @@ object AppViewModelProvider {
 
         // The message view model initializer.
         initializer {
+            // 1. grab the SavedStateHandle from CreationExtras ('this' parameter)
+            val savedStateHandle = this.createSavedStateHandle()
+
             MessageViewModel(
+                savedStateHandle,
                 messageApplication().container.loadActiveMessagesUseCase,
                 messageApplication().container.getActiveMessagesUseCase,
                 messageApplication().container.markMessageAsReadUseCase,
@@ -78,8 +82,7 @@ object AppViewModelProvider {
         initializer {
             BulletinViewModel(
                 messageApplication().container.loadAllBulletinsUseCase,
-                messageApplication().container.getAllBulletinsUseCase,
-                messageApplication().container.getBulletinUiEventsUseCase
+                messageApplication().container.getAllBulletinsUseCase
             )
         }
 
@@ -99,7 +102,7 @@ object AppViewModelProvider {
 }
 
 /**
- * Here is an extension function to queries for [Application] object and returns an instance of
+ * Here is an extension function to queries for [android.app.Application] object and returns an instance of
  * [com.reference.implementation.messages.MessageApplication].
  */
 fun CreationExtras.messageApplication(): MessageApplication =

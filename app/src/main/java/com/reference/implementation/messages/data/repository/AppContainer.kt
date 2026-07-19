@@ -22,7 +22,6 @@ import com.reference.implementation.messages.domain.use_case.DeleteMessageUseCas
 import com.reference.implementation.messages.domain.use_case.ForceLogoutUseCase
 import com.reference.implementation.messages.domain.use_case.GetActiveMessagesUseCase
 import com.reference.implementation.messages.domain.use_case.GetAllBulletinsUseCase
-import com.reference.implementation.messages.domain.use_case.GetBulletinUiEventsUseCase
 import com.reference.implementation.messages.domain.use_case.GetBulletinUseCase
 import com.reference.implementation.messages.domain.use_case.GetMessageUiEventsUseCase
 import com.reference.implementation.messages.domain.use_case.GetUserDashboardUseCase
@@ -60,7 +59,6 @@ interface AppContainer {
     val getMessageUiEventsUseCase: GetMessageUiEventsUseCase
     val loadAllBulletinsUseCase: LoadAllBulletinsUseCase
     val getAllBulletinsUseCase: GetAllBulletinsUseCase
-    val getBulletinUiEventsUseCase: GetBulletinUiEventsUseCase
     val loadBulletinUseCase: LoadBulletinUseCase
     val getBulletinUseCase: GetBulletinUseCase
     val authSessionManager: AuthSessionManager
@@ -300,10 +298,6 @@ class AppMessageContainer(context: Context) : AppContainer {
 
     override val getAllBulletinsUseCase: GetAllBulletinsUseCase by lazy {
         GetAllBulletinsUseCase(bulletinCacheRepository)
-    }
-
-    override val getBulletinUiEventsUseCase: GetBulletinUiEventsUseCase by lazy {
-        GetBulletinUiEventsUseCase(bulletinCacheRepository)
     }
 
     override val loadBulletinUseCase: LoadBulletinUseCase by lazy {

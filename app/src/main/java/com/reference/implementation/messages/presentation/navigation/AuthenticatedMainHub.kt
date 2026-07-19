@@ -2,7 +2,6 @@ package com.reference.implementation.messages.presentation.navigation
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
@@ -10,24 +9,23 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.reference.implementation.messages.presentation.AppViewModelProvider
 import com.reference.implementation.messages.presentation.screens.bulletin.BulletinScreen
+import com.reference.implementation.messages.presentation.screens.bulletin.BulletinViewModel
 import com.reference.implementation.messages.presentation.screens.home.HomeScreen
+import com.reference.implementation.messages.presentation.screens.home.HomeUiState
 import com.reference.implementation.messages.presentation.screens.message.MessageScreen
-import kotlinx.serialization.Serializable
-
-// Remember we can create compile-time strongly typed destinations
-// They use class or data class for routes with arguments
-// Here is a sample if the app allows messages to be edited.
-@Serializable
-data class MessageEdit(val messageId: Int, val message: String)
+import com.reference.implementation.messages.presentation.screens.message.MessageUiState
+import kotlinx.coroutines.flow.emptyFlow
 
 // 2. Authenticated Hub Level: Houses the drawer and layout
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AuthenticatedMainHub() {
 
@@ -54,7 +52,7 @@ fun AuthenticatedMainHub() {
     // (which could close the app or do nothing, preventing jumping back to Login).
     // --- Back Handler Details ---
     // I was curious why BackHandler works. It plunked in the code and just works.
-    // The javadocs, er kotlindocs, cleared up the mystery for me.
+    // The Javadocs, or kotlindocs, cleared up the mystery for me.
     // The BackHandler registers a callback with the OS, to be notified when
     // the system back button is pressed.
     val canNavigateUp = childNavController.previousBackStackEntry != null
@@ -111,13 +109,29 @@ fun AuthenticatedMainHub() {
             modifier = Modifier.padding(paddingValues)
         ) {
             composable<Route.Home> {
-                HomeScreen()
+                HomeScreen(HomeUiState.Loading)
             }
             composable<Route.Messages> {
-                MessageScreen(onMessageClicked = {})
+                MessageScreen(
+                    MessageUiState.Loading,
+                    123,
+                    "message",
+                    emptyFlow(),
+                    onMessageClicked = {},
+                    onRestoreMessage = {},
+                    onSearchChanged = {},
+                    onDeleteMessage = {},
+                    onToggleReadStatus = {id, newReadStatus ->}
+                )
             }
             composable<Route.Bulletins> {
-                BulletinScreen({/* TODO */})
+                val viewModel: BulletinViewModel = viewModel(factory = AppViewModelProvider.Factory)
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+                BulletinScreen(
+                    uiState = uiState,
+                    onBulletinClicked = {}
+                )
             }
         }
     }

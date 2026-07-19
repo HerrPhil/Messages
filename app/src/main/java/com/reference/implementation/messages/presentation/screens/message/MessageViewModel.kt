@@ -1,7 +1,6 @@
 package com.reference.implementation.messages.presentation.screens.message
 
-import android.util.Log
-import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.reference.implementation.messages.domain.model.MessageDomainModel
@@ -14,15 +13,14 @@ import com.reference.implementation.messages.domain.use_case.MarkMessageAsReadUs
 import com.reference.implementation.messages.domain.use_case.MarkMessageAsUnreadUseCase
 import com.reference.implementation.messages.domain.use_case.Resource
 import com.reference.implementation.messages.domain.use_case.RestoreMessageUseCase
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class MessageViewModel(
+    private val savedStateHandle: SavedStateHandle,
     private val loadActiveMessagesUseCase: LoadActiveMessagesUseCase,
     getActiveMessagesUseCase: GetActiveMessagesUseCase,
     private val markMessageAsReadUseCase: MarkMessageAsReadUseCase,
@@ -32,13 +30,24 @@ class MessageViewModel(
     getMessageUiEventsUseCase: GetMessageUiEventsUseCase
 ) : ViewModel() {
 
-    private val _searchQuery = MutableStateFlow("")
+    companion object {
+        private const val KEY_SEARCH_QUERY = "search_query"
+    }
+
+//    private val _searchQuery = MutableStateFlow("")
 
     // Used in the screen where onValueChanged() is clicked
-    val searchQuery = _searchQuery.asStateFlow()
+//    val searchQuery = _searchQuery.asStateFlow()
+
+    // Replaces BOTH _searchQuery and searchQuery
+    // Your screen reads this exactly like it did before
+    val searchQuery: StateFlow<String> = savedStateHandle.getStateFlow(
+        key = KEY_SEARCH_QUERY,
+        initialValue = ""
+    )
 
     val uiState: StateFlow<MessageUiState> = getActiveMessagesUseCase()
-        .combine(_searchQuery) { resourceResult, query ->
+        .combine(searchQuery) { resourceResult, query ->
             // ViewModel only worries about user text filtering on top of the clean data!
             when (resourceResult) {
                 is Resource.Loading -> MessageUiState.Loading
@@ -72,7 +81,8 @@ class MessageViewModel(
     }
 
     fun onSearchChanged(newQuery: String) {
-        _searchQuery.value = newQuery
+//        _searchQuery.value = newQuery
+        savedStateHandle[KEY_SEARCH_QUERY] = newQuery
     }
 
     fun onDeleteMessage(messageId: Int) {
