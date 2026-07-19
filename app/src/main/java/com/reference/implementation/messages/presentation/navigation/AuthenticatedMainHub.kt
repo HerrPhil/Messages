@@ -52,7 +52,7 @@ fun AuthenticatedMainHub() {
     // (which could close the app or do nothing, preventing jumping back to Login).
     // --- Back Handler Details ---
     // I was curious why BackHandler works. It plunked in the code and just works.
-    // The javadocs, er kotlindocs, cleared up the mystery for me.
+    // The Javadocs, or kotlindocs, cleared up the mystery for me.
     // The BackHandler registers a callback with the OS, to be notified when
     // the system back button is pressed.
     val canNavigateUp = childNavController.previousBackStackEntry != null
