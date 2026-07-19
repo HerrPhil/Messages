@@ -98,7 +98,7 @@ object AppViewModelProvider {
 }
 
 /**
- * Here is an extension function to queries for [Application] object and returns an instance of
+ * Here is an extension function to queries for [android.app.Application] object and returns an instance of
  * [com.reference.implementation.messages.MessageApplication].
  */
 fun CreationExtras.messageApplication(): MessageApplication =
