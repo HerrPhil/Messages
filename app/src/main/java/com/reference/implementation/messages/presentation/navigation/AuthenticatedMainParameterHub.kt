@@ -31,6 +31,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.reference.implementation.messages.domain.model.MessageDomainModel
 import com.reference.implementation.messages.presentation.AppViewModelProvider
 import com.reference.implementation.messages.presentation.screens.adminhome.AdminHomeScreen
 import com.reference.implementation.messages.presentation.screens.adminmessage.AdminMessageScreen
@@ -41,6 +42,9 @@ import com.reference.implementation.messages.presentation.screens.bulletin.Bulle
 import com.reference.implementation.messages.presentation.screens.home.HomeScreen
 import com.reference.implementation.messages.presentation.screens.message.MessageDetailScreen
 import com.reference.implementation.messages.presentation.screens.message.MessageScreen
+import com.reference.implementation.messages.presentation.screens.message.MessageViewModel
+
+object MyKeyObject
 
 // 2. Authenticated Hub Level: Houses the drawer and layout
 @OptIn(ExperimentalMaterial3Api::class)
@@ -72,7 +76,7 @@ fun AuthenticatedMainParameterHub(
     // (which could close the app or do nothing, preventing jumping back to Login).
     // --- Back Handler Details ---
     // I was curious why BackHandler works. It plunked in the code and just works.
-    // The javadocs, er kotlindocs, cleared up the mystery for me.
+    // The Javadocs, or kotlindocs, cleared up the mystery for me.
     // The BackHandler registers a callback with the OS, to be notified when
     // the system back button is pressed.
     val canNavigateUp = childNavController.previousBackStackEntry != null
@@ -196,11 +200,38 @@ fun AuthenticatedMainParameterHub(
             }
 
             composable<Route.Messages> {
+                val viewModel: MessageViewModel = viewModel(factory = AppViewModelProvider.Factory)
+                val key:Any = MyKeyObject
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+                val uiEvents = viewModel.uiEvents
+                val onMessageClicked: (Int) -> Unit = { messageId ->
+                    // The hub owns the controller and executes the actual routing
+                    childNavController.navigate(Route.MessageDetail(id = messageId))
+                }
+                val onRestoreMessage: (MessageDomainModel) -> Unit = { deletedMessage ->
+                    viewModel.onRestoreMessage(deletedMessage)
+                }
+                val onSearchChanged: (String) -> Unit = { newQuery ->
+                    viewModel.onSearchChanged(newQuery)
+                }
+                val onDeleteMessage: (Int) -> Unit = { messageId ->
+                    viewModel.onDeleteMessage(messageId)
+                }
+                val onToggleReadStatus: (Int, Boolean) -> Unit = { messageId, newReadStatus ->
+                    viewModel.onToggleReadStatus(messageId, newReadStatus)
+                }
+
                 MessageScreen(
-                    onMessageClicked = { messageId ->
-                        // The hub owns the controller and executes the actual routing
-                        childNavController.navigate(Route.MessageDetail(id = messageId))
-                    }
+                    uiState,
+                    key,
+                    searchQuery,
+                    uiEvents,
+                    onMessageClicked,
+                    onRestoreMessage,
+                    onSearchChanged,
+                    onDeleteMessage,
+                    onToggleReadStatus
                 )
             }
 
@@ -244,3 +275,4 @@ fun AuthenticatedMainParameterHub(
         }
     }
 }
+

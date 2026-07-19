@@ -54,7 +54,6 @@ import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
@@ -73,30 +72,38 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.flowWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.reference.implementation.messages.presentation.AppViewModelProvider
+import com.reference.implementation.messages.domain.model.MessageDomainModel
 import com.reference.implementation.messages.presentation.components.DateTimeLabel
 import com.reference.implementation.messages.presentation.components.EmptyListContent
 import com.reference.implementation.messages.presentation.components.ErrorContent
 import com.reference.implementation.messages.presentation.components.LoadingContent
 import com.reference.implementation.messages.presentation.components.RetryingContent
 import com.reference.implementation.messages.presentation.components.Welcome
+import com.reference.implementation.messages.presentation.navigation.MyKeyObject
 import com.reference.implementation.messages.ui.theme.MessagesTheme
 import com.reference.implementation.messages.ui.theme.Purple40
 import com.reference.implementation.messages.ui.theme.Purple80
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
 @Composable
 fun MessageScreen(
+    uiState: MessageUiState,
+    key: Any,
+    searchQuery: String,
+    uiEvents: Flow<MessageUiEvent>,
     onMessageClicked: (Int) -> Unit,
-    viewModel: MessageViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    onRestoreMessage: (MessageDomainModel) -> Unit,
+    onSearchChanged: (String) -> Unit,
+    onDeleteMessage: (Int) -> Unit,
+    onToggleReadStatus: (Int, Boolean) -> Unit
+//    viewModel: MessageViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
 
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+//    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+//    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Grab the lifecycle owner from the current composition context
@@ -104,8 +111,10 @@ fun MessageScreen(
     val context = LocalContext.current
 
     // Observe the hot event channel safely across UI lifecycles
-    LaunchedEffect(viewModel) {
-        viewModel.uiEvents
+//    LaunchedEffect(viewModel) {
+    LaunchedEffect(key) {
+//        viewModel.uiEvents
+        uiEvents
             .flowWithLifecycle(lifecycleOwner.lifecycle, Lifecycle.State.STARTED)
             .collect { event ->
                 when (event) {
@@ -126,7 +135,8 @@ fun MessageScreen(
 
                         if (result == SnackbarResult.ActionPerformed) {
                             // The user clicked UNDO! Fire and forget back into the UDF loop!
-                            viewModel.onRestoreMessage(event.deletedMessage)
+//                            viewModel.onRestoreMessage(event.deletedMessage)
+                            onRestoreMessage(event.deletedMessage)
                         }
                     }
                 }
@@ -161,13 +171,16 @@ fun MessageScreen(
             MessageDetails(
                 searchQuery = searchQuery,
                 onSearchValueChanged = { searchInput ->
-                    viewModel.onSearchChanged(newQuery = searchInput)
+//                    viewModel.onSearchChanged(newQuery = searchInput)
+                    onSearchChanged(searchInput)
                 },
                 onDelete = { messageId ->
-                    viewModel.onDeleteMessage(messageId)
+//                    viewModel.onDeleteMessage(messageId)
+                    onDeleteMessage(messageId)
                 },
                 onToggleReadStatus = { messageId, newReadStatus ->
-                    viewModel.onToggleReadStatus(messageId, newReadStatus)
+//                    viewModel.onToggleReadStatus(messageId, newReadStatus)
+                    onToggleReadStatus(messageId, newReadStatus)
                 },
                 onMessageClicked = onMessageClicked,
                 list = list,

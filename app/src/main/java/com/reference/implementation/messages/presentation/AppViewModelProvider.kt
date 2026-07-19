@@ -50,7 +50,11 @@ object AppViewModelProvider {
 
         // The message view model initializer.
         initializer {
+            // 1. grab the SavedStateHandle from CreationExtras ('this' parameter)
+            val savedStateHandle = this.createSavedStateHandle()
+
             MessageViewModel(
+                savedStateHandle,
                 messageApplication().container.loadActiveMessagesUseCase,
                 messageApplication().container.getActiveMessagesUseCase,
                 messageApplication().container.markMessageAsReadUseCase,

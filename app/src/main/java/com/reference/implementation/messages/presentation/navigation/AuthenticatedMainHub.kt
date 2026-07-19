@@ -1,5 +1,3 @@
-@file:Suppress("unused", "unused")
-
 package com.reference.implementation.messages.presentation.navigation
 
 import androidx.activity.compose.BackHandler
@@ -23,6 +21,8 @@ import com.reference.implementation.messages.presentation.screens.bulletin.Bulle
 import com.reference.implementation.messages.presentation.screens.bulletin.BulletinViewModel
 import com.reference.implementation.messages.presentation.screens.home.HomeScreen
 import com.reference.implementation.messages.presentation.screens.message.MessageScreen
+import com.reference.implementation.messages.presentation.screens.message.MessageUiState
+import kotlinx.coroutines.flow.emptyFlow
 
 // 2. Authenticated Hub Level: Houses the drawer and layout
 @Composable
@@ -111,7 +111,17 @@ fun AuthenticatedMainHub() {
                 HomeScreen()
             }
             composable<Route.Messages> {
-                MessageScreen(onMessageClicked = {})
+                MessageScreen(
+                    MessageUiState.Loading,
+                    123,
+                    "message",
+                    emptyFlow(),
+                    onMessageClicked = {},
+                    onRestoreMessage = {},
+                    onSearchChanged = {},
+                    onDeleteMessage = {},
+                    onToggleReadStatus = {id, newReadStatus ->}
+                )
             }
             composable<Route.Bulletins> {
                 val viewModel: BulletinViewModel = viewModel(factory = AppViewModelProvider.Factory)
