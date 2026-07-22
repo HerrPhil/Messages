@@ -14,6 +14,7 @@ import com.reference.implementation.messages.presentation.screens.bulletin.Bulle
 import com.reference.implementation.messages.presentation.screens.bulletin.BulletinViewModel
 import com.reference.implementation.messages.presentation.screens.home.HomeViewModel
 import com.reference.implementation.messages.presentation.screens.login.LoginViewModel
+import com.reference.implementation.messages.presentation.screens.message.MessageDetailViewModel
 import com.reference.implementation.messages.presentation.screens.message.MessageViewModel
 
 object AppViewModelProvider {
@@ -62,6 +63,20 @@ object AppViewModelProvider {
                 messageApplication().container.deleteMessageUseCase,
                 messageApplication().container.restoreMessageUseCase,
                 messageApplication().container.getMessageUiEventsUseCase
+            )
+        }
+
+        initializer {
+            // 1. grab the SavedStateHandle from CreationExtras ('this' parameter)
+            val savedStateHandle = this.createSavedStateHandle()
+
+            // 2. Instantiate the ViewModel cleanly
+            MessageDetailViewModel(
+                savedStateHandle,
+                messageApplication().container.getActiveMessagesUseCase,
+                messageApplication().container.markMessageAsReadUseCase,
+                messageApplication().container.markMessageAsUnreadUseCase,
+                messageApplication().container.deleteMessageUseCase
             )
         }
 

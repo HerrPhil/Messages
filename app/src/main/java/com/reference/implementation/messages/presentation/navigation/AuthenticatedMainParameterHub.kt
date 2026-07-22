@@ -42,6 +42,7 @@ import com.reference.implementation.messages.presentation.screens.bulletin.Bulle
 import com.reference.implementation.messages.presentation.screens.home.HomeScreen
 import com.reference.implementation.messages.presentation.screens.home.HomeViewModel
 import com.reference.implementation.messages.presentation.screens.message.MessageDetailScreen
+import com.reference.implementation.messages.presentation.screens.message.MessageDetailViewModel
 import com.reference.implementation.messages.presentation.screens.message.MessageScreen
 import com.reference.implementation.messages.presentation.screens.message.MessageViewModel
 
@@ -208,15 +209,15 @@ fun AuthenticatedMainParameterHub(
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                 val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
                 val uiEvents = viewModel.uiEvents
+                val onSearchChanged: (String) -> Unit = { newQuery ->
+                    viewModel.onSearchChanged(newQuery)
+                }
                 val onMessageClicked: (Int) -> Unit = { messageId ->
                     // The hub owns the controller and executes the actual routing
                     childNavController.navigate(Route.MessageDetail(id = messageId))
                 }
                 val onRestoreMessage: (MessageDomainModel) -> Unit = { deletedMessage ->
                     viewModel.onRestoreMessage(deletedMessage)
-                }
-                val onSearchChanged: (String) -> Unit = { newQuery ->
-                    viewModel.onSearchChanged(newQuery)
                 }
                 val onDeleteMessage: (Int) -> Unit = { messageId ->
                     viewModel.onDeleteMessage(messageId)
@@ -227,25 +228,36 @@ fun AuthenticatedMainParameterHub(
 
                 MessageScreen(
                     uiState,
+                    uiEvents,
                     key,
                     searchQuery,
-                    uiEvents,
                     onMessageClicked,
-                    onRestoreMessage,
                     onSearchChanged,
+                    onRestoreMessage,
                     onDeleteMessage,
                     onToggleReadStatus
                 )
             }
 
             composable<Route.MessageDetail> { backStackEntry ->
-                val detailRoute: Route.MessageDetail = backStackEntry.toRoute<Route.MessageDetail>()
-                val messageId = detailRoute.id
+                // ViewModel is automatically constructed with the correct ID inside the SavedStateHandle!
+                val viewModel: MessageDetailViewModel = viewModel( factory = AppViewModelProvider.Factory)
+                // Grab the data stream from the ViewModel
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                val onDeleteMessage: (Int) -> Unit = { messageId ->
+                    viewModel.onDeleteMessage(messageId)
+                }
+                val onToggleReadStatus: (Int, Boolean) -> Unit = { messageId, newReadStatus ->
+                    viewModel.onToggleReadStatus(messageId, newReadStatus)
+                }
+
                 MessageDetailScreen(
-                    messageId = messageId,
+                    uiState = uiState,
                     // Executing popBackStack clears this destination off the stack
                     // and returns the user back to the message list smoothly
-                    onNavigateBack = { childNavController.popBackStack() }
+                    onNavigateBack = { childNavController.popBackStack() },
+                    onDeleteMessage,
+                    onToggleReadStatus
                 )
             }
 

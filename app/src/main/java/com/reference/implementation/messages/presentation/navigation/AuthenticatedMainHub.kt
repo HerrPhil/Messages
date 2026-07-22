@@ -114,12 +114,12 @@ fun AuthenticatedMainHub() {
             composable<Route.Messages> {
                 MessageScreen(
                     MessageUiState.Loading,
+                    emptyFlow(),
                     123,
                     "message",
-                    emptyFlow(),
                     onMessageClicked = {},
-                    onRestoreMessage = {},
                     onSearchChanged = {},
+                    onRestoreMessage = {},
                     onDeleteMessage = {},
                     onToggleReadStatus = {id, newReadStatus ->}
                 )

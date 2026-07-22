@@ -128,14 +128,12 @@ fun BulletinPostPreview() {
             )
         }
     }
-
 }
 
 @Composable
 fun BulletinPost(
     data: BulletinUiDetail,
-    innerPadding: PaddingValues,
-    modifier: Modifier = Modifier
+    innerPadding: PaddingValues
 ) {
     Column(
         modifier = Modifier

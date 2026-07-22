@@ -33,7 +33,7 @@ class BulletinDetailViewModel(
     private val _loadTrigger = MutableStateFlow(0)
 
     val uiState: StateFlow<BulletinDetailUiState> = _loadTrigger
-        .flatMapLatest { attempt ->
+        .flatMapLatest { attempt -> // needs Opt-in
             // Simply map the database/resource cache stream
             getBulletinUseCase().map { resourceResult ->
                 when(resourceResult) {
@@ -59,6 +59,7 @@ class BulletinDetailViewModel(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = BulletinDetailUiState.Loading
         )
+
     init {
         loadBulletinDetailData()
     }
