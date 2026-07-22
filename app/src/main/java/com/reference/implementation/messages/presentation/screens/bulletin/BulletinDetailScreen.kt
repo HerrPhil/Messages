@@ -1,32 +1,28 @@
 package com.reference.implementation.messages.presentation.screens.bulletin
 
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -61,7 +57,27 @@ fun BulletinDetailScreen(
         modifier = modifier.fillMaxSize(),
         topBar = {
             TopAppBar(
-                title = { Text(text = "Bulletins") },
+                title = {
+                    // Dynamically render based on your UI State, too!!!!
+                    AnimatedContent(
+                        targetState = uiState,
+                        label = "TitleStateAnimation"
+                    ) { state ->
+                        when (state) {
+                            is BulletinDetailUiState.Success -> {
+                                Text(
+                                    text = state.data.title,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+
+                            else -> {
+                                Text("Bulletins")
+                            }
+                        }
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
@@ -135,56 +151,46 @@ fun BulletinPost(
     data: BulletinUiDetail,
     innerPadding: PaddingValues
 ) {
-    Column(
+    // We use a base Surface as the flat canvas
+    Surface(
         modifier = Modifier
             .fillMaxSize()
-            .padding(innerPadding)
-            .padding(horizontal = 16.dp)
-            .verticalScroll(rememberScrollState()), // Ensure long text is scrollable
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+            .padding(innerPadding),
+        color = MaterialTheme.colorScheme.surface // Flat surface color
     ) {
-
-        // 1. The Subject Header Pill (Top-Left, Custom Rounded Shape)
-        Surface(
-            shape = RoundedCornerShape(12.dp),
-            color = MaterialTheme.colorScheme.secondaryContainer,
-            modifier = Modifier.align(Alignment.Start) // Aligns it top-left; curious about TopStart (2 biases)
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = data.title,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-        }
 
-        // 2. Subtle Metadata (Date/Time)
-        Text(
-            text = "Posted ${getRelativeTimeString(data.timestamp)}",
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 4.dp)
-        )
+            // --- 2. Metadata Section (Column prevents horizontal squeeze!) ---
+            item {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Posted ${getRelativeTimeString(data.timestamp)}",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
 
-        // 3. The Large Outlined Card with the actual Post Body
-        OutlinedCard(
-            modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.outlinedCardColors(
-                containerColor = MaterialTheme.colorScheme.surface
-            ),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-        ) {
-            Text(
-                text = data.post,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    lineHeight = 22.sp // Slightly increase line height for readability of long-form text
-                ),
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp) // Generous inner padding so text does not touch the borders
-            )
+            // 3. Subtle Line Divider
+            item {
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            }
+
+            // 4. Flat Body Text (No Cards, No Inner Scroll Modifiers!)
+            item {
+                Text(
+                    text = data.post,
+                    style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 24.sp),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
         }
     }
 }
