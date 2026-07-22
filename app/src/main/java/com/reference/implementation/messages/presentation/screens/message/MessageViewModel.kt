@@ -34,11 +34,6 @@ class MessageViewModel(
         private const val KEY_SEARCH_QUERY = "search_query"
     }
 
-//    private val _searchQuery = MutableStateFlow("")
-
-    // Used in the screen where onValueChanged() is clicked
-//    val searchQuery = _searchQuery.asStateFlow()
-
     // Replaces BOTH _searchQuery and searchQuery
     // Your screen reads this exactly like it did before
     val searchQuery: StateFlow<String> = savedStateHandle.getStateFlow(
@@ -81,7 +76,6 @@ class MessageViewModel(
     }
 
     fun onSearchChanged(newQuery: String) {
-//        _searchQuery.value = newQuery
         savedStateHandle[KEY_SEARCH_QUERY] = newQuery
     }
 

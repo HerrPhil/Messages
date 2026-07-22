@@ -13,7 +13,6 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -33,7 +32,7 @@ class BulletinDetailViewModel(
     private val _loadTrigger = MutableStateFlow(0)
 
     val uiState: StateFlow<BulletinDetailUiState> = _loadTrigger
-        .flatMapLatest { attempt ->
+        .flatMapLatest { attempt -> // needs Opt-in
             // Simply map the database/resource cache stream
             getBulletinUseCase().map { resourceResult ->
                 when(resourceResult) {
@@ -59,6 +58,7 @@ class BulletinDetailViewModel(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = BulletinDetailUiState.Loading
         )
+
     init {
         loadBulletinDetailData()
     }

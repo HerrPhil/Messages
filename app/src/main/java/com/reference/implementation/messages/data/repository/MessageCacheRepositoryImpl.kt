@@ -17,7 +17,6 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.withContext
@@ -38,8 +37,8 @@ class MessageCacheRepositoryImpl(
         _messagesByUserCache.asStateFlow()
 
     // 2(b). The Other Read-Only Stream (flavour): Anyone can listen to this at any time too
-    val messagesByUserCache: StateFlow<NetworkResult<List<MessageDomainModel>>> =
-        _messagesByUserCache.asStateFlow()
+//    val messagesByUserCache: StateFlow<NetworkResult<List<MessageDomainModel>>> =
+//        _messagesByUserCache.asStateFlow()
 
     override fun getMessageUiEvents(): Flow<MessageUiEvent> = _uiEventChannel.receiveAsFlow()
 
@@ -77,7 +76,8 @@ class MessageCacheRepositoryImpl(
                 _messagesByUserCache.value = NetworkResult.Exception(e)
             } finally {
                 withContext(NonCancellable) {
-                    Audit.createInstance().writeLog("${auditLogTimestamp()} refresh messages by user ended")
+                    Audit.createInstance()
+                        .writeLog("${auditLogTimestamp()} refresh messages by user ended")
                 }
             }
         }
@@ -116,10 +116,10 @@ class MessageCacheRepositoryImpl(
         }
 
         if (response is NetworkResult.Success) {
-            toggleReadStatus(messageId) // Internal update of hot Status Flow
+            toggleReadStatus(messageId, true) // Internal update of hot Status Flow
         } else {
             Log.d("markMessageAsRead", "send a message UI event")
-            _uiEventChannel.send(MessageUiEvent.showToast("Unable to update read status"))
+            _uiEventChannel.send(MessageUiEvent.showToast("Unable to mark message as read"))
         }
     }
 
@@ -156,21 +156,21 @@ class MessageCacheRepositoryImpl(
         }
 
         if (response is NetworkResult.Success) {
-            toggleReadStatus(messageId) // Internal update of hot Status Flow
+            toggleReadStatus(messageId, false) // Internal update of hot Status Flow
         } else {
             Log.d("markMessageAsUnread", "send a message UI event")
-            _uiEventChannel.send(MessageUiEvent.showToast("Unable to toggle read status"))
+            _uiEventChannel.send(MessageUiEvent.showToast("Unable to mark the messages as unread"))
         }
     }
 
-    override suspend fun toggleReadStatus(messageId: Int) {
+    private fun toggleReadStatus(messageId: Int, newReadStatus: Boolean) {
         val currentResult = _messagesByUserCache.value // NetworkResult<List<MessageDomainModel>>
         // via smart-casting
         if (currentResult is NetworkResult.Success) {
             val updatedList = currentResult.data.map { messageDomainModel ->
                 if (messageDomainModel.id == messageId) {
-                    // Return a copy with the INVERSE read status
-                    messageDomainModel.copy(read = !messageDomainModel.read)
+                    // Return a copy with the NEW read status
+                    messageDomainModel.copy(read = newReadStatus)
                 } else {
                     // Leave other messages untouched
                     messageDomainModel

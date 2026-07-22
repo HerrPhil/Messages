@@ -90,12 +90,12 @@ import kotlin.math.roundToInt
 @Composable
 fun MessageScreen(
     uiState: MessageUiState,
+    uiEvents: Flow<MessageUiEvent>,
     key: Any,
     searchQuery: String,
-    uiEvents: Flow<MessageUiEvent>,
     onMessageClicked: (Int) -> Unit,
-    onRestoreMessage: (MessageDomainModel) -> Unit,
     onSearchChanged: (String) -> Unit,
+    onRestoreMessage: (MessageDomainModel) -> Unit,
     onDeleteMessage: (Int) -> Unit,
     onToggleReadStatus: (Int, Boolean) -> Unit
 ) {
@@ -129,7 +129,6 @@ fun MessageScreen(
 
                         if (result == SnackbarResult.ActionPerformed) {
                             // The user clicked UNDO! Fire and forget back into the UDF loop!
-//                            viewModel.onRestoreMessage(event.deletedMessage)
                             onRestoreMessage(event.deletedMessage)
                         }
                     }
@@ -208,7 +207,7 @@ fun MessageDetailsPreview() {
                 searchQuery,
                 onSearchValueChanged = {},
                 onDelete = {},
-                onToggleReadStatus = { id, newReadStatus -> },
+                onToggleReadStatus = { _, _ -> },
                 onMessageClicked = {},
                 list = list,
                 snackbarHostState = SnackbarHostState(),
@@ -252,7 +251,7 @@ fun MessageDetails(
             // This Box is the "Anchor Container"
             Box(modifier = Modifier.weight(1f)) {
 
-                // 2. Scrollable List (Fills the remaining vertical space)
+                // Scrollable List (Fills the remaining vertical space)
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -264,7 +263,6 @@ fun MessageDetails(
                         items = list,
                         key = { message -> message.id },
                     ) { message ->
-                        // MessageItemCard(message = message)
                         SwipeableMessageItem(
                             message = message,
                             onDelete = { onDelete(message.id) },
