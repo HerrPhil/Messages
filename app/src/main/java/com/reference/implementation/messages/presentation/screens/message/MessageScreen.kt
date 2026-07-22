@@ -207,7 +207,7 @@ fun MessageDetailsPreview() {
                 searchQuery,
                 onSearchValueChanged = {},
                 onDelete = {},
-                onToggleReadStatus = { id, newReadStatus -> },
+                onToggleReadStatus = { _, _ -> },
                 onMessageClicked = {},
                 list = list,
                 snackbarHostState = SnackbarHostState(),

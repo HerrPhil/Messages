@@ -121,7 +121,7 @@ fun AuthenticatedMainHub() {
                     onSearchChanged = {},
                     onRestoreMessage = {},
                     onDeleteMessage = {},
-                    onToggleReadStatus = {id, newReadStatus ->}
+                    onToggleReadStatus = {_, _ ->}
                 )
             }
             composable<Route.Bulletins> {

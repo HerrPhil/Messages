@@ -30,7 +30,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import androidx.navigation.toRoute
 import com.reference.implementation.messages.domain.model.MessageDomainModel
 import com.reference.implementation.messages.presentation.AppViewModelProvider
 import com.reference.implementation.messages.presentation.screens.adminhome.AdminHomeScreen
@@ -239,7 +238,7 @@ fun AuthenticatedMainParameterHub(
                 )
             }
 
-            composable<Route.MessageDetail> { backStackEntry ->
+            composable<Route.MessageDetail> {
                 // ViewModel is automatically constructed with the correct ID inside the SavedStateHandle!
                 val viewModel: MessageDetailViewModel = viewModel( factory = AppViewModelProvider.Factory)
                 // Grab the data stream from the ViewModel
