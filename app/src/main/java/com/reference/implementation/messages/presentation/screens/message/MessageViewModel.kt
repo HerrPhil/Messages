@@ -13,12 +13,16 @@ import com.reference.implementation.messages.domain.use_case.MarkMessageAsReadUs
 import com.reference.implementation.messages.domain.use_case.MarkMessageAsUnreadUseCase
 import com.reference.implementation.messages.domain.use_case.Resource
 import com.reference.implementation.messages.domain.use_case.RestoreMessageUseCase
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class MessageViewModel(
     private val savedStateHandle: SavedStateHandle,
     private val loadActiveMessagesUseCase: LoadActiveMessagesUseCase,
@@ -41,27 +45,39 @@ class MessageViewModel(
         initialValue = ""
     )
 
-    val uiState: StateFlow<MessageUiState> = getActiveMessagesUseCase()
-        .combine(searchQuery) { resourceResult, query ->
-            // ViewModel only worries about user text filtering on top of the clean data!
-            when (resourceResult) {
-                is Resource.Loading -> MessageUiState.Loading
-                is Resource.Error -> MessageUiState.Error(resourceResult.message)
-                is Resource.Success -> {
-                    val filteredList =
-                        resourceResult.data
-                            .map { messageDomainModel -> messageDomainModel.toMessageUiDetail() }
-                            .filter {
-                                it.body.contains(query, ignoreCase = true)
+    // Tracks the active loading attempt reported by the repository's retryIO()
+    private val _loadTrigger = MutableStateFlow(0)
+
+    val uiState: StateFlow<MessageUiState> = _loadTrigger
+        .flatMapLatest { attempt ->
+            getActiveMessagesUseCase()
+                .combine(searchQuery) { resourceResult, query ->
+                    // ViewModel only worries about user text filtering on top of the clean data!
+                    when (resourceResult) {
+                        is Resource.Loading -> {
+                            if (attempt > 0) {
+                                MessageUiState.Retrying(attempt)
+                            } else {
+                                MessageUiState.Loading
                             }
-                    MessageUiState.Success(filteredList)
-                }
+                        }
 
-                else -> {
-                    MessageUiState.Error("Something went wrong")
-                }
-            }
+                        is Resource.Error -> MessageUiState.Error(resourceResult.message)
+                        is Resource.Success -> {
+                            val filteredList =
+                                resourceResult.data
+                                    .map { messageDomainModel -> messageDomainModel.toMessageUiDetail() }
+                                    .filter {
+                                        it.body.contains(query, ignoreCase = true)
+                                    }
+                            MessageUiState.Success(filteredList)
+                        }
 
+                        else -> {
+                            MessageUiState.Error("Something went wrong")
+                        }
+                    }
+                }
         }
         .stateIn(
             scope = viewModelScope,
@@ -114,7 +130,7 @@ class MessageViewModel(
     private fun loadMessageData() {
         viewModelScope.launch {
             loadActiveMessagesUseCase(onRetry = { attempt ->
-                MessageUiState.Retrying(attempt)
+                _loadTrigger.value = attempt
             })
         }
     }
