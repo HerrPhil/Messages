@@ -7,10 +7,13 @@ import com.reference.implementation.messages.domain.model.LoginUserDomainModel
 import com.reference.implementation.messages.domain.repository.UserRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.withContext
 
 class UserRepositoryImpl(
     private val sessionManager: SessionManager,
@@ -46,5 +49,9 @@ class UserRepositoryImpl(
         if (e is CancellationException) throw e
         Audit.createInstance().writeLog(e.message ?: "no user info")
         emit(NetworkResult.Exception(e))
+    }.onCompletion {
+        withContext(NonCancellable) {
+            Audit.createInstance().writeLog("${auditLogTimestamp()} get user info ended")
+        }
     }.flowOn(Dispatchers.Default)
 }

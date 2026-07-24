@@ -13,10 +13,8 @@ import com.reference.implementation.messages.domain.use_case.MarkMessageAsUnread
 import com.reference.implementation.messages.domain.use_case.Resource
 import com.reference.implementation.messages.presentation.navigation.Route
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch

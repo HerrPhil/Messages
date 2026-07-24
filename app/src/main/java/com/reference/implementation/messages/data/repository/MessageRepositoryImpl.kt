@@ -5,9 +5,6 @@ import com.reference.implementation.messages.data.manager.SessionManager
 import com.reference.implementation.messages.data.manager.SessionResult
 import com.reference.implementation.messages.data.remote.ApiService
 import com.reference.implementation.messages.data.remote.toMessageDomainModel
-import com.reference.implementation.messages.data.remote.toMessageDto
-import com.reference.implementation.messages.data.remote.toMessageRequestDto
-import com.reference.implementation.messages.data.remote.toPartialMessageRequestDto
 import com.reference.implementation.messages.domain.model.MessageDomainModel
 import com.reference.implementation.messages.domain.repository.MessageRepository
 import kotlinx.coroutines.CancellationException

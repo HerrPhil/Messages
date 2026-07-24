@@ -7,10 +7,13 @@ import com.reference.implementation.messages.domain.model.UserRoleDomainModel
 import com.reference.implementation.messages.domain.repository.RoleRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.onCompletion
+import kotlinx.coroutines.withContext
 
 class RoleRepositoryImpl(
     private val sessionManager: SessionManager
@@ -32,6 +35,10 @@ class RoleRepositoryImpl(
             if (e is CancellationException) throw e
             Audit.createInstance().writeLog(e.message ?: "no role info")
             emit(NetworkResult.Exception(e))
+        }.onCompletion {
+            withContext(NonCancellable) {
+                Audit.createInstance().writeLog("${auditLogTimestamp()} get role info ended")
+            }
         }.flowOn(Dispatchers.Default)
 
 }
