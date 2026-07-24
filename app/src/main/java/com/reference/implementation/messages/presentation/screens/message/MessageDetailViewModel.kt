@@ -13,10 +13,8 @@ import com.reference.implementation.messages.domain.use_case.MarkMessageAsUnread
 import com.reference.implementation.messages.domain.use_case.Resource
 import com.reference.implementation.messages.presentation.navigation.Route
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -33,41 +31,29 @@ class MessageDetailViewModel(
     // Automatically extracts the 'id' from the strongly-typed MessageDetail route!
     private val messageId: Int = checkNotNull(savedStateHandle.toRoute<Route.MessageDetail>().id)
 
-    // Tracks the active loading attempt reported by the repository's retryIO()
-    private val _loadTrigger = MutableStateFlow(0)
+    val uiState: StateFlow<MessageDetailUiState> =
+        getActiveMessagesUseCase().map { resourceResult ->
+            when (resourceResult) {
+                is Resource.Loading -> {
+                    MessageDetailUiState.Loading
+                }
 
-    val uiState: StateFlow<MessageDetailUiState> = _loadTrigger
-        .flatMapLatest { attempt -> // needs Opt-in
-            // Simply map the database/resource cache stream
-            getActiveMessagesUseCase().map { resourceResult ->
-                when (resourceResult) {
-                    is Resource.Loading -> {
-                        if (attempt > 0) {
-                            MessageDetailUiState.Retrying(attempt)
-                        } else {
-                            MessageDetailUiState.Loading
-                        }
+                is Resource.Error -> MessageDetailUiState.Error(resourceResult.message)
+                is Resource.Success -> {
+                    val message = resourceResult.data.find { it.id == messageId }
+                    if (message != null) {
+                        MessageDetailUiState.Success(data = message.toMessageUiDetail())
+                    } else {
+                        MessageDetailUiState.Error("Message not found")
                     }
-
-                    is Resource.Error -> MessageDetailUiState.Error(resourceResult.message)
-                    is Resource.Success -> {
-                        val message = resourceResult.data.find { it.id == messageId }
-                        if (message != null) {
-                            MessageDetailUiState.Success(data = message.toMessageUiDetail())
-                        } else {
-                            MessageDetailUiState.Error("Message not found")
-                        }
-                    }
-
-                    else -> MessageDetailUiState.Error("Something went wrong")
                 }
             }
         }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = MessageDetailUiState.Loading
-        )
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = MessageDetailUiState.Loading
+            )
 
     init {
         Log.d(

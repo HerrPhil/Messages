@@ -43,8 +43,6 @@ class BulletinViewModel(
                             resourceResult.data.map { bulletinDomainModel -> bulletinDomainModel.toBulletinUiDetail() }
                         BulletinUiState.Success(list = uiDetailList)
                     }
-
-                    else -> BulletinUiState.Error("Something went wrong")
                 }
             }
         }

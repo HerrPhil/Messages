@@ -3,7 +3,7 @@ package com.reference.implementation.messages.presentation.screens.home
 sealed interface HomeUiState {
     object Idle : HomeUiState
     object Loading : HomeUiState
-    data class Retrying(val attempt: String) : HomeUiState
+    data class Retrying(val attempt: Int) : HomeUiState
     data class Success(
         val userName: String,
         val userEmail: String,

@@ -63,7 +63,7 @@ fun HomeScreen(
             }
 
             is HomeUiState.Retrying -> {
-                val retryAttempt = currentState.attempt
+                val retryAttempt = "attempt #${currentState.attempt}"
                 RetryingContent(retryAttempt)
             }
 

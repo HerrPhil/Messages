@@ -45,7 +45,7 @@ object AppViewModelProvider {
         // The home view model initializer.
         initializer {
             HomeViewModel(
-                messageApplication().container.getUserDashboardUseCase
+                messageApplication().container.getUserDashboardUseCase,
             )
         }
 

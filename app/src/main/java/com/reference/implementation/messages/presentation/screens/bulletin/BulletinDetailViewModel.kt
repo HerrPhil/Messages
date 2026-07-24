@@ -48,8 +48,6 @@ class BulletinDetailViewModel(
                         val uiBulletinDetail = resourceResult.data.toBulletinUiDetail()
                         BulletinDetailUiState.Success(data = uiBulletinDetail)
                     }
-
-                    else -> BulletinDetailUiState.Error("Something went wrong")
                 }
             }
         }

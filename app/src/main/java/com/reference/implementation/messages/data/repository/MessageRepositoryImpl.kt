@@ -5,13 +5,16 @@ import com.reference.implementation.messages.data.manager.SessionManager
 import com.reference.implementation.messages.data.manager.SessionResult
 import com.reference.implementation.messages.data.remote.ApiService
 import com.reference.implementation.messages.data.remote.toMessageDomainModel
-import com.reference.implementation.messages.data.remote.toMessageDto
-import com.reference.implementation.messages.data.remote.toMessageRequestDto
-import com.reference.implementation.messages.data.remote.toPartialMessageRequestDto
 import com.reference.implementation.messages.domain.model.MessageDomainModel
 import com.reference.implementation.messages.domain.repository.MessageRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.withContext
 
 class MessageRepositoryImpl(
@@ -19,205 +22,37 @@ class MessageRepositoryImpl(
     private val sessionManager: SessionManager
 ) : MessageRepository {
 
-    override suspend fun getMessages(
-        onRetry: suspend (Int) -> Unit
-    ): NetworkResult<List<MessageDomainModel>> {
-        // force the execution onto the IO thread pool
-        return withContext(Dispatchers.IO) {
-            try {
-                val response = retryIO(times = 3, onRetry = onRetry) {
-                    apiService.getMessages()
-                }
-                if (response.isSuccessful && response.body() != null) {
-                    // DTO never leaves this layer!
-                    NetworkResult.Success(response.body()!!.map { it.toMessageDomainModel() })
-                } else {
-                    // Transform unsuccessful Retrofit calls.
-                    NetworkResult.Error(response.code(), response.message())
-                }
-            } catch (e: Exception) {
-                Audit.createInstance().writeLog(e.message ?: "no message")
-                NetworkResult.Exception(e)
-            } finally {
-                withContext(NonCancellable) {
-                    Audit.createInstance().writeLog("${auditLogTimestamp()} get messages ended")
-                }
-            }
-        }
-    }
+    /**
+     * This is Phase 1 code of my re-factor of GetUserDashboardUseCase.
+     * Phase 2 moves to leveraging the getMessagesByUser() function of MessageCacheRepository.
+     */
+    override fun getMessagesByUserFlow(onRetry: suspend (Int) -> Unit): Flow<NetworkResult<List<MessageDomainModel>>> =
+        flow {
+            emit(NetworkResult.Loading)
 
-    override suspend fun getMessagesByUser(onRetry: suspend (Int) -> Unit): NetworkResult<List<MessageDomainModel>> {
-        // force the execution onto the IO thread pool
-        return withContext(Dispatchers.IO) {
-            try {
-                val userId = when (val userIdResult = sessionManager.getSessionUserId()) {
-                    is SessionResult.Authenticated -> userIdResult.data
-                    else -> 0
-                }
-                val response = retryIO(times = 3, onRetry = onRetry) {
-                    apiService.getMessages(userId)
-                }
-                if (response.isSuccessful && response.body() != null) {
-                    // DTO never leaves this layer!
-                    NetworkResult.Success(response.body()!!.map { it.toMessageDomainModel() })
-                } else {
-                    // Transform unsuccessful Retrofit calls.
-                    NetworkResult.Error(response.code(), response.message())
-                }
-            } catch (e: Exception) {
-                Audit.createInstance().writeLog(e.message ?: "no message")
-                NetworkResult.Exception(e)
-            } finally {
-                withContext(NonCancellable) {
-                    Audit.createInstance().writeLog("${auditLogTimestamp()} get messages ended")
-
-                }
+            val userId = when (val userIdResult = sessionManager.getSessionUserId()) {
+                is SessionResult.Authenticated -> userIdResult.data
+                else -> 0
             }
-        }
-    }
 
-    override suspend fun getMessage(
-        id: Int,
-        onRetry: suspend (Int) -> Unit
-    ): NetworkResult<MessageDomainModel> {
-        return withContext(Dispatchers.IO) {
-            try {
-                val response = retryIO(times = 3, onRetry = onRetry) {
-                    apiService.getMessage(id)
-                }
-                if (response.isSuccessful && response.body() != null) {
-                    // DTO never leaves this layer!
-                    NetworkResult.Success(response.body()!!.toMessageDomainModel())
-                } else {
-                    // Transform unsuccessful Retrofit calls.
-                    NetworkResult.Error(response.code(), response.message())
-                }
-            } catch (e: Exception) {
-                Audit.createInstance().writeLog(e.message ?: "no message")
-                NetworkResult.Exception(e)
-            } finally {
-                withContext(NonCancellable) {
-                    Audit.createInstance()
-                        .writeLog("${auditLogTimestamp()} get message ended")
-                }
+            val response = retryIO(times = 3, onRetry = onRetry) {
+                apiService.getMessages(userId)
             }
-        }
-    }
 
-    override suspend fun addMessage(
-        message: MessageDomainModel,
-        onRetry: suspend (Int) -> Unit
-    ): NetworkResult<MessageDomainModel> {
-        return withContext(Dispatchers.IO) {
-            try {
-                val messageRequestDto = message.toMessageRequestDto()
-                val response = retryIO(times = 3, onRetry = onRetry) {
-                    apiService.addMessage(messageRequestDto)
-                }
-                if (response.isSuccessful) {
-                    // DTO never leaves this layer!
-                    NetworkResult.Success(response.body()!!.toMessageDomainModel())
-                } else {
-                    // Transform unsuccessful Retrofit calls.
-                    NetworkResult.Error(response.code(), response.message())
-                }
-            } catch (e: Exception) {
-                Audit.createInstance().writeLog(e.message ?: "no message")
-                NetworkResult.Exception(e)
-            } finally {
-                withContext(NonCancellable) {
-                    Audit.createInstance().writeLog("${auditLogTimestamp()} add message ended")
-                }
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                emit(NetworkResult.Success(body.map { it.toMessageDomainModel() }))
+            } else {
+                emit(NetworkResult.Error(response.code(), response.message()))
             }
-        }
-    }
-
-    override suspend fun updateMessage(
-        message: MessageDomainModel,
-        onRetry: suspend (Int) -> Unit
-    ): NetworkResult<MessageDomainModel> {
-        return withContext(Dispatchers.IO) {
-            try {
-                val id = message.id
-                val messageDto = message.toMessageDto()
-                val response = retryIO(times = 3, onRetry = onRetry) {
-                    apiService.updateMessage(id, messageDto)
-                }
-                if (response.isSuccessful) {
-                    // DTO never leaves this layer!
-                    NetworkResult.Success(response.body()!!.toMessageDomainModel())
-                } else {
-                    // Transform unsuccessful Retrofit calls.
-                    NetworkResult.Error(response.code(), response.message())
-                }
-            } catch (e: Exception) {
-                Audit.createInstance().writeLog(e.message ?: "no message")
-                NetworkResult.Exception(e)
-            } finally {
-                withContext(NonCancellable) {
-                    Audit.createInstance()
-                        .writeLog("${auditLogTimestamp()} update message ended")
-                }
+        }.catch { e ->
+            if (e is CancellationException) throw e
+            Audit.createInstance().writeLog(e.message ?: "no messages")
+            emit(NetworkResult.Exception(e))
+        }.onCompletion {
+            withContext(NonCancellable) {
+                Audit.createInstance().writeLog("${auditLogTimestamp()} get messages ended")
             }
-        }
-    }
-
-    override suspend fun partialUpdateMessage(
-        message: MessageDomainModel,
-        onRetry: suspend (Int) -> Unit
-    ): NetworkResult<MessageDomainModel> {
-        return withContext(Dispatchers.IO) {
-            try {
-                val id = message.id
-                val partialMessageRequestDto = message.toPartialMessageRequestDto()
-                val response = retryIO(times = 3, onRetry = onRetry) {
-                    apiService.partialUpdateMessage(id, partialMessageRequestDto)
-                }
-                if (response.isSuccessful) {
-                    // DTO never leaves this layer!
-                    NetworkResult.Success(response.body()!!.toMessageDomainModel())
-                } else {
-                    // Transform unsuccessful Retrofit calls.
-                    NetworkResult.Error(response.code(), response.message())
-                }
-            } catch (e: Exception) {
-                Audit.createInstance().writeLog(e.message ?: "no message")
-                NetworkResult.Exception(e)
-            } finally {
-                withContext(NonCancellable) {
-                    Audit.createInstance()
-                        .writeLog("${auditLogTimestamp()} partial update message ended")
-                }
-            }
-        }
-    }
-
-    override suspend fun removeMessage(
-        id: Int,
-        onRetry: suspend (Int) -> Unit
-    ): NetworkResult<Boolean> {
-        return withContext(Dispatchers.IO) {
-            try {
-                val response = retryIO(times = 3, onRetry = onRetry) {
-                    apiService.removeMessage(id)
-                }
-                if (response.isSuccessful) {
-                    // in a coroutine-based API service call the result is Response<Unit> for delete
-                    NetworkResult.Success(true)
-                } else {
-                    // Transform unsuccessful Retrofit calls.
-                    NetworkResult.Error(response.code(), response.message())
-                }
-            } catch (e: Exception) {
-                Audit.createInstance().writeLog(e.message ?: "no message")
-                NetworkResult.Exception(e)
-            } finally {
-                withContext(NonCancellable) {
-                    Audit.createInstance()
-                        .writeLog("${auditLogTimestamp()} remove message ended")
-                }
-            }
-        }
-    }
+        }.flowOn(Dispatchers.IO) // Note: Dispatchers.IO is better suited for Network/API calls!
 
 }
