@@ -1,45 +1,48 @@
 package com.reference.implementation.messages.presentation.screens.home
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.reference.implementation.messages.domain.model.UserDashboardDomainModel
 import com.reference.implementation.messages.domain.model.toHomeUiState
 import com.reference.implementation.messages.domain.use_case.GetUserDashboardUseCase
 import com.reference.implementation.messages.domain.use_case.Resource
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModel(
-    private val getUserDashboardUseCase: GetUserDashboardUseCase,
+    getUserDashboardUseCase: GetUserDashboardUseCase,
 ) : ViewModel() {
 
-    // 1. Define your private mutable state backing property
-    private val _uiState = MutableStateFlow<HomeUiState>(HomeUiState.Idle)
+    private val _retryAttempt = MutableStateFlow(0)
 
-    // 2. Expose it as an immutable read-only state flow to the UI
-    val uiState = _uiState.asStateFlow()
-
-    init {
-        // 3. Automatically kick off the data loading when the ViewModel is created
-        loadDashboardData()
-    }
-
-    fun loadDashboardData() {
-        viewModelScope.launch {
-            getUserDashboardUseCase(onRetryString = { attempt ->
-                _uiState.value = HomeUiState.Retrying(attempt)
-            }).collectLatest { resource ->
-                // 5. Explicitly map your resource over to your ViewModel's UI State
-                _uiState.value = when (resource) {
-                    is Resource.Loading -> HomeUiState.Loading
-                    is Resource.Error -> HomeUiState.Error(resource.message)
-                    is Resource.Success -> resource.data.toHomeUiState()
-                    else -> {
-                        HomeUiState.Error("something went wrong")
-                    }
+    val uiState: StateFlow<HomeUiState> = getUserDashboardUseCase(
+        onRetry = { attempt -> _retryAttempt.value = attempt }
+    ).combine(_retryAttempt) { resourceResult, attempt ->
+        when (resourceResult) {
+            is Resource.Loading -> {
+                if (attempt > 0) {
+                    HomeUiState.Retrying(attempt)
+                } else {
+                    HomeUiState.Loading
                 }
             }
+
+            is Resource.Error -> HomeUiState.Error(resourceResult.message)
+            is Resource.Success -> resourceResult.data.toHomeUiState()
         }
-    }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = HomeUiState.Loading
+    )
 }

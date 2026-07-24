@@ -72,10 +72,6 @@ class MessageViewModel(
                                     }
                             MessageUiState.Success(filteredList)
                         }
-
-                        else -> {
-                            MessageUiState.Error("Something went wrong")
-                        }
                     }
                 }
         }
