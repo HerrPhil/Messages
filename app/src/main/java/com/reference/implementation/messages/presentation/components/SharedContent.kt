@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.reference.implementation.messages.data.audit.Audit
 import com.reference.implementation.messages.ui.theme.MessagesTheme
 import java.time.Duration
 import java.time.Instant
@@ -208,6 +209,7 @@ fun getRelativeTimeString(
             }
         }
     } catch (e: Exception) {
+        Audit.createInstance().writeLog(e.message ?: "no message")
         "Unknown time"
     }
 }
