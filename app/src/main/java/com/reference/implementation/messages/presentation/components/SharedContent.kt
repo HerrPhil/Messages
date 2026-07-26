@@ -1,5 +1,14 @@
 package com.reference.implementation.messages.presentation.components
 
+import android.annotation.SuppressLint
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -8,14 +17,24 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.composed
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithCache
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.reference.implementation.messages.ui.theme.MessagesTheme
@@ -199,7 +218,6 @@ fun getRelativeTimeString(
 }
 
 
-
 @Preview(name = "Light Mode", showBackground = true)
 @Preview(
     name = "Dark Mode",
@@ -213,17 +231,85 @@ fun DateTimeLabelPreview() {
             color = MaterialTheme.colorScheme.surface,
             modifier = Modifier.padding(16.dp)
         ) {
-            DateTimeLabel("Created","2026-07-13T22:28:56.321Z")
+            DateTimeLabel("Created", "2026-07-13T22:28:56.321Z")
         }
     }
 }
 
 @Composable
-fun DateTimeLabel(label:String, theTimestamp: String) {
+fun DateTimeLabel(label: String, theTimestamp: String) {
     Text(
         text = "$label ${getRelativeTimeString(theTimestamp)}",
         style = MaterialTheme.typography.bodySmall,
         maxLines = 1,
         modifier = Modifier.fillMaxWidth()
     )
+}
+
+@Composable
+fun Modifier.shimmerLoadingAnimation(
+    isLoading: Boolean,
+    // Defaults to theme's surfaceVariant, but allows custom overrides!
+    // The surfaceVariant is a good trade-off for items or Text widgets.
+    shimmerColor: Color = MaterialTheme.colorScheme.surfaceVariant
+): Modifier {
+    if (!isLoading) return this
+
+    val transition = rememberInfiniteTransition(label = "ShimmerTransition")
+    val translateAnim by transition.animateFloat(
+        initialValue = -400f,
+        targetValue = 1200f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1300, easing = FastOutSlowInEasing)
+        ),
+        label = "ShimmerTranslation"
+    )
+
+    // Build gradient using your dynamic theme color instead of hardcoded LightGray!
+    val shimmerColors = listOf(
+        shimmerColor.copy(alpha = 0.4f),
+        shimmerColor.copy(alpha = 0.9f),
+        shimmerColor.copy(alpha = 0.4f)
+    )
+
+    return this.drawWithCache {
+        // Cache the brush
+        val brush = Brush.linearGradient(
+            colors = shimmerColors,
+            start = Offset(translateAnim, 0f),
+            end = Offset(translateAnim + size.width / 1.5f, size.height)
+        )
+
+        onDrawWithContent {
+            // STEP 1: ALWAYS DRAW THE BASE BACKGROUND COLOR
+            // This is what puts the blue circle behind the icon.
+            drawRect(color = shimmerColor)
+
+            // STEP 2: ONLY OVERLAY THE SHIMMER SWEEP IF LOADING
+            if (isLoading) {
+                drawRect(brush = brush)
+            }
+
+            // STEP 3: DRAW THE ICON/CONTENT ON TOP
+            drawContent()
+        }
+    }
+}
+
+@Composable
+fun SkeletonText(
+    // 1. Accept a modifier with a default value
+    modifier: Modifier = Modifier,
+    shimmerColor: Color = MaterialTheme.colorScheme.surfaceVariant,
+    shape: Shape = RoundedCornerShape(4.dp) // 👈 Default to 4.dp for text lines
+) {
+    Box(
+        modifier = modifier
+            .widthIn(min = 120.dp) // Sets your UX designer's minimum width!
+            .height(24.dp) // Matches the font line-height
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .shimmerLoadingAnimation(isLoading = true, shimmerColor = shimmerColor)
+    )
+
 }
