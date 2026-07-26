@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
@@ -31,14 +32,16 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.reference.implementation.messages.presentation.components.ErrorContent
-import com.reference.implementation.messages.presentation.components.LoadingContent
 import com.reference.implementation.messages.presentation.components.RetryingContent
+import com.reference.implementation.messages.presentation.components.SkeletonText
 import com.reference.implementation.messages.presentation.components.Welcome
+import com.reference.implementation.messages.presentation.components.shimmerLoadingAnimation
 import com.reference.implementation.messages.ui.theme.MessagesTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,7 +62,15 @@ fun HomeScreen(
             }
 
             is HomeUiState.Loading -> {
-                LoadingContent()
+                val loadingState = HomeUiState.Success(
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null
+                )
+                HomeDetails(loadingState)
             }
 
             is HomeUiState.Retrying -> {
@@ -75,6 +86,28 @@ fun HomeScreen(
                 HomeDetails(currentState)
             }
         }
+    }
+}
+
+@Preview(name = "Light Mode", showBackground = true)
+@Preview(
+    name = "Dark Mode",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+    showBackground = true
+)
+@Composable
+fun HomeDetailsLoadingPreview() {
+    MessagesTheme {
+        HomeDetails(
+            currentState = HomeUiState.Success(
+                userName = null,
+                userEmail = null,
+                unreadMessages = null,
+                readMessages = null,
+                roles = null,
+                permissions = null
+            )
+        )
     }
 }
 
@@ -153,6 +186,25 @@ fun HomeDetails(
     showBackground = true
 )
 @Composable
+fun ProfileHeaderAbsentPreview() {
+    MessagesTheme {
+        // Wrapping in a Surface forces the preview to use your theme's background color
+        Surface(color = MaterialTheme.colorScheme.surface) {
+            ProfileHeader(
+                username = null,
+                email = null
+            )
+        }
+    }
+}
+
+@Preview(name = "Light Mode", showBackground = true)
+@Preview(
+    name = "Dark Mode",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+    showBackground = true
+)
+@Composable
 fun ProfileHeaderPreview() {
     MessagesTheme {
         // Wrapping in a Surface forces the preview to use your theme's background color
@@ -163,7 +215,10 @@ fun ProfileHeaderPreview() {
 }
 
 @Composable
-fun ProfileHeader(username: String, email: String) {
+fun ProfileHeader(
+    username: String?, // nullable - temporal absence of data - supports skeleton feature
+    email: String? // nullable - temporal absence of data - supports skeleton feature
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -171,22 +226,28 @@ fun ProfileHeader(username: String, email: String) {
         // Keeps icon and text perfectly centered horizontally
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // 1. The Generic Person Avatar Circle
+        // Avatar Shell (Always visible, optionally shimmers or holds icon)
         Box(
             modifier = Modifier
                 .size(64.dp)
-                .background(
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = CircleShape
+                .clip(CircleShape)
+                // The Background is necessary to color the background of the CircleShape.
+                // I cannot rely on the shimmerLoadingAnimation to draw it.
+                .background(color = MaterialTheme.colorScheme.primaryContainer)
+                .shimmerLoadingAnimation(
+                    isLoading = username == null,
+                    shimmerColor = MaterialTheme.colorScheme.primaryContainer
                 ),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = "Profile Picture",
-                modifier = Modifier.size(36.dp),
-                tint = MaterialTheme.colorScheme.onPrimaryContainer
-            )
+            if (username != null) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "Profile Picture",
+                    modifier = Modifier.size(36.dp),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
         }
 
         Spacer(modifier = Modifier.width(16.dp)) // Gives the text room to breathe
@@ -195,28 +256,64 @@ fun ProfileHeader(username: String, email: String) {
         Column(
             verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                text = username,
-                // Your sharp display font
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onSurface
-            )
+
+            if (username == null) {
+                // 1. The Shimmering Skeleton Shell
+                SkeletonText()
+            } else {
+                // 2. The Actual Content Payload
+                Text(
+                    text = username,
+                    // Your sharp display font
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            Text(
-                text = email,
-                // Your clean, legible body font
-                style = MaterialTheme.typography.bodyMedium,
-                // Mutes the email slightly for visual contrast
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
+            if (email == null) {
+                // 1. The Shimmering Skeleton Shell
+                // Make the email skeleton slightly wider so it looks like a real email block!
+                SkeletonText(
+                    modifier = Modifier
+                        .width(180.dp)
+                        .height(20.dp)
+                )
+            } else {
+                Text(
+                    text = email,
+                    // Your clean, legible body font
+                    style = MaterialTheme.typography.bodyMedium,
+                    // Mutes the email slightly for visual contrast
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
         }
-
     }
 }
 
+@Preview(name = "Light Mode", showBackground = true)
+@Preview(
+    name = "Dark Mode",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+    showBackground = true
+)
+@Composable
+fun MessageSummaryInfoAbsentPreview() {
+    MessagesTheme() {
+        // Wrapping in a Surface forces the preview to use your theme's background color
+        Surface(
+            color = MaterialTheme.colorScheme.surface,
+            modifier = Modifier.padding(16.dp)
+        ) {
+            MessageSummaryInfo(
+                read = null,
+                unread = null
+            )
+        }
+    }
+}
 
 @Preview(name = "Light Mode", showBackground = true)
 @Preview(
@@ -238,7 +335,10 @@ fun MessageSummaryInfoPreview() {
 }
 
 @Composable
-fun MessageSummaryInfo(read: Int, unread: Int) {
+fun MessageSummaryInfo(
+    read: Int?,
+    unread: Int?
+) {
     OutlinedCard(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -258,21 +358,67 @@ fun MessageSummaryInfo(read: Int, unread: Int) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(text = "Read: $read", style = MaterialTheme.typography.bodyMedium)
 
-                // Highlight unread count with a vibrant container or color tint
-                Surface(
-                    color = MaterialTheme.colorScheme.tertiaryContainer,
-                    shape = MaterialTheme.shapes.medium
-                ) {
-                    Text(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
-                        text = "$unread Unread",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer
+                if (read == null) {
+                    // 1. The Shimmering Skeleton Shell
+                    // Make the read skeleton slightly shorter so
+                    SkeletonText(
+                        modifier = Modifier
+                            .width(80.dp)
+                            .height(32.dp),
+                        shape = MaterialTheme.shapes.medium
+
                     )
+                } else {
+                    Text(text = "Read: $read", style = MaterialTheme.typography.bodyMedium)
+                }
+
+                if (unread == null) {
+                    // 1. The Shimmering Skeleton Shell
+                    // Make the unread skeleton slightly shorter so
+                    SkeletonText(
+                        modifier = Modifier
+                            .width(80.dp)
+                            .height(32.dp),
+                        shimmerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                        shape = MaterialTheme.shapes.medium
+                    )
+
+                } else {
+                    // Highlight unread count with a vibrant container or color tint
+                    Surface(
+                        color = MaterialTheme.colorScheme.tertiaryContainer,
+                        shape = MaterialTheme.shapes.medium
+                    ) {
+                        Text(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 8.dp),
+                            text = "$unread Unread",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onTertiaryContainer
+                        )
+                    }
                 }
             }
+        }
+    }
+}
+
+@Preview(name = "Light Mode", showBackground = true)
+@Preview(
+    name = "Dark Mode",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+    showBackground = true
+)
+@Composable
+fun RolesAndPermissionsAbsentPreview() {
+    MessagesTheme {
+        Surface(
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            RolesAndPermissions(
+                roles = null,
+                permissions = null
+            )
         }
     }
 }
@@ -297,10 +443,11 @@ fun RolesAndPermissionsPreview() {
     }
 }
 
-
-//@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun RolesAndPermissions(roles: List<String>, permissions: List<String>) {
+fun RolesAndPermissions(
+    roles: List<String>?,
+    permissions: List<String>?
+) {
     OutlinedCard(
         modifier = Modifier
             .fillMaxWidth()
@@ -311,32 +458,62 @@ fun RolesAndPermissions(roles: List<String>, permissions: List<String>) {
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Text(
-                text = roles.joinToString(separator = ", "),
-                style = MaterialTheme.typography.titleMedium,
-                // My display font only does regular and Bold
-                fontWeight = FontWeight.SemiBold
-            )
+
+            if (roles == null) {
+                // 1. The Shimmering Skeleton Shell
+                SkeletonText()
+            } else {
+                Text(
+                    text = roles.joinToString(separator = ", "),
+                    style = MaterialTheme.typography.titleMedium,
+                    // My display font only does regular and Bold
+                    fontWeight = FontWeight.SemiBold
+                )
+            }
+
             Text(
                 text = "Assigned Permissions",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            // This automatically wraps chips to the next line if they run out of screen width
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                permissions.forEach { permission ->
-                    AssistChip(
-                        onClick = {},
-                        label = {
-                            Text(
-                                text = permission,
-                                style = MaterialTheme.typography.labelMedium
-                            )
-                        }
+
+            if (permissions == null) {
+                // 1. The Shimmering Skeleton Shell
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    // Vary the widths slightly to look organic!
+                    SkeletonText(
+                        modifier = Modifier
+                            .width(84.dp)
+                            .height(28.dp), // 👈 Match AssistChip height
+                        shape = RoundedCornerShape(8.dp) // 👈 Match AssistChip rounded pill shape
                     )
+                    SkeletonText(
+                        modifier = Modifier
+                            .width(72.dp)
+                            .height(28.dp),
+                        shape = RoundedCornerShape(8.dp) // 👈 Match AssistChip rounded pill shape
+                    )
+                }
+            } else {
+                // This automatically wraps chips to the next line if they run out of screen width
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    permissions.forEach { permission ->
+                        AssistChip(
+                            onClick = {},
+                            label = {
+                                Text(
+                                    text = permission,
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                            }
+                        )
+                    }
                 }
             }
         }

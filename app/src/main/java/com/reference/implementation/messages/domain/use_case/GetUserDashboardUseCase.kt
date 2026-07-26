@@ -32,21 +32,28 @@ class GetUserDashboardUseCase(
             permissionRepository.getPermissionInfoFlow(onRetry)
         ) { userRes, messageRes, roleRes, permissionRes ->
 
+            // Extracts the data safely if Success: otherwise keep null
             val user = (userRes as? NetworkResult.Success)?.data
-            val messages = (messageRes as? NetworkResult.Success)?.data ?: emptyList()
-            val roles = (roleRes as? NetworkResult.Success)?.data?.roles ?: emptyList()
+            val messages = (messageRes as? NetworkResult.Success)?.data // returns List<MessageDomainModel>?
+            val roles = (roleRes as? NetworkResult.Success)?.data?.roles // returns List<String>?
             val permissions =
-                (permissionRes as? NetworkResult.Success)?.data?.permissions ?: emptyList()
+                (permissionRes as? NetworkResult.Success)?.data?.permissions // returns List<String>?
 
-            if (user == null) {
-                Resource.Error("Failed to load user profile")
+            // Check for catastrophic hard error (e.g. if ALL streams failed)
+            // Like, server(s) down, internet down, etc.
+            val allFailed = listOf(
+                userRes, messageRes, roleRes, permissionRes
+            ).all { it is NetworkResult.Error }
+
+            if (allFailed) {
+                Resource.Error("Unable to load dashboard data.")
             } else {
                 Resource.Success(
                     UserDashboardDomainModel(
-                        userName = user.name,
-                        userEmail = user.email,
-                        unreadMessages = messages.count { !it.read },
-                        readMessages = messages.count { it.read },
+                        userName = user?.name,
+                        userEmail = user?.email,
+                        unreadMessages = messages?.count { !it.read },
+                        readMessages = messages?.count { it.read },
                         roles = roles,
                         permissions = permissions
                     )
