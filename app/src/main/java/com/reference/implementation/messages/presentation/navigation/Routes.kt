@@ -29,6 +29,28 @@ sealed class Route {
      * Here are the three routes for 'Regular User' accounts
      */
 
+    // Tab Graphs (Parent rotes)
+    @Serializable
+    data object MessagesGraph : Route() {
+        @Transient
+        override val icon = Icons.Default.Email
+        override val label = "Messages Graph"
+    }
+
+    @Serializable
+    data object AdminMessageGraph : Route() {
+        @Transient
+        override val icon = Icons.AutoMirrored.Filled.ListAlt
+        override val label = "Admin Message Graph"
+    }
+
+    @Serializable
+    data object BulletinsGraph : Route() {
+        @Transient
+        override val icon = Icons.AutoMirrored.Filled.List
+        override val label = "Bulletins Graph"
+    }
+
     @Serializable
     data object Home : Route() {
         @Transient
@@ -66,6 +88,7 @@ sealed class Route {
     data object AdminMessages : Route() {
         @Transient
         override val icon: ImageVector = Icons.AutoMirrored.Filled.ListAlt
+
         @Transient
         override val label = "All User Messages"
     }
@@ -78,10 +101,10 @@ sealed class Route {
     data object Bulletins : Route() {
         @Transient
         override val icon: ImageVector = Icons.AutoMirrored.Filled.List
+
         @Transient
         override val label = "Bulletins"
     }
-
 
 
     @Serializable
@@ -89,8 +112,6 @@ sealed class Route {
 
     @Serializable
     data class BulletinDetail(val id: Int)
-
-
 
 
 }

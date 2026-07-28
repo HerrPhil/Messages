@@ -1,6 +1,5 @@
 package com.reference.implementation.messages.presentation.navigation
 
-import android.util.Log
 import android.widget.Toast
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -9,10 +8,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.reference.implementation.messages.data.audit.Audit
 import com.reference.implementation.messages.data.manager.AuthState
 import com.reference.implementation.messages.data.manager.UnauthReason
 import com.reference.implementation.messages.data.manager.UserRoleState
@@ -40,19 +41,23 @@ fun RootAppNavigation(
     val authState by viewModel.authState.collectAsStateWithLifecycle()
     val userRoleState by viewModel.userRoleState.collectAsStateWithLifecycle()
 
+    // NEW: Clean, isolated Logging Side-Effect
+    // This will ONLY run once per state change, completely off the main composition thread.
+    LaunchedEffect(userRoleState) {
+        viewModel.logRoleStateTransition(userRoleState)
+    }
+
     // Reactively swap the destination graph based on authState
     LaunchedEffect(authState) {
 
         val state = authState // this exists to facilitate smart cast
 
-        if (state is AuthState.Unauthenticated) {
-            if (state.reason == UnauthReason.FORCE_LOGOUT) {
-                Toast.makeText(
-                    context,
-                    "Your session has expired. Please log in again.",
-                    Toast.LENGTH_LONG
-                ).show()
-            }
+        if (state is AuthState.Unauthenticated && state.reason == UnauthReason.FORCE_LOGOUT) {
+            Toast.makeText(
+                context,
+                "Your session has expired. Please log in again.",
+                Toast.LENGTH_LONG
+            ).show()
         }
 
         when (authState) {
@@ -65,17 +70,20 @@ fun RootAppNavigation(
             }
 
             is AuthState.Authenticated -> {
+                // NEW: When we keep NavHost at the root level (for example, to preserve transition
+                // animations between Login and MainHub), you must guard the navigate() imperative
+                // call so it only executes when not already on MainHub.
+                // GUARD Code: only navigate if we are not ALREADY sitting on MainHub!!!!
+                val destination = rootNavController.currentBackStackEntry?.destination
+                if (destination?.hasRoute<MainHub>() == true) return@LaunchedEffect
+
+                // this is a new route and imperatively navigates
                 rootNavController.navigate(route = MainHub) {
                     popUpTo(route = Login) { inclusive = true }
                 }
+
             }
         }
-    }
-
-    // NEW: Clean, isolated Logging Side-Effect
-    // This will ONLY run once per state change, completely off the main composition thread.
-    LaunchedEffect(userRoleState) {
-        viewModel.logRoleStateTransition(userRoleState)
     }
 
     NavHost(navController = rootNavController, startDestination = Login) {
@@ -85,6 +93,9 @@ fun RootAppNavigation(
         }
         // Authenticated
         composable<MainHub> {
+
+            Audit.createInstance()
+                .writeLog("RootAppNavigation composable is navigating to Route.MainHub")
 
             // Remember the config so it is only re-evaluated when the user role actually changes
             val config = remember(userRoleState) {
@@ -131,8 +142,8 @@ fun RootAppNavigation(
                         },
                         bottomBarTabs = listOf(
                             Route.Home,
-                            Route.Messages,
-                            Route.Bulletins
+                            Route.MessagesGraph,
+                            Route.BulletinsGraph
                         )
                     )
 
