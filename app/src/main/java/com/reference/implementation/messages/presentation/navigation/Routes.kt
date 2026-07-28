@@ -37,6 +37,7 @@ sealed class Route {
         override val label = "Messages Graph"
     }
 
+    @Suppress("Unused")
     @Serializable
     data object AdminMessageGraph : Route() {
         @Transient
