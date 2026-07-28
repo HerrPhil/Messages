@@ -25,10 +25,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavDestination.Companion.hasRoute
+import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import com.reference.implementation.messages.domain.model.MessageDomainModel
 import com.reference.implementation.messages.presentation.AppViewModelProvider
@@ -60,14 +63,11 @@ fun AuthenticatedMainParameterHub(
     // Isolated NavController for the internal tabs
     val childNavController = rememberNavController()
 
-
     // Track the current backstack destination to highlight the correct bottom bar icon
     val navBackStackEntry by childNavController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
 
-    // Dynamic title mapping based on current destination
     val qualifiedRouteName = currentDestination?.route ?: defaultRoute
-
     val displayTitle = onRouteSelectTitle(qualifiedRouteName)
 
     // --- Complex Back Handling ---
@@ -94,9 +94,10 @@ fun AuthenticatedMainParameterHub(
                 // the Route values are essentially the tabs!
                 bottomBarTabs.forEach { route ->
 
-                    val localQualifiedRouteName = route::class.qualifiedName!!
-
-                    val selected = qualifiedRouteName.endsWith(suffix = localQualifiedRouteName)
+                    // Checks if current screen OR any of its parent graphs match the tab's Route type
+                    val selected = currentDestination?.hierarchy?.any { destination ->
+                        destination.hasRoute(route::class.java.kotlin)
+                    } ?: false
 
                     // navigation bar item option: bigger highlight size
                     // Learn how to roll my own highlight
@@ -202,89 +203,100 @@ fun AuthenticatedMainParameterHub(
                 HomeScreen(uiState)
             }
 
-            composable<Route.Messages> {
-                val viewModel: MessageViewModel = viewModel(factory = AppViewModelProvider.Factory)
-                val key:Any = MyKeyObject
-                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-                val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
-                val uiEvents = viewModel.uiEvents
-                val onSearchChanged: (String) -> Unit = { newQuery ->
-                    viewModel.onSearchChanged(newQuery)
-                }
-                val onMessageClicked: (Int) -> Unit = { messageId ->
-                    // The hub owns the controller and executes the actual routing
-                    childNavController.navigate(Route.MessageDetail(id = messageId))
-                }
-                val onRestoreMessage: (MessageDomainModel) -> Unit = { deletedMessage ->
-                    viewModel.onRestoreMessage(deletedMessage)
-                }
-                val onDeleteMessage: (Int) -> Unit = { messageId ->
-                    viewModel.onDeleteMessage(messageId)
-                }
-                val onToggleReadStatus: (Int, Boolean) -> Unit = { messageId, newReadStatus ->
-                    viewModel.onToggleReadStatus(messageId, newReadStatus)
-                }
+            // The Messages Sub-Graph
+            navigation<Route.MessagesGraph>(startDestination = Route.Messages) {
 
-                MessageScreen(
-                    uiState,
-                    uiEvents,
-                    key,
-                    searchQuery,
-                    onMessageClicked,
-                    onSearchChanged,
-                    onRestoreMessage,
-                    onDeleteMessage,
-                    onToggleReadStatus
-                )
-            }
-
-            composable<Route.MessageDetail> {
-                // ViewModel is automatically constructed with the correct ID inside the SavedStateHandle!
-                val viewModel: MessageDetailViewModel = viewModel( factory = AppViewModelProvider.Factory)
-                // Grab the data stream from the ViewModel
-                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-                val onDeleteMessage: (Int) -> Unit = { messageId ->
-                    viewModel.onDeleteMessage(messageId)
-                }
-                val onToggleReadStatus: (Int, Boolean) -> Unit = { messageId, newReadStatus ->
-                    viewModel.onToggleReadStatus(messageId, newReadStatus)
-                }
-
-                MessageDetailScreen(
-                    uiState = uiState,
-                    // Executing popBackStack clears this destination off the stack
-                    // and returns the user back to the message list smoothly
-                    onNavigateBack = { childNavController.popBackStack() },
-                    onDeleteMessage,
-                    onToggleReadStatus
-                )
-            }
-
-            composable<Route.Bulletins> {
-                val viewModel: BulletinViewModel = viewModel(factory = AppViewModelProvider.Factory)
-                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-
-                BulletinScreen(
-                    uiState = uiState,
-                    onBulletinClicked = {bulletinId ->
-                        // The hub owns the controller and executes the actual routing
-                        childNavController.navigate(Route.BulletinDetail(id = bulletinId))
+                composable<Route.Messages> {
+                    val viewModel: MessageViewModel =
+                        viewModel(factory = AppViewModelProvider.Factory)
+                    val key: Any = MyKeyObject
+                    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+                    val uiEvents = viewModel.uiEvents
+                    val onSearchChanged: (String) -> Unit = { newQuery ->
+                        viewModel.onSearchChanged(newQuery)
                     }
-                )
+                    val onMessageClicked: (Int) -> Unit = { messageId ->
+                        // The hub owns the controller and executes the actual routing
+                        childNavController.navigate(Route.MessageDetail(id = messageId))
+                    }
+                    val onRestoreMessage: (MessageDomainModel) -> Unit = { deletedMessage ->
+                        viewModel.onRestoreMessage(deletedMessage)
+                    }
+                    val onDeleteMessage: (Int) -> Unit = { messageId ->
+                        viewModel.onDeleteMessage(messageId)
+                    }
+                    val onToggleReadStatus: (Int, Boolean) -> Unit = { messageId, newReadStatus ->
+                        viewModel.onToggleReadStatus(messageId, newReadStatus)
+                    }
+
+                    MessageScreen(
+                        uiState,
+                        uiEvents,
+                        key,
+                        searchQuery,
+                        onMessageClicked,
+                        onSearchChanged,
+                        onRestoreMessage,
+                        onDeleteMessage,
+                        onToggleReadStatus
+                    )
+                }
+
+                composable<Route.MessageDetail> {
+                    // ViewModel is automatically constructed with the correct ID inside the SavedStateHandle!
+                    val viewModel: MessageDetailViewModel =
+                        viewModel(factory = AppViewModelProvider.Factory)
+                    // Grab the data stream from the ViewModel
+                    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                    val onDeleteMessage: (Int) -> Unit = { messageId ->
+                        viewModel.onDeleteMessage(messageId)
+                    }
+                    val onToggleReadStatus: (Int, Boolean) -> Unit = { messageId, newReadStatus ->
+                        viewModel.onToggleReadStatus(messageId, newReadStatus)
+                    }
+
+                    MessageDetailScreen(
+                        uiState = uiState,
+                        // Executing popBackStack clears this destination off the stack
+                        // and returns the user back to the message list smoothly
+                        onNavigateBack = { childNavController.popBackStack() },
+                        onDeleteMessage,
+                        onToggleReadStatus
+                    )
+                }
             }
 
-            composable<Route.BulletinDetail> {
-                // ViewModel is automatically constructed with the correct ID inside the SavedStateHandle!
-                val viewModel: BulletinDetailViewModel = viewModel( factory = AppViewModelProvider.Factory)
-                // Grab the data stream from the ViewModel
-                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+            navigation<Route.BulletinsGraph>(startDestination = Route.Bulletins) {
 
-                BulletinDetailScreen(
-                    uiState = uiState,
-                    // Executing popBackStack clears this destination off the stack
-                    // and returns the user back to the message list smoothly
-                    onNavigateBack = { childNavController.popBackStack() }
-                )
+                composable<Route.Bulletins> {
+                    val viewModel: BulletinViewModel =
+                        viewModel(factory = AppViewModelProvider.Factory)
+                    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+                    BulletinScreen(
+                        uiState = uiState,
+                        onBulletinClicked = { bulletinId ->
+                            // The hub owns the controller and executes the actual routing
+                            childNavController.navigate(Route.BulletinDetail(id = bulletinId))
+                        }
+                    )
+                }
+
+                composable<Route.BulletinDetail> {
+                    // ViewModel is automatically constructed with the correct ID inside the SavedStateHandle!
+                    val viewModel: BulletinDetailViewModel =
+                        viewModel(factory = AppViewModelProvider.Factory)
+                    // Grab the data stream from the ViewModel
+                    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+                    BulletinDetailScreen(
+                        uiState = uiState,
+                        // Executing popBackStack clears this destination off the stack
+                        // and returns the user back to the message list smoothly
+                        onNavigateBack = { childNavController.popBackStack() }
+                    )
+                }
             }
         }
     }
