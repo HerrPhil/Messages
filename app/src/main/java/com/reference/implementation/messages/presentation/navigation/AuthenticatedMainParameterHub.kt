@@ -1,6 +1,11 @@
 package com.reference.implementation.messages.presentation.navigation
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -35,6 +40,7 @@ import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import com.reference.implementation.messages.domain.model.MessageDomainModel
 import com.reference.implementation.messages.presentation.AppViewModelProvider
+import com.reference.implementation.messages.presentation.components.detailComposable
 import com.reference.implementation.messages.presentation.screens.adminhome.AdminHomeScreen
 import com.reference.implementation.messages.presentation.screens.adminmessage.AdminMessageScreen
 import com.reference.implementation.messages.presentation.screens.bulletin.BulletinDetailScreen
@@ -60,12 +66,29 @@ fun AuthenticatedMainParameterHub(
     bottomBarTabs: List<Route>,
 ) {
 
+    val tabEnterSpec = fadeIn(animationSpec = tween(300)) +
+            scaleIn(initialScale = 0.95f, animationSpec = tween(300))
+
+    val tabExitSpec = fadeOut(animationSpec = tween(300)) +
+            scaleOut(targetScale = 0.95f, animationSpec = tween(300))
+
     // Isolated NavController for the internal tabs
     val childNavController = rememberNavController()
 
     // Track the current backstack destination to highlight the correct bottom bar icon
     val navBackStackEntry by childNavController.currentBackStackEntryAsState()
     val currentDestination = navBackStackEntry?.destination
+
+    // Derive TopBar visibility declaratively
+    val isTopBarVisible = remember(currentDestination) {
+        currentDestination?.hierarchy?.any { destination ->
+            destination.hasRoute(Route.Home::class) ||
+                    destination.hasRoute(Route.Messages::class) ||
+                    destination.hasRoute(Route.Bulletins::class) ||
+                    destination.hasRoute(Route.AdminHome::class) ||
+                    destination.hasRoute(Route.AdminMessages::class)
+        } == true
+    }
 
     val qualifiedRouteName = currentDestination?.route ?: defaultRoute
     val displayTitle = onRouteSelectTitle(qualifiedRouteName)
@@ -86,6 +109,7 @@ fun AuthenticatedMainParameterHub(
     }
 
     AuthenticatedShell(
+        isTopBarVisible = isTopBarVisible,
         title = displayTitle,
         bottomBar = {
             NavigationBar {
@@ -186,7 +210,13 @@ fun AuthenticatedMainParameterHub(
         NavHost(
             navController = childNavController,
             startDestination = startDestination,
-            modifier = Modifier.padding(paddingValues)
+            modifier = Modifier.padding(paddingValues),
+
+            // 🟢 Global defaults for all tab switches:
+            enterTransition = { tabEnterSpec },
+            exitTransition = { tabExitSpec },
+            popEnterTransition = { tabEnterSpec },
+            popExitTransition = { tabExitSpec }
         ) {
 
             composable<Route.AdminHome> {
@@ -243,7 +273,7 @@ fun AuthenticatedMainParameterHub(
                     )
                 }
 
-                composable<Route.MessageDetail> {
+                detailComposable<Route.MessageDetail> {
                     // ViewModel is automatically constructed with the correct ID inside the SavedStateHandle!
                     val viewModel: MessageDetailViewModel =
                         viewModel(factory = AppViewModelProvider.Factory)
@@ -283,7 +313,7 @@ fun AuthenticatedMainParameterHub(
                     )
                 }
 
-                composable<Route.BulletinDetail> {
+                detailComposable<Route.BulletinDetail> {
                     // ViewModel is automatically constructed with the correct ID inside the SavedStateHandle!
                     val viewModel: BulletinDetailViewModel =
                         viewModel(factory = AppViewModelProvider.Factory)

@@ -20,7 +20,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
@@ -31,7 +30,6 @@ import com.reference.implementation.messages.presentation.components.LoadingCont
 import com.reference.implementation.messages.presentation.components.RetryingContent
 import com.reference.implementation.messages.presentation.components.Welcome
 import com.reference.implementation.messages.presentation.components.getRelativeTimeString
-import com.reference.implementation.messages.presentation.navigation.LocalShellUiController
 import com.reference.implementation.messages.ui.theme.MessagesTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,17 +39,6 @@ fun BulletinDetailScreen(
     onNavigateBack: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-
-    // 1. Grab the shell controller from the environment
-    val shellController = LocalShellUiController.current
-
-    // 2. Fire-and-forget toggle scoped strictly to this screen's lifecycle
-    DisposableEffect(Unit) {
-        shellController.updateTopBarVisibility(false) // Hide shell top bar on entry
-        onDispose {
-            shellController.updateTopBarVisibility(true) // Restore shell top bar on exit
-        }
-    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),

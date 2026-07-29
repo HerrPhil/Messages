@@ -1,10 +1,16 @@
 package com.reference.implementation.messages.presentation.components
 
+import androidx.compose.animation.AnimatedContentScope
+import androidx.compose.animation.AnimatedContentTransitionScope
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -32,6 +38,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavBackStackEntry
+import androidx.navigation.NavGraphBuilder
+import androidx.navigation.compose.composable
 import com.reference.implementation.messages.data.audit.Audit
 import com.reference.implementation.messages.ui.theme.MessagesTheme
 import java.time.Duration
@@ -309,4 +318,47 @@ fun SkeletonText(
             .shimmerLoadingAnimation(isLoading = true, shimmerColor = shimmerColor)
     )
 
+}
+
+// Reusable 400ms Horizontal Slide Transitions for Detail Screens
+
+val detailEnterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
+    slideIntoContainer(
+        towards = AnimatedContentTransitionScope.SlideDirection.Left,
+        animationSpec = tween(400)
+    ) + fadeIn(animationSpec = tween(400))
+}
+
+val detailExitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
+    slideOutOfContainer(
+        towards = AnimatedContentTransitionScope.SlideDirection.Left,
+        animationSpec = tween(400)
+    ) + fadeOut(animationSpec = tween(400))
+}
+
+val detailPopEnterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
+    slideIntoContainer(
+        towards = AnimatedContentTransitionScope.SlideDirection.Right,
+        animationSpec = tween(400)
+    ) + fadeIn(animationSpec = tween(400))
+}
+
+val detailPopExitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
+    slideOutOfContainer(
+        towards = AnimatedContentTransitionScope.SlideDirection.Right,
+        animationSpec = tween(400)
+    ) + fadeOut(animationSpec = tween(400))
+}
+
+// 🟢 Helper Function: Encapsulates detail transitions into a single custom builder
+inline fun <reified T : Any> NavGraphBuilder.detailComposable(
+    noinline content: @Composable AnimatedContentScope.(NavBackStackEntry) -> Unit
+) {
+    composable<T>(
+        enterTransition = detailEnterTransition,
+        exitTransition = detailExitTransition,
+        popEnterTransition = detailPopEnterTransition,
+        popExitTransition = detailPopExitTransition,
+        content = content
+    )
 }
