@@ -1,7 +1,5 @@
 package com.reference.implementation.messages.presentation.screens.bulletin
 
-import com.reference.implementation.messages.presentation.screens.message.MessageUiDetail
-
 sealed interface BulletinUiState {
     object Idle : BulletinUiState
     object Loading : BulletinUiState

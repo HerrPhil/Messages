@@ -13,7 +13,6 @@ import com.reference.implementation.messages.domain.use_case.MarkMessageAsReadUs
 import com.reference.implementation.messages.domain.use_case.MarkMessageAsUnreadUseCase
 import com.reference.implementation.messages.domain.use_case.Resource
 import com.reference.implementation.messages.domain.use_case.RestoreMessageUseCase
-import com.reference.implementation.messages.presentation.screens.bulletin.BulletinUiState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -89,43 +88,6 @@ class MessageViewModel(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = MessageUiState.Loading
     )
-
-
-//    val uiState: StateFlow<MessageUiState> = _loadTrigger
-//        .flatMapLatest { attempt ->
-//            getActiveMessagesUseCase()
-//                .combine(searchQuery) { resourceResult, query ->
-//                    // ViewModel only worries about user text filtering on top of the clean data!
-//                    when (resourceResult) {
-//                        is Resource.Loading -> {
-//                            if (attempt > 0) {
-//                                MessageUiState.Retrying(attempt)
-//                            } else {
-//                                MessageUiState.Loading
-//                            }
-//                        }
-//
-//                        is Resource.Error -> MessageUiState.Error(resourceResult.message)
-//                        is Resource.Success -> {
-//                            val filteredList =
-//                                resourceResult.data
-//                                    .map { messageDomainModel -> messageDomainModel.toMessageUiDetail() }
-//                                    .filter {
-//                                        it.body.contains(query, ignoreCase = true)
-//                                    }
-//                            MessageUiState.Success(
-//                                filteredList,
-//                                false
-//                            )
-//                        }
-//                    }
-//                }
-//        }
-//        .stateIn(
-//            scope = viewModelScope,
-//            started = SharingStarted.WhileSubscribed(5000),
-//            initialValue = MessageUiState.Loading
-//        )
 
     val uiEvents = getMessageUiEventsUseCase()
 
