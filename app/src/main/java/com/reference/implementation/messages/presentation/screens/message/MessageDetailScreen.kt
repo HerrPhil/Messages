@@ -28,7 +28,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -45,7 +44,6 @@ import com.reference.implementation.messages.presentation.components.LoadingCont
 import com.reference.implementation.messages.presentation.components.RetryingContent
 import com.reference.implementation.messages.presentation.components.Welcome
 import com.reference.implementation.messages.presentation.components.getRelativeTimeString
-import com.reference.implementation.messages.presentation.navigation.LocalShellUiController
 import com.reference.implementation.messages.ui.theme.MessagesTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,17 +59,6 @@ fun MessageDetailScreen(
     var showDeleteConfirmationDialog by rememberSaveable { mutableStateOf(false) }
     val showDeleteDialog = { showDeleteConfirmationDialog = true }
     val dismissDeleteDialog = { showDeleteConfirmationDialog = false }
-
-    // Grab the shell controller from the environment
-    val shellController = LocalShellUiController.current
-
-    // Fire-and-forget toggle scoped strictly to this screen's lifecycle
-    DisposableEffect(Unit) {
-        shellController.updateTopBarVisibility(false) // Hide shell top bar on entry
-        onDispose {
-            shellController.updateTopBarVisibility(true) // Restore shell top bar on exit
-        }
-    }
 
     // Pinned scroll behaviour allows the app bar to gain an elevation shadow/tint on scroll
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
