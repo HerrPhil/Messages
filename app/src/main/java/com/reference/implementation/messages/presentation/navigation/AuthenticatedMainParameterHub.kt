@@ -246,6 +246,9 @@ fun AuthenticatedMainParameterHub(
                     val onSearchChanged: (String) -> Unit = { newQuery ->
                         viewModel.onSearchChanged(newQuery)
                     }
+                    val onRefresh: () -> Unit = {
+                        viewModel.onRefresh()
+                    }
                     val onMessageClicked: (Int) -> Unit = { messageId ->
                         // The hub owns the controller and executes the actual routing
                         childNavController.navigate(Route.MessageDetail(id = messageId))
@@ -265,6 +268,7 @@ fun AuthenticatedMainParameterHub(
                         uiEvents,
                         key,
                         searchQuery,
+                        onRefresh,
                         onMessageClicked,
                         onSearchChanged,
                         onRestoreMessage,
@@ -303,13 +307,18 @@ fun AuthenticatedMainParameterHub(
                     val viewModel: BulletinViewModel =
                         viewModel(factory = AppViewModelProvider.Factory)
                     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                    val onRefresh: () -> Unit = {
+                        viewModel.onRefresh()
+                    }
+                    val onButtonClick: (Int) -> Unit = { bulletinId ->
+                        // The hub owns the controller and executes the actual routing
+                        childNavController.navigate(Route.BulletinDetail(id = bulletinId))
+                    }
 
                     BulletinScreen(
                         uiState = uiState,
-                        onBulletinClicked = { bulletinId ->
-                            // The hub owns the controller and executes the actual routing
-                            childNavController.navigate(Route.BulletinDetail(id = bulletinId))
-                        }
+                        onRefresh = onRefresh,
+                        onBulletinClicked = onButtonClick
                     )
                 }
 

@@ -13,6 +13,7 @@ import com.reference.implementation.messages.domain.use_case.MarkMessageAsReadUs
 import com.reference.implementation.messages.domain.use_case.MarkMessageAsUnreadUseCase
 import com.reference.implementation.messages.domain.use_case.Resource
 import com.reference.implementation.messages.domain.use_case.RestoreMessageUseCase
+import com.reference.implementation.messages.presentation.screens.bulletin.BulletinUiState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -47,39 +48,84 @@ class MessageViewModel(
 
     // Tracks the active loading attempt reported by the repository's retryIO()
     private val _loadTrigger = MutableStateFlow(0)
+    private val _isRefreshing = MutableStateFlow(false)
 
-    val uiState: StateFlow<MessageUiState> = _loadTrigger
-        .flatMapLatest { attempt ->
-            getActiveMessagesUseCase()
-                .combine(searchQuery) { resourceResult, query ->
-                    // ViewModel only worries about user text filtering on top of the clean data!
-                    when (resourceResult) {
-                        is Resource.Loading -> {
-                            if (attempt > 0) {
-                                MessageUiState.Retrying(attempt)
-                            } else {
-                                MessageUiState.Loading
-                            }
-                        }
 
-                        is Resource.Error -> MessageUiState.Error(resourceResult.message)
-                        is Resource.Success -> {
-                            val filteredList =
-                                resourceResult.data
-                                    .map { messageDomainModel -> messageDomainModel.toMessageUiDetail() }
-                                    .filter {
-                                        it.body.contains(query, ignoreCase = true)
-                                    }
-                            MessageUiState.Success(filteredList)
-                        }
-                    }
+    val uiState: StateFlow<MessageUiState> = combine(
+        // Subtle but important feature of flatMapLatest:
+        // if a new trigger value comes down _loadTrigger (e.g. attempt 1 ---> attempt 2),
+        // it cancels the previous database/network stream execution and starts a fresh one.
+        // Standard combine does not cancel in-flight work when values change!
+        _loadTrigger.flatMapLatest { getActiveMessagesUseCase() },
+        _isRefreshing,
+        searchQuery
+    ) { resourceResult, isRefreshing, query ->
+        // ViewModel only worries about user text filtering on top of the clean data!
+        when (resourceResult) {
+            is Resource.Loading -> {
+                if (_loadTrigger.value > 0) {
+                    MessageUiState.Retrying(_loadTrigger.value)
+                } else {
+                    MessageUiState.Loading
                 }
+            }
+
+            is Resource.Error -> MessageUiState.Error(resourceResult.message)
+            is Resource.Success -> {
+                val filteredList =
+                    resourceResult.data
+                        .map { messageDomainModel -> messageDomainModel.toMessageUiDetail() }
+                        .filter {
+                            it.body.contains(query, ignoreCase = true)
+                        }
+                MessageUiState.Success(
+                    filteredList,
+                    isRefreshing
+                )
+            }
         }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = MessageUiState.Loading
-        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = MessageUiState.Loading
+    )
+
+
+//    val uiState: StateFlow<MessageUiState> = _loadTrigger
+//        .flatMapLatest { attempt ->
+//            getActiveMessagesUseCase()
+//                .combine(searchQuery) { resourceResult, query ->
+//                    // ViewModel only worries about user text filtering on top of the clean data!
+//                    when (resourceResult) {
+//                        is Resource.Loading -> {
+//                            if (attempt > 0) {
+//                                MessageUiState.Retrying(attempt)
+//                            } else {
+//                                MessageUiState.Loading
+//                            }
+//                        }
+//
+//                        is Resource.Error -> MessageUiState.Error(resourceResult.message)
+//                        is Resource.Success -> {
+//                            val filteredList =
+//                                resourceResult.data
+//                                    .map { messageDomainModel -> messageDomainModel.toMessageUiDetail() }
+//                                    .filter {
+//                                        it.body.contains(query, ignoreCase = true)
+//                                    }
+//                            MessageUiState.Success(
+//                                filteredList,
+//                                false
+//                            )
+//                        }
+//                    }
+//                }
+//        }
+//        .stateIn(
+//            scope = viewModelScope,
+//            started = SharingStarted.WhileSubscribed(5000),
+//            initialValue = MessageUiState.Loading
+//        )
 
     val uiEvents = getMessageUiEventsUseCase()
 
@@ -130,4 +176,18 @@ class MessageViewModel(
             })
         }
     }
+
+    fun onRefresh() {
+        viewModelScope.launch {
+            _isRefreshing.value = true // turn ON refreshing
+            try {
+                loadActiveMessagesUseCase(onRetry = { attempt ->
+                    _loadTrigger.value = attempt
+                }) // suspending call - wait until done
+            } finally { // turn OFF refreshing
+                _isRefreshing.value = false
+            }
+        }
+    }
+
 }

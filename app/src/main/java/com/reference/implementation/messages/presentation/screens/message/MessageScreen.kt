@@ -51,6 +51,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -93,6 +94,7 @@ fun MessageScreen(
     uiEvents: Flow<MessageUiEvent>,
     key: Any,
     searchQuery: String,
+    onRefresh: () -> Unit,
     onMessageClicked: (Int) -> Unit,
     onSearchChanged: (String) -> Unit,
     onRestoreMessage: (MessageDomainModel) -> Unit,
@@ -161,21 +163,26 @@ fun MessageScreen(
 
         is MessageUiState.Success -> {
             val list = currentState.list
-            MessageDetails(
-                searchQuery = searchQuery,
-                onSearchValueChanged = { searchInput ->
-                    onSearchChanged(searchInput)
-                },
-                onDelete = { messageId ->
-                    onDeleteMessage(messageId)
-                },
-                onToggleReadStatus = { messageId, newReadStatus ->
-                    onToggleReadStatus(messageId, newReadStatus)
-                },
-                onMessageClicked = onMessageClicked,
-                list = list,
-                snackbarHostState = snackbarHostState
-            )
+            PullToRefreshBox(
+                isRefreshing = currentState.isRefreshing,
+                onRefresh = onRefresh
+            ) {
+                MessageDetails(
+                    searchQuery = searchQuery,
+                    onSearchValueChanged = { searchInput ->
+                        onSearchChanged(searchInput)
+                    },
+                    onDelete = { messageId ->
+                        onDeleteMessage(messageId)
+                    },
+                    onToggleReadStatus = { messageId, newReadStatus ->
+                        onToggleReadStatus(messageId, newReadStatus)
+                    },
+                    onMessageClicked = onMessageClicked,
+                    list = list,
+                    snackbarHostState = snackbarHostState
+                )
+            }
         }
     }
 }

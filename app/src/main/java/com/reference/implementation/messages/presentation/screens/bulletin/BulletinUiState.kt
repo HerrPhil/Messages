@@ -7,7 +7,8 @@ sealed interface BulletinUiState {
     object Loading : BulletinUiState
     data class Retrying(val attempt: Int) : BulletinUiState
     data class Success(
-        val list: List<BulletinUiDetail>
+        val list: List<BulletinUiDetail>,
+        val isRefreshing: Boolean = false
     ) : BulletinUiState
 
     //    data class Warning(val message: String) : HomeUiState()
