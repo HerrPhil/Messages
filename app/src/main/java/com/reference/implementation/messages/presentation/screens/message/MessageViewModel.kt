@@ -75,7 +75,8 @@ class MessageViewModel(
                     resourceResult.data
                         .map { messageDomainModel -> messageDomainModel.toMessageUiDetail() }
                         .filter {
-                            it.body.contains(query, ignoreCase = true)
+                            it.body.contains(query, ignoreCase = true) ||
+                                    it.subject.contains(query, ignoreCase = true)
                         }
                 MessageUiState.Success(
                     filteredList,
