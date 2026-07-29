@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,6 +40,7 @@ import com.reference.implementation.messages.ui.theme.MessagesTheme
 @Composable
 fun BulletinScreen(
     uiState: BulletinUiState,
+    onRefresh: () -> Unit,
     onBulletinClicked: (Int) -> Unit
 ) {
 
@@ -62,10 +64,16 @@ fun BulletinScreen(
 
         is BulletinUiState.Success -> {
             val list = currentState.list
-            BulletinDetails(
-                list = list,
-                onBulletinClicked = onBulletinClicked
-            )
+            PullToRefreshBox(
+                isRefreshing = currentState.isRefreshing,
+                onRefresh = onRefresh
+            ) {
+                BulletinDetails(
+                    list = list,
+                    onBulletinClicked = onBulletinClicked
+                )
+
+            }
         }
     }
 }
@@ -168,7 +176,7 @@ fun BulletinItemCard(bulletin: BulletinUiDetail, onItemClicked: () -> Unit) {
         ) {
             TitleLine(bulletin.title)
             Post(bulletin.post) // multi-line
-            DateTimeLabel("Created",  bulletin.timestamp)
+            DateTimeLabel("Created", bulletin.timestamp)
         }
     }
 }
