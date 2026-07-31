@@ -46,12 +46,14 @@ import com.reference.implementation.messages.presentation.screens.adminmessage.A
 import com.reference.implementation.messages.presentation.screens.bulletin.BulletinDetailScreen
 import com.reference.implementation.messages.presentation.screens.bulletin.BulletinDetailViewModel
 import com.reference.implementation.messages.presentation.screens.bulletin.BulletinScreen
+import com.reference.implementation.messages.presentation.screens.bulletin.BulletinUiState
 import com.reference.implementation.messages.presentation.screens.bulletin.BulletinViewModel
 import com.reference.implementation.messages.presentation.screens.home.HomeScreen
 import com.reference.implementation.messages.presentation.screens.home.HomeViewModel
 import com.reference.implementation.messages.presentation.screens.message.MessageDetailScreen
 import com.reference.implementation.messages.presentation.screens.message.MessageDetailViewModel
 import com.reference.implementation.messages.presentation.screens.message.MessageScreen
+import com.reference.implementation.messages.presentation.screens.message.MessageUiState
 import com.reference.implementation.messages.presentation.screens.message.MessageViewModel
 
 object MyKeyObject
@@ -241,26 +243,49 @@ fun AuthenticatedMainParameterHub(
                         viewModel(factory = AppViewModelProvider.Factory)
                     val key: Any = MyKeyObject
                     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+                    val isRefreshing = (uiState as? MessageUiState.Success)?.isRefreshing == true
                     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
                     val uiEvents = viewModel.uiEvents
-                    val onSearchChanged: (String) -> Unit = { newQuery ->
-                        viewModel.onSearchChanged(newQuery)
+                    val onSearchChanged: (String) -> Unit = remember {
+                        { newQuery ->
+                            viewModel.onSearchChanged(newQuery)
+                        }
                     }
-                    val onRefresh: () -> Unit = {
-                        viewModel.onRefresh()
+                    // used by pull-to-refresh - does not get disabled when refreshing
+                    val onRefresh: () -> Unit = remember {
+                        {
+                            viewModel.onRefresh()
+                        }
                     }
-                    val onMessageClicked: (Int) -> Unit = { messageId ->
-                        // The hub owns the controller and executes the actual routing
-                        childNavController.navigate(Route.MessageDetail(id = messageId))
+                    val onMessageClicked: (Int) -> Unit = remember(isRefreshing) {
+                        { messageId ->
+                            // The hub owns the controller and executes the actual routing
+                            if (!isRefreshing) {
+                                childNavController.navigate(Route.MessageDetail(id = messageId))
+                            }
+                        }
                     }
-                    val onRestoreMessage: (MessageDomainModel) -> Unit = { deletedMessage ->
-                        viewModel.onRestoreMessage(deletedMessage)
+                    // The UNDO action
+                    val onRestoreMessage: (MessageDomainModel) -> Unit = remember(isRefreshing) {
+                        { deletedMessage ->
+                            if (!isRefreshing) {
+                                viewModel.onRestoreMessage(deletedMessage)
+                            }
+                        }
                     }
-                    val onDeleteMessage: (Int) -> Unit = { messageId ->
-                        viewModel.onDeleteMessage(messageId)
+                    val onDeleteMessage: (Int) -> Unit = remember(isRefreshing) {
+                        { messageId ->
+                            if (!isRefreshing) {
+                                viewModel.onDeleteMessage(messageId)
+                            }
+                        }
                     }
-                    val onToggleReadStatus: (Int, Boolean) -> Unit = { messageId, newReadStatus ->
-                        viewModel.onToggleReadStatus(messageId, newReadStatus)
+                    val onToggleReadStatus: (Int, Boolean) -> Unit = remember(isRefreshing) {
+                        { messageId, newReadStatus ->
+                            if (!isRefreshing) {
+                                viewModel.onToggleReadStatus(messageId, newReadStatus)
+                            }
+                        }
                     }
 
                     MessageScreen(
@@ -307,12 +332,19 @@ fun AuthenticatedMainParameterHub(
                     val viewModel: BulletinViewModel =
                         viewModel(factory = AppViewModelProvider.Factory)
                     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-                    val onRefresh: () -> Unit = {
-                        viewModel.onRefresh()
+                    val isRefreshing = (uiState as? BulletinUiState.Success)?.isRefreshing == true
+                    val onRefresh: () -> Unit = remember {
+                        {
+                            viewModel.onRefresh()
+                        }
                     }
-                    val onButtonClick: (Int) -> Unit = { bulletinId ->
-                        // The hub owns the controller and executes the actual routing
-                        childNavController.navigate(Route.BulletinDetail(id = bulletinId))
+                    val onButtonClick: (Int) -> Unit = remember(isRefreshing) {
+                        { bulletinId ->
+                            // The hub owns the controller and executes the actual routing
+                            if (!isRefreshing) {
+                                childNavController.navigate(Route.BulletinDetail(id = bulletinId))
+                            }
+                        }
                     }
 
                     BulletinScreen(
