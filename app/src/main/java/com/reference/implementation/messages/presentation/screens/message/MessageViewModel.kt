@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -47,8 +48,10 @@ class MessageViewModel(
 
     // Tracks the active loading attempt reported by the repository's retryIO()
     private val _loadTrigger = MutableStateFlow(0)
-    private val _isRefreshing = MutableStateFlow(false)
 
+    // The _isRefreshing must stay private to the view model
+    // Expose isRefreshing via MessageUiState.Success (e.g. AuthenticatedMainParameterHub)
+    private val _isRefreshing = MutableStateFlow(false)
 
     val uiState: StateFlow<MessageUiState> = combine(
         // Subtle but important feature of flatMapLatest:
@@ -59,17 +62,40 @@ class MessageViewModel(
         _isRefreshing,
         searchQuery
     ) { resourceResult, isRefreshing, query ->
+        // 1. Bundle up the raw values as they emit
+        Triple(resourceResult, isRefreshing, query)
+    }.scan<Triple<Resource<List<MessageDomainModel>>, Boolean, String>, MessageUiState>(
+        // 2. Set the initial state before any emission occurs
+        initial = MessageUiState.Loading
+    ) // trailing Slot API accumulator operation of scan()
+    { previousState, (resourceResult, isRefreshing, query) ->
         // ViewModel only worries about user text filtering on top of the clean data!
         when (resourceResult) {
             is Resource.Loading -> {
-                if (_loadTrigger.value > 0) {
+                // IF we are refreshing, do NOT drop back to full-screen Loading!
+                // Preserve the existing list (if available) or keep Success state active.
+                val previousSuccess = previousState as? MessageUiState.Success
+                if (isRefreshing && previousSuccess != null) {
+                    // carry forward the previous Success state list, keeping the spinner alive
+                    previousSuccess.copy(isRefreshing = true)
+                } else if (_loadTrigger.value > 0) {
                     MessageUiState.Retrying(_loadTrigger.value)
                 } else {
                     MessageUiState.Loading
                 }
             }
 
-            is Resource.Error -> MessageUiState.Error(resourceResult.message)
+            is Resource.Error -> {
+                // Preserve the existing list (if available) or keep Success state active.
+                val previousSuccess = previousState as? MessageUiState.Success
+                if (isRefreshing && previousSuccess != null) {
+                    // carry forward the previous Success state list, keeping the spinner alive
+                    previousSuccess.copy(isRefreshing = true)
+                } else {
+                    MessageUiState.Error(resourceResult.message)
+                }
+            }
+
             is Resource.Success -> {
                 val filteredList =
                     resourceResult.data
@@ -79,8 +105,8 @@ class MessageViewModel(
                                     it.subject.contains(query, ignoreCase = true)
                         }
                 MessageUiState.Success(
-                    filteredList,
-                    isRefreshing
+                    list = filteredList,
+                    isRefreshing = isRefreshing
                 )
             }
         }

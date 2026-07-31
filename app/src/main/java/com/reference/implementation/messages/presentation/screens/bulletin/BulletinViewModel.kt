@@ -2,6 +2,7 @@ package com.reference.implementation.messages.presentation.screens.bulletin
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.reference.implementation.messages.domain.model.BulletinDomainModel
 import com.reference.implementation.messages.domain.model.toBulletinUiDetail
 import com.reference.implementation.messages.domain.use_case.GetAllBulletinsUseCase
 import com.reference.implementation.messages.domain.use_case.LoadAllBulletinsUseCase
@@ -12,6 +13,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -33,25 +35,51 @@ class BulletinViewModel(
         _loadTrigger.flatMapLatest { getAllBulletinsUseCase() },
         _isRefreshing
     ) { resourceResult, isRefreshing ->
+        // 1. Bundle up the raw values as they emit
+        Pair(resourceResult, isRefreshing)
+    }.scan<Pair<Resource<List<BulletinDomainModel>>, Boolean>, BulletinUiState>(
+        // 2. Set the initial state before any emission occurs
+        initial = BulletinUiState.Loading
+    ) // trailing Slot API accumulator operation of scan()
+    { previousState, (resourceResult, isRefreshing) ->
         // Create UI state from the domain layer resource result
         when (resourceResult) {
             is Resource.Loading -> {
-                if (_loadTrigger.value > 0) {
+                // IF we are refreshing, do NOT drop back to full-screen Loading!
+                // Preserve the existing list (if available) or keep Success state active.
+                val previousSuccess = previousState as? BulletinUiState.Success
+                if (isRefreshing && previousSuccess != null) {
+                    // carry forward the previous Success state list, keeping the spinner alive
+                    previousSuccess.copy(isRefreshing = true)
+                } else if (_loadTrigger.value > 0) {
                     BulletinUiState.Retrying(_loadTrigger.value)
                 } else {
                     BulletinUiState.Loading
                 }
             }
 
-            is Resource.Error -> BulletinUiState.Error(resourceResult.message)
+            is Resource.Error -> {
+                // Preserve the existing list (if available) or keep Success state active.
+                val previousSuccess = previousState as? BulletinUiState.Success
+                if (isRefreshing && previousSuccess != null) {
+                    // carry forward the previous Success state list, keeping the spinner alive
+                    previousSuccess.copy(isRefreshing = true)
+                } else {
+                    BulletinUiState.Error(resourceResult.message)
+                }
+            }
+
             is Resource.Success -> {
                 val uiDetailList = resourceResult.data.map { bulletinDomainModel ->
-                        bulletinDomainModel.toBulletinUiDetail() }
+                    bulletinDomainModel.toBulletinUiDetail()
+                }
                 BulletinUiState.Success(
                     list = uiDetailList,
-                    isRefreshing = isRefreshing)
+                    isRefreshing = isRefreshing
+                )
             }
         }
+
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
