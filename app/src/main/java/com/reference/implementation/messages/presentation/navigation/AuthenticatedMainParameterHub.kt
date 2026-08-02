@@ -251,12 +251,22 @@ fun AuthenticatedMainParameterHub(
                             viewModel.onSearchChanged(newQuery)
                         }
                     }
+
+                    val onImportantOnlyToggled = remember {
+                        { enabled: Boolean -> viewModel.onImportantOnlyTogged(enabled) }
+                    }
+
+
                     // used by pull-to-refresh - does not get disabled when refreshing
                     val onRefresh: () -> Unit = remember {
                         {
                             viewModel.onRefresh()
                         }
                     }
+
+
+
+
                     val onMessageClicked: (Int) -> Unit = remember(isRefreshing) {
                         { messageId ->
                             // The hub owns the controller and executes the actual routing
@@ -265,6 +275,20 @@ fun AuthenticatedMainParameterHub(
                             }
                         }
                     }
+
+
+
+                    val onToggleImportantMessageClicked: (Int, Boolean) -> Unit = remember(isRefreshing) {
+                        { messageId, newIsImportant ->
+                            // The hub owns the controller and executes the actual routing
+                            if (!isRefreshing) {
+                                viewModel.onToggleImportantMessageClicked(messageId, newIsImportant)
+                            }
+                        }
+                    }
+
+
+
                     // The UNDO action
                     val onRestoreMessage: (MessageDomainModel) -> Unit = remember(isRefreshing) {
                         { deletedMessage ->
@@ -293,8 +317,10 @@ fun AuthenticatedMainParameterHub(
                         uiEvents,
                         key,
                         searchQuery,
+                        onImportantOnlyToggled,
                         onRefresh,
                         onMessageClicked,
+                        onToggleImportantMessageClicked,
                         onSearchChanged,
                         onRestoreMessage,
                         onDeleteMessage,

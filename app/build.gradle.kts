@@ -67,6 +67,8 @@ dependencies {
     implementation(libs.logging.interceptor)
     // Jetpack Compose Navigation
     implementation(libs.androidx.navigation.compose)
+    // DataStore (user preferences)
+    implementation(libs.androidx.datastore.preferences)
 
 
     testImplementation(libs.junit)

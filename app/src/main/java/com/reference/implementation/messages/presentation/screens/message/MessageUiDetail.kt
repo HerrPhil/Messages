@@ -6,5 +6,6 @@ data class MessageUiDetail(
     val body: String,
     val read: Boolean,
     val userId: Int,
-    val createdAt: String
+    val createdAt: String,
+    val isImportant: Boolean
 )

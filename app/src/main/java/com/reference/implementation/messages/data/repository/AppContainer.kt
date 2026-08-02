@@ -1,6 +1,9 @@
 package com.reference.implementation.messages.data.repository
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStore
 import com.reference.implementation.messages.BuildConfig
 import com.reference.implementation.messages.data.audit.SecurityAuditInterceptor
 import com.reference.implementation.messages.data.manager.AccessTokenManager
@@ -17,6 +20,7 @@ import com.reference.implementation.messages.domain.repository.MessageRepository
 import com.reference.implementation.messages.domain.repository.PermissionRepository
 import com.reference.implementation.messages.domain.repository.RefreshTokenRepository
 import com.reference.implementation.messages.domain.repository.RoleRepository
+import com.reference.implementation.messages.domain.repository.UserPreferencesRepository
 import com.reference.implementation.messages.domain.repository.UserRepository
 import com.reference.implementation.messages.domain.use_case.DeleteMessageUseCase
 import com.reference.implementation.messages.domain.use_case.ForceLogoutUseCase
@@ -30,6 +34,8 @@ import com.reference.implementation.messages.domain.use_case.LoadAllBulletinsUse
 import com.reference.implementation.messages.domain.use_case.LoadBulletinUseCase
 import com.reference.implementation.messages.domain.use_case.LoginUseCase
 import com.reference.implementation.messages.domain.use_case.LogoutUseCase
+import com.reference.implementation.messages.domain.use_case.MarkMessageAsImportantUseCase
+import com.reference.implementation.messages.domain.use_case.MarkMessageAsNotImportantUseCase
 import com.reference.implementation.messages.domain.use_case.MarkMessageAsReadUseCase
 import com.reference.implementation.messages.domain.use_case.MarkMessageAsUnreadUseCase
 import com.reference.implementation.messages.domain.use_case.RefreshTokenUseCase
@@ -44,6 +50,14 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import kotlin.getValue
+
+
+private const val USER_PREFERENCES_NAME = "user_preferences"
+
+// Top-level extension delegate ensures a single DataStore instance per application context
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
+    name = USER_PREFERENCES_NAME
+)
 
 interface AppContainer {
     val loginUseCase: LoginUseCase
@@ -62,6 +76,8 @@ interface AppContainer {
     val getAllBulletinsUseCase: GetAllBulletinsUseCase
     val loadBulletinUseCase: LoadBulletinUseCase
     val getBulletinUseCase: GetBulletinUseCase
+    val markMessageAsImportantUseCase: MarkMessageAsImportantUseCase
+    val markMessageAsNotImportantUseCase: MarkMessageAsNotImportantUseCase
     val authSessionManager: AuthSessionManager
     val roleManager: RoleManager
 }
@@ -235,6 +251,10 @@ class AppMessageContainer(context: Context) : AppContainer {
         BulletinCacheRepositoryImpl(apiService)
     }
 
+    private val userPreferencesRepository: UserPreferencesRepository by lazy {
+        UserPreferencesRepositoryImpl(dataStore = context.dataStore)
+    }
+
     /**
      * On the journey of building up the app, the first point of contact is login.
      * Here is the implementation for the login use case.
@@ -270,7 +290,7 @@ class AppMessageContainer(context: Context) : AppContainer {
     }
 
     override val getActiveMessagesUseCase: GetActiveMessagesUseCase by lazy {
-        GetActiveMessagesUseCase(messageCacheRepository)
+        GetActiveMessagesUseCase(messageCacheRepository, userPreferencesRepository)
     }
 
     override val markMessageAsReadUseCase: MarkMessageAsReadUseCase by lazy {
@@ -307,6 +327,14 @@ class AppMessageContainer(context: Context) : AppContainer {
 
     override val getBulletinUseCase: GetBulletinUseCase by lazy {
         GetBulletinUseCase(bulletinCacheRepository)
+    }
+
+    override val markMessageAsImportantUseCase: MarkMessageAsImportantUseCase by lazy {
+        MarkMessageAsImportantUseCase(userPreferencesRepository)
+    }
+
+    override val markMessageAsNotImportantUseCase: MarkMessageAsNotImportantUseCase by lazy {
+        MarkMessageAsNotImportantUseCase(userPreferencesRepository)
     }
 
 }
