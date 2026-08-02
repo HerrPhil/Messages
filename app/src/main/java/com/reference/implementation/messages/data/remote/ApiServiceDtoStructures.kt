@@ -117,12 +117,6 @@ fun MessageDto.toMessageDomainModel(): MessageDomainModel =
         }
     )
 
-fun MessageDomainModel.toMessageDto(): MessageDto =
-    MessageDto(this.id, this.subject, this.body, this.read, this.userId, this.createdAt)
-
-fun MessageDomainModel.toPartialMessageRequestDto(): PartialMessageRequestDto =
-    PartialMessageRequestDto(this.body)
-
 fun MessageDomainModel.toMessageRequestDto(): MessageRequestDto =
     MessageRequestDto(this.id, this.body, this.subject, this.read, this.userId, this.createdAt)
 
