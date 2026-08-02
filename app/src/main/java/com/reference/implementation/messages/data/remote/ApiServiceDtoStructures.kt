@@ -112,7 +112,7 @@ fun MessageDto.toMessageDomainModel(): MessageDomainModel =
         this.createdAt,
         createdAtInstant = try {
             Instant.parse(this.createdAt)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             Instant.EPOCH
         }
     )

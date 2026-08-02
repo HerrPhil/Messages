@@ -6,10 +6,8 @@ import com.reference.implementation.messages.domain.repository.MessageCacheRepos
 import com.reference.implementation.messages.domain.repository.UserPreferencesRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import okio.IOException
 import retrofit2.HttpException
-import java.time.Instant
 
 class GetActiveMessagesUseCase(
     private val messageCacheRepository: MessageCacheRepository,
