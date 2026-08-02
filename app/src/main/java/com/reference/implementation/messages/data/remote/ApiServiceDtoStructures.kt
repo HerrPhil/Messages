@@ -6,6 +6,7 @@ import com.reference.implementation.messages.domain.model.LoginUserDomainModel
 import com.reference.implementation.messages.domain.model.RefreshTokenDomainModel
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import java.time.Instant
 
 @Serializable
 data class MessageDto(
@@ -98,10 +99,23 @@ data class BulletinDto(
     val post: String,
     val timestamp: String // Kept as raw ISO 8601 String (e.g. 2026-07-13T22:28:56.321Z = GMT+0)
 )
+
 fun UserDto.toDomainModel(): LoginUserDomainModel = LoginUserDomainModel(this.email, this.name)
 
 fun MessageDto.toMessageDomainModel(): MessageDomainModel =
-    MessageDomainModel(this.id, this.subject, this.body, this.read, this.userId, this.createdAt)
+    MessageDomainModel(
+        this.id,
+        this.subject,
+        this.body,
+        this.read,
+        this.userId,
+        this.createdAt,
+        createdAtInstant = try {
+            Instant.parse(this.createdAt)
+        } catch (e: Exception) {
+            Instant.EPOCH
+        }
+    )
 
 fun MessageDomainModel.toMessageDto(): MessageDto =
     MessageDto(this.id, this.subject, this.body, this.read, this.userId, this.createdAt)
@@ -112,7 +126,8 @@ fun MessageDomainModel.toPartialMessageRequestDto(): PartialMessageRequestDto =
 fun MessageDomainModel.toMessageRequestDto(): MessageRequestDto =
     MessageRequestDto(this.id, this.body, this.subject, this.read, this.userId, this.createdAt)
 
-fun RefreshTokenDto.toDomainModel(): RefreshTokenDomainModel = RefreshTokenDomainModel(this.accessToken)
+fun RefreshTokenDto.toDomainModel(): RefreshTokenDomainModel =
+    RefreshTokenDomainModel(this.accessToken)
 
 fun BulletinDto.toBulletinDomainModel(): BulletinDomainModel =
     BulletinDomainModel(this.id, this.userId, this.title, this.post, this.timestamp)

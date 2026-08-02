@@ -6,7 +6,8 @@ sealed interface MessageUiState {
     data class Retrying(val attempt: Int) : MessageUiState
     data class Success(
         val list: List<MessageUiDetail>,
-        val isRefreshing: Boolean
+        val isRefreshing: Boolean,
+        val isImportantOnly: Boolean
     ) : MessageUiState
 
     //    data class Warning(val message: String) : HomeUiState()

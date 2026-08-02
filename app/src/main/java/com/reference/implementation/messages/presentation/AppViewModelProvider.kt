@@ -62,6 +62,8 @@ object AppViewModelProvider {
                 messageApplication().container.markMessageAsUnreadUseCase,
                 messageApplication().container.deleteMessageUseCase,
                 messageApplication().container.restoreMessageUseCase,
+                messageApplication().container.markMessageAsImportantUseCase,
+                messageApplication().container.markMessageAsNotImportantUseCase,
                 messageApplication().container.getMessageUiEventsUseCase
             )
         }

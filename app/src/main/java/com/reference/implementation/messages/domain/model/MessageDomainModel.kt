@@ -1,6 +1,7 @@
 package com.reference.implementation.messages.domain.model
 
 import com.reference.implementation.messages.presentation.screens.message.MessageUiDetail
+import java.time.Instant
 
 data class MessageDomainModel(
     val id: Int,
@@ -8,7 +9,9 @@ data class MessageDomainModel(
     val body: String,
     val read: Boolean,
     val userId: Int,
-    val createdAt: String
+    val createdAt: String,
+    val createdAtInstant: Instant,
+    val isImportant: Boolean = false
 )
 
 fun MessageDomainModel.toMessageUiDetail(): MessageUiDetail =
@@ -18,5 +21,6 @@ fun MessageDomainModel.toMessageUiDetail(): MessageUiDetail =
         body = this.body,
         read = this.read,
         userId = this.userId,
-        createdAt = this.createdAt
+        createdAt = this.createdAt,
+        isImportant = isImportant
     )

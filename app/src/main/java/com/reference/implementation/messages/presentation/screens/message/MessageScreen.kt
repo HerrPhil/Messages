@@ -1,5 +1,6 @@
 package com.reference.implementation.messages.presentation.screens.message
 
+import android.os.Message
 import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,12 +16,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -28,13 +32,17 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MarkEmailRead
 import androidx.compose.material.icons.filled.MarkEmailUnread
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -51,6 +59,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
@@ -94,8 +103,10 @@ fun MessageScreen(
     uiEvents: Flow<MessageUiEvent>,
     key: Any,
     searchQuery: String,
+    onImportantOnlyToggled: (Boolean) -> Unit,
     onRefresh: () -> Unit,
     onMessageClicked: (Int) -> Unit,
+    onToggleImportantMessageClicked: (Int, Boolean) -> Unit,
     onSearchChanged: (String) -> Unit,
     onRestoreMessage: (MessageDomainModel) -> Unit,
     onDeleteMessage: (Int) -> Unit,
@@ -163,12 +174,16 @@ fun MessageScreen(
 
         is MessageUiState.Success -> {
             val list = currentState.list
+            val isImportantOnly = currentState.isImportantOnly
+            val isRefreshing = currentState.isRefreshing
             PullToRefreshBox(
                 isRefreshing = currentState.isRefreshing,
                 onRefresh = onRefresh
             ) {
                 MessageDetails(
                     searchQuery = searchQuery,
+                    isImportantOnly = isImportantOnly,
+                    onImportantOnlyToggled = onImportantOnlyToggled,
                     onSearchValueChanged = { searchInput ->
                         onSearchChanged(searchInput)
                     },
@@ -179,7 +194,9 @@ fun MessageScreen(
                         onToggleReadStatus(messageId, newReadStatus)
                     },
                     onMessageClicked = onMessageClicked,
+                    onToggleImportantMessageClicked = onToggleImportantMessageClicked,
                     list = list,
+                    isRefreshing = isRefreshing,
                     snackbarHostState = snackbarHostState
                 )
             }
@@ -203,7 +220,8 @@ fun MessageDetailsPreview() {
             body = "test message $index",
             read = false,
             userId = 123,
-            createdAt = "2026-07-13T22:28:56.321Z"
+            createdAt = "2026-07-13T22:28:56.321Z",
+            isImportant = false
         )
     })
     MessagesTheme {
@@ -212,11 +230,15 @@ fun MessageDetailsPreview() {
         ) {
             MessageDetails(
                 searchQuery,
+                isImportantOnly = false,
+                onImportantOnlyToggled = {},
                 onSearchValueChanged = {},
                 onDelete = {},
                 onToggleReadStatus = { _, _ -> },
                 onMessageClicked = {},
+                onToggleImportantMessageClicked = { _, _ -> },
                 list = list,
+                isRefreshing = false,
                 snackbarHostState = SnackbarHostState(),
             )
         }
@@ -226,11 +248,15 @@ fun MessageDetailsPreview() {
 @Composable
 fun MessageDetails(
     searchQuery: String,
+    isImportantOnly: Boolean,
+    onImportantOnlyToggled: (Boolean) -> Unit,
     onSearchValueChanged: (String) -> Unit,
     onDelete: (Int) -> Unit,
     onToggleReadStatus: (Int, Boolean) -> Unit,
     onMessageClicked: (Int) -> Unit,
+    onToggleImportantMessageClicked: (Int, Boolean) -> Unit,
     list: List<MessageUiDetail>,
+    isRefreshing: Boolean,
     snackbarHostState: SnackbarHostState,
     modifier: Modifier = Modifier
 ) {
@@ -249,9 +275,25 @@ fun MessageDetails(
                 .fillMaxSize()
                 .padding(innerPadding) // Consumes the Scaffold top bar/ system spacing
         ) {
+
             MessageSearchInput(
                 searchQuery = searchQuery,
                 onSearchValueChanged,
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+            )
+
+            FilterChip(
+                selected = isImportantOnly,
+                onClick = { onImportantOnlyToggled(!isImportantOnly) },
+                label = { Text("Important Only") },
+                leadingIcon = {
+                    if (isImportantOnly) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Selected"
+                        )
+                    }
+                },
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
 
@@ -272,11 +314,18 @@ fun MessageDetails(
                     ) { message ->
                         SwipeableMessageItem(
                             message = message,
+                            isRefreshing = isRefreshing,
                             onDelete = { onDelete(message.id) },
                             onToggleReadStatus = {
                                 onToggleReadStatus(message.id, !message.read)
                             },
                             onItemClicked = { onMessageClicked(message.id) },
+                            onToggleImportantClicked = {
+                                onToggleImportantMessageClicked(
+                                    message.id,
+                                    !message.isImportant
+                                )
+                            },
                             // THE FIX: Generate the scoped modifier here where the scope is valid!
                             modifier = Modifier.animateItem()
                         )
@@ -363,7 +412,8 @@ fun SwipeableMessageItemPreview() {
         body = "Here is a preview test",
         read = false,
         userId = 456,
-        createdAt = "2026-07-13T22:28:56.321Z"
+        createdAt = "2026-07-13T22:28:56.321Z",
+        isImportant = false
     )
     MessagesTheme {
         Surface(
@@ -371,9 +421,11 @@ fun SwipeableMessageItemPreview() {
         ) {
             SwipeableMessageItem(
                 message = messageUiDetail,
+                isRefreshing = false,
                 onDelete = {},
                 onToggleReadStatus = {},
-                onItemClicked = {}
+                onItemClicked = {},
+                onToggleImportantClicked = {}
             )
         }
     }
@@ -396,9 +448,11 @@ enum class DragAnchors {
 @Composable
 fun SwipeableMessageItem(
     message: MessageUiDetail,
+    isRefreshing: Boolean,
     onDelete: () -> Unit,
     onToggleReadStatus: () -> Unit,
-    onItemClicked: () -> Unit, // TODO use where item row can be clicked to drill down to details
+    onItemClicked: () -> Unit,
+    onToggleImportantClicked: () -> Unit,
     modifier: Modifier = Modifier
 ) {
 
@@ -488,7 +542,9 @@ fun SwipeableMessageItem(
         ) {
             MessageItemCard(
                 message = message,
-                onItemClicked = onItemClicked
+                isRefreshing = isRefreshing,
+                onItemClicked = onItemClicked,
+                onToggleImportantClicked = onToggleImportantClicked
             )
         }
     }
@@ -588,21 +644,32 @@ fun MessageItemCardPreview() {
         id = 123,
         subject = "test message item",
         body = "Here is a preview test",
-        read = false,
+        read = true,
         userId = 456,
-        createdAt = "2026-07-13T22:28:56.321Z"
+        createdAt = "2026-07-13T22:28:56.321Z",
+        isImportant = false
     )
     MessagesTheme {
         Surface(
             color = MaterialTheme.colorScheme.surface
         ) {
-            MessageItemCard(messageUiDetail, { })
+            MessageItemCard(
+                message = messageUiDetail,
+                isRefreshing = false,
+                onItemClicked = {},
+                onToggleImportantClicked = {}
+            )
         }
     }
 }
 
 @Composable
-fun MessageItemCard(message: MessageUiDetail, onItemClicked: () -> Unit) {
+fun MessageItemCard(
+    message: MessageUiDetail,
+    isRefreshing: Boolean,
+    onItemClicked: () -> Unit,
+    onToggleImportantClicked: () -> Unit
+) {
     OutlinedCard(
         colors = CardDefaults.outlinedCardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -614,13 +681,106 @@ fun MessageItemCard(message: MessageUiDetail, onItemClicked: () -> Unit) {
                 onItemClicked()
             }
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            SubjectLine(message.subject, message.read)
-            BodyLine(message.body)
-            DateTimeLabel("Created at", message.createdAt)
+
+            // Left: Avatar
+            // Before: was placed in SubjectLine
+            // Now: stand by itself
+            // Fixed size avatar/image
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = CircleShape
+                    )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = "subject line row",
+                    modifier = Modifier.size(40.dp),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                SubjectLine(message.subject, message.read)
+                BodyLine(message.body)
+                DateTimeLabel("Created at", message.createdAt)
+            }
+
+            // Before: Navigation right-arrow was placed in SubjectLine
+            // Now: It is displayed in the NEW action column
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+
+                    if (!message.read) {
+                        Box(
+                            modifier = Modifier
+                                .size(12.dp)
+                                .background(
+                                    color = if (isSystemInDarkTheme()) Purple40 else Purple80,
+                                    shape = CircleShape
+                                )
+                                .padding(end = 8.dp)
+                        )
+                    }
+
+                    // Arrow icon (will now display correctly)
+                    Box(
+                        modifier = Modifier
+                            .padding(end = 12.dp) // Padding applied to the Box, not the Icon
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                            contentDescription = "navigate to message detail screen",
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Star / Bookmark Toggle Button
+                IconButton(
+                    onClick = { onToggleImportantClicked() },
+                    // Drives whether content color or disabled color of IconButton is displayed
+                    // Unblocked or guarded based on network requirements - uiState
+                    enabled = !isRefreshing,
+                    modifier = Modifier.minimumInteractiveComponentSize()
+                ) {
+                    Icon(
+                        imageVector = if (message.isImportant) {
+                            Icons.Filled.Star
+                        } else {
+                            Icons.Outlined.StarOutline
+                        },
+                        contentDescription = if (message.isImportant) {
+                            "Mark as unimportant"
+                        } else {
+                            "Mark as important"
+                        },
+                        tint = if (message.isImportant) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+                }
+            }
         }
     }
 }
@@ -651,23 +811,6 @@ fun SubjectLine(subject: String, read: Boolean) {
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Fixed size avatar/image
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .background(
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = CircleShape
-                )
-        ) {
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = "subject line row",
-                modifier = Modifier.size(40.dp),
-                tint = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-        }
-
         Text(
             text = subject,
             style = MaterialTheme.typography.titleMedium,
@@ -676,30 +819,6 @@ fun SubjectLine(subject: String, read: Boolean) {
             maxLines = 1,
             modifier = Modifier.weight(1f)
         )
-
-        if (!read) {
-            Box(
-                modifier = Modifier
-                    .size(12.dp)
-                    .background(
-                        color = if (isSystemInDarkTheme()) Purple40 else Purple80,
-                        shape = CircleShape
-                    )
-                    .padding(end = 8.dp)
-            )
-        }
-
-        // Arrow icon (will now display correctly)
-        Box(
-            modifier = Modifier
-                .padding(end = 0.dp) // Padding applied to the Box, not the Icon
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                contentDescription = "navigate to message detail screen",
-                modifier = Modifier.size(24.dp)
-            )
-        }
     }
 }
 

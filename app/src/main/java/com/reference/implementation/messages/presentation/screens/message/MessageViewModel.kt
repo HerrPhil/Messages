@@ -1,5 +1,6 @@
 package com.reference.implementation.messages.presentation.screens.message
 
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -9,6 +10,8 @@ import com.reference.implementation.messages.domain.use_case.DeleteMessageUseCas
 import com.reference.implementation.messages.domain.use_case.GetActiveMessagesUseCase
 import com.reference.implementation.messages.domain.use_case.GetMessageUiEventsUseCase
 import com.reference.implementation.messages.domain.use_case.LoadActiveMessagesUseCase
+import com.reference.implementation.messages.domain.use_case.MarkMessageAsImportantUseCase
+import com.reference.implementation.messages.domain.use_case.MarkMessageAsNotImportantUseCase
 import com.reference.implementation.messages.domain.use_case.MarkMessageAsReadUseCase
 import com.reference.implementation.messages.domain.use_case.MarkMessageAsUnreadUseCase
 import com.reference.implementation.messages.domain.use_case.Resource
@@ -17,6 +20,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.scan
@@ -32,6 +36,8 @@ class MessageViewModel(
     private val markMessageAsUnreadUseCase: MarkMessageAsUnreadUseCase,
     private val deleteMessageUseCase: DeleteMessageUseCase,
     private val restoreMessageUseCase: RestoreMessageUseCase,
+    private val markMessageAsImportantUseCase: MarkMessageAsImportantUseCase,
+    private val markMessageAsNotImportantUseCase: MarkMessageAsNotImportantUseCase,
     getMessageUiEventsUseCase: GetMessageUiEventsUseCase
 ) : ViewModel() {
 
@@ -53,6 +59,8 @@ class MessageViewModel(
     // Expose isRefreshing via MessageUiState.Success (e.g. AuthenticatedMainParameterHub)
     private val _isRefreshing = MutableStateFlow(false)
 
+    private val _isImportantOnly = MutableStateFlow<Boolean>(false)
+
     val uiState: StateFlow<MessageUiState> = combine(
         // Subtle but important feature of flatMapLatest:
         // if a new trigger value comes down _loadTrigger (e.g. attempt 1 ---> attempt 2),
@@ -60,15 +68,24 @@ class MessageViewModel(
         // Standard combine does not cancel in-flight work when values change!
         _loadTrigger.flatMapLatest { getActiveMessagesUseCase() },
         _isRefreshing,
-        searchQuery
-    ) { resourceResult, isRefreshing, query ->
+        searchQuery,
+        _isImportantOnly
+    ) { resourceResult, isRefreshing, query, isImportantOnly ->
         // 1. Bundle up the raw values as they emit
-        Triple(resourceResult, isRefreshing, query)
-    }.scan<Triple<Resource<List<MessageDomainModel>>, Boolean, String>, MessageUiState>(
+        FilterInput(
+            resourceResult,
+            isRefreshing,
+            query,
+            isImportantOnly
+        )
+    }.scan<FilterInput, MessageUiState>(
         // 2. Set the initial state before any emission occurs
         initial = MessageUiState.Loading
     ) // trailing Slot API accumulator operation of scan()
-    { previousState, (resourceResult, isRefreshing, query) ->
+    { previousState, input ->
+
+        val (resourceResult, isRefreshing, query, isImportantOnly) = input
+
         // ViewModel only worries about user text filtering on top of the clean data!
         when (resourceResult) {
             is Resource.Loading -> {
@@ -99,6 +116,9 @@ class MessageViewModel(
             is Resource.Success -> {
                 val filteredList =
                     resourceResult.data
+                        .filter { message ->
+                            !isImportantOnly || message.isImportant
+                        }
                         .map { messageDomainModel -> messageDomainModel.toMessageUiDetail() }
                         .filter {
                             it.body.contains(query, ignoreCase = true) ||
@@ -106,7 +126,8 @@ class MessageViewModel(
                         }
                 MessageUiState.Success(
                     list = filteredList,
-                    isRefreshing = isRefreshing
+                    isRefreshing = isRefreshing,
+                    isImportantOnly = isImportantOnly
                 )
             }
         }
@@ -120,6 +141,14 @@ class MessageViewModel(
 
     init {
         loadMessageData()
+    }
+
+    private fun loadMessageData() {
+        viewModelScope.launch {
+            loadActiveMessagesUseCase(onRetry = { attempt ->
+                _loadTrigger.value = attempt
+            })
+        }
     }
 
     fun onSearchChanged(newQuery: String) {
@@ -158,14 +187,6 @@ class MessageViewModel(
         }
     }
 
-    private fun loadMessageData() {
-        viewModelScope.launch {
-            loadActiveMessagesUseCase(onRetry = { attempt ->
-                _loadTrigger.value = attempt
-            })
-        }
-    }
-
     fun onRefresh() {
         viewModelScope.launch {
             _isRefreshing.value = true // turn ON refreshing
@@ -179,4 +200,34 @@ class MessageViewModel(
         }
     }
 
+    fun onImportantOnlyTogged(enabled: Boolean) {
+        Log.d("MessageViewModel", "start onImportantOnlyTogged")
+        _isImportantOnly.value = enabled
+        Log.d("MessageViewModel", "end onImportantOnlyTogged")
+    }
+
+    fun onToggleImportantMessageClicked(messageId: Int, newIsImportant: Boolean) {
+
+        // I had a idea. I want to follow a suggestion from Gemini AI.
+        // The new 'important' flag, a UI copy of the original data, never leaves the UI/viewModel.
+        // The use-case/repository will provide to calls
+        // markMessageAsImportant(messageId)
+        // markMessageAsNotImportant(messagesId)
+
+        viewModelScope.launch {
+            if (newIsImportant) {
+                markMessageAsImportantUseCase(messageId)
+            } else {
+                markMessageAsNotImportantUseCase(messageId)
+            }
+        }
+    }
+
 }
+
+private data class FilterInput(
+    val resource: Resource<List<MessageDomainModel>>,
+    val isRefreshing: Boolean,
+    val query: String,
+    val isImportantOnly: Boolean
+)
