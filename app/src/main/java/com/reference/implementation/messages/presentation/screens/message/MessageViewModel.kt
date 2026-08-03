@@ -58,7 +58,7 @@ class MessageViewModel(
     // Expose isRefreshing via MessageUiState.Success (e.g. AuthenticatedMainParameterHub)
     private val _isRefreshing = MutableStateFlow(false)
 
-    private val _isImportantOnly = MutableStateFlow<Boolean>(false)
+    private val _isImportantOnly = MutableStateFlow(false)
 
     val uiState: StateFlow<MessageUiState> = combine(
         // Subtle but important feature of flatMapLatest:
@@ -71,13 +71,13 @@ class MessageViewModel(
         _isImportantOnly
     ) { resourceResult, isRefreshing, query, isImportantOnly ->
         // 1. Bundle up the raw values as they emit
-        FilterInput(
+        MessageInput(
             resourceResult,
             isRefreshing,
             query,
             isImportantOnly
         )
-    }.scan<FilterInput, MessageUiState>(
+    }.scan<MessageInput, MessageUiState>(
         // 2. Set the initial state before any emission occurs
         initial = MessageUiState.Loading
     ) // trailing Slot API accumulator operation of scan()
@@ -168,7 +168,7 @@ class MessageViewModel(
 
     fun onToggleReadStatus(messageId: Int, newReadStatus: Boolean) {
 
-        // I had a idea. I want to follow a suggestion from Gemini AI.
+        // I had an idea. I want to follow a suggestion from Gemini AI.
         // The new read status, a UI copy of the original data, never leaves the UI/viewModel.
         // The use-case/repository will provide to calls
         // markMessageAsRead(messageId)
@@ -199,7 +199,7 @@ class MessageViewModel(
         }
     }
 
-    fun onImportantOnlyTogged(enabled: Boolean) {
+    fun onImportantOnlyToggled(enabled: Boolean) {
         Log.d("MessageViewModel", "start onImportantOnlyTogged")
         _isImportantOnly.value = enabled
         Log.d("MessageViewModel", "end onImportantOnlyTogged")
@@ -207,7 +207,7 @@ class MessageViewModel(
 
     fun onToggleImportantMessageClicked(messageId: Int, newIsImportant: Boolean) {
 
-        // I had a idea. I want to follow a suggestion from Gemini AI.
+        // I had an idea. I want to follow a suggestion from Gemini AI.
         // The new 'important' flag, a UI copy of the original data, never leaves the UI/viewModel.
         // The use-case/repository will provide to calls
         // markMessageAsImportant(messageId)
@@ -224,7 +224,7 @@ class MessageViewModel(
 
 }
 
-private data class FilterInput(
+private data class MessageInput(
     val resource: Resource<List<MessageDomainModel>>,
     val isRefreshing: Boolean,
     val query: String,

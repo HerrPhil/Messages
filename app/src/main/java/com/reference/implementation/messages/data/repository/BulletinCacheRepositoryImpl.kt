@@ -45,7 +45,7 @@ class BulletinCacheRepositoryImpl(
                     // DTO never leaves this layer - see the DTO extension function!
                     // Update the SSOT cache with fresh data!
                     _bulletinsCache.value = NetworkResult.Success(
-                        data = response.body()!!.map { it.toBulletinDomainModel() })
+                        data = response.body()!!.map { dto -> dto.toBulletinDomainModel() })
                 } else {
                     // Transform unsuccessful Retrofit call
                     _bulletinsCache.value =

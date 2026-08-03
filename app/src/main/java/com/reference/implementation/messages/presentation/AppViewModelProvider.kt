@@ -99,7 +99,9 @@ object AppViewModelProvider {
         initializer {
             BulletinViewModel(
                 messageApplication().container.loadAllBulletinsUseCase,
-                messageApplication().container.getAllBulletinsUseCase
+                messageApplication().container.getAllBulletinsUseCase,
+                messageApplication().container.markBulletinAsBookmarkUseCase,
+                messageApplication().container.markBulletinAsNotBookmarkUseCase
             )
         }
 

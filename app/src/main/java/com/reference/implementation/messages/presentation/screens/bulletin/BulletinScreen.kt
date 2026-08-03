@@ -7,21 +7,32 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Bookmark
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -41,7 +52,9 @@ import com.reference.implementation.messages.ui.theme.MessagesTheme
 fun BulletinScreen(
     uiState: BulletinUiState,
     onRefresh: () -> Unit,
-    onBulletinClicked: (Int) -> Unit
+    onBookmarkOnlyToggled: (Boolean) -> Unit,
+    onBulletinClicked: (Int) -> Unit,
+    onToggleBookmarkBulletinClicked: (Int, Boolean) -> Unit
 ) {
 
     when (val currentState = uiState) {
@@ -64,13 +77,19 @@ fun BulletinScreen(
 
         is BulletinUiState.Success -> {
             val list = currentState.list
+            val isRefreshing = currentState.isRefreshing
+            val isBookmarkOnly = currentState.isBookmarkOnly
             PullToRefreshBox(
-                isRefreshing = currentState.isRefreshing,
+                isRefreshing = isRefreshing,
                 onRefresh = onRefresh
             ) {
                 BulletinDetails(
                     list = list,
-                    onBulletinClicked = onBulletinClicked
+                    isRefreshing = isRefreshing,
+                    isBookmarkOnly = isBookmarkOnly,
+                    onBookmarkOnlyToggled = onBookmarkOnlyToggled,
+                    onBulletinClicked = onBulletinClicked,
+                    onToggleBookmarkBulletinClicked = onToggleBookmarkBulletinClicked
                 )
 
             }
@@ -92,7 +111,8 @@ fun BulletinDetailsPreview() {
             userId = 456,
             title = "test bulletin item $index",
             post = "Here is a preview test",
-            timestamp = "2026-07-1${index}T22:28:56.321Z"
+            timestamp = "2026-07-1${index}T22:28:56.321Z",
+            isBookmark = false
         )
     })
     MessagesTheme {
@@ -101,7 +121,11 @@ fun BulletinDetailsPreview() {
         ) {
             BulletinDetails(
                 list = list,
-                onBulletinClicked = {}
+                isRefreshing = false,
+                isBookmarkOnly = false,
+                onBookmarkOnlyToggled = {},
+                onBulletinClicked = {},
+                onToggleBookmarkBulletinClicked = { _, _ -> }
             )
         }
     }
@@ -110,24 +134,65 @@ fun BulletinDetailsPreview() {
 @Composable
 fun BulletinDetails(
     list: List<BulletinUiDetail>,
-    onBulletinClicked: (Int) -> Unit
+    isRefreshing: Boolean,
+    isBookmarkOnly: Boolean,
+    onBookmarkOnlyToggled: (Boolean) -> Unit,
+    onBulletinClicked: (Int) -> Unit,
+    onToggleBookmarkBulletinClicked: (Int, Boolean) -> Unit
 ) {
-    // Scrollable List (Fills the remaining vertical space)
-    LazyColumn(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        contentPadding = PaddingValues(bottom = 16.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        items(
-            items = list,
-            key = { bulletin -> bulletin.id }
-        ) { bulletin ->
-            BulletinItemCard(
-                bulletin = bulletin,
-                onItemClicked = { onBulletinClicked(bulletin.id) }
+
+    Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
+        // The root content container is a standard Column
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+        ) {
+
+            FilterChip(
+                selected = isBookmarkOnly,
+                onClick = { onBookmarkOnlyToggled(!isBookmarkOnly) },
+                label = { Text("Bookmark Only") },
+                leadingIcon = {
+                    if (isBookmarkOnly) {
+                        Icon(
+                            imageVector = Icons.Default.Check,
+                            contentDescription = "Selected"
+                        )
+                    }
+                },
+                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
+
+            // This Box is the "Anchor Container"
+            Box(modifier = Modifier.weight(1f)) {
+
+                // Scrollable List (Fills the remaining vertical space)
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    contentPadding = PaddingValues(bottom = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(
+                        items = list,
+                        key = { bulletin -> bulletin.id }
+                    ) { bulletin ->
+                        BulletinItemCard(
+                            bulletin = bulletin,
+                            isRefreshing = isRefreshing,
+                            onItemClicked = { onBulletinClicked(bulletin.id) },
+                            onToggleBookmarkClicked = {
+                                onToggleBookmarkBulletinClicked(
+                                    bulletin.id,
+                                    !bulletin.isBookmark
+                                )
+                            }
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -145,20 +210,31 @@ fun BulletinItemCardPreview() {
         userId = 456,
         title = "test message item",
         post = "Here is a preview test",
-        timestamp = "2026-07-13T22:28:56.321Z"
+        timestamp = "2026-07-13T22:28:56.321Z",
+        isBookmark = false
     )
     MessagesTheme {
         Surface(
             color = MaterialTheme.colorScheme.surface
         ) {
-            BulletinItemCard(bulletinUiDetail, { })
+            BulletinItemCard(
+                bulletin = bulletinUiDetail,
+                isRefreshing = false,
+                onItemClicked = {},
+                onToggleBookmarkClicked = {}
+            )
         }
     }
 }
 
 
 @Composable
-fun BulletinItemCard(bulletin: BulletinUiDetail, onItemClicked: () -> Unit) {
+fun BulletinItemCard(
+    bulletin: BulletinUiDetail,
+    isRefreshing: Boolean,
+    onItemClicked: () -> Unit,
+    onToggleBookmarkClicked: () -> Unit
+) {
     OutlinedCard(
         colors = CardDefaults.outlinedCardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -170,14 +246,95 @@ fun BulletinItemCard(bulletin: BulletinUiDetail, onItemClicked: () -> Unit) {
                 onItemClicked()
             }
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            TitleLine(bulletin.title)
-            Post(bulletin.post) // multi-line
-            DateTimeLabel("Created", bulletin.timestamp)
+
+            // Left: Avatar
+            // Before: was placed in TitleLine
+            // Now: stand by itself
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = CircleShape
+                    )
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Notifications,
+                    contentDescription = "Title Line Row",
+                    modifier = Modifier.size(40.dp),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
+
+            Spacer(modifier = Modifier.width(12.dp))
+
+            Column(
+                modifier = Modifier.weight(1f),
+            ) {
+                TitleLine(bulletin.title)
+                Post(bulletin.post) // multi-line
+                DateTimeLabel("Created", bulletin.timestamp)
+            }
+
+            // Before: Navigation right-arrow was placed in SubjectLine
+            // Now: It is displayed in the NEW action column
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.SpaceBetween
+            ) {
+
+                // Arrow icon (will now display correctly)
+                Box(
+                    modifier = Modifier
+                        .padding(end = 12.dp) // Padding applied to the Box, not the Icon
+                ) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                        contentDescription = "navigate to the bulletin detail screen",
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Bookmark Toggle Button
+                IconButton(
+                    onClick = { onToggleBookmarkClicked() },
+                    // Drives whether content color or disabled color of IconButton is displayed
+                    // Unblocked or guarded based on network requirements - uiState
+                    enabled = !isRefreshing,
+                    modifier = Modifier.minimumInteractiveComponentSize()
+                ) {
+                    Icon(
+                        imageVector = if (bulletin.isBookmark) {
+                            Icons.Filled.Bookmark
+                        } else {
+                            Icons.Outlined.BookmarkBorder
+                        },
+                        contentDescription = if (bulletin.isBookmark) {
+                            "Mark as not bookmark"
+                        } else {
+                            "Mark as bookmark"
+                        },
+                        tint = if (bulletin.isBookmark) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
+                    )
+                }
+
+            }
+
         }
+
     }
 }
 
@@ -207,24 +364,6 @@ fun TitleLine(title: String) {
         verticalAlignment = Alignment.CenterVertically
     ) {
 
-        // Fixed size avatar/image
-        Box(
-            modifier = Modifier
-                .size(40.dp)
-                .background(
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    shape = CircleShape
-                )
-        ) {
-            Icon(
-                imageVector = Icons.Default.Notifications,
-                contentDescription = "Title Line Row",
-                modifier = Modifier.size(40.dp),
-                tint = MaterialTheme.colorScheme.onPrimaryContainer
-            )
-        }
-
-
         // Title: self-explanatory
         Text(
             text = title,
@@ -234,18 +373,6 @@ fun TitleLine(title: String) {
             maxLines = 1,
             modifier = Modifier.weight(1f)
         )
-
-        // Arrow Icon
-        // (will now display correctly aka will not shrink egregiously when the title fills right)
-        Box(
-            modifier = Modifier.padding(end = 0.dp)
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                contentDescription = "navigate to the bulletin detail screen",
-                modifier = Modifier.size(24.dp)
-            )
-        }
     }
 }
 

@@ -5,5 +5,6 @@ data class BulletinUiDetail(
     val userId: Int,
     val title: String,
     val post: String,
-    val timestamp: String
+    val timestamp: String,
+    val isBookmark: Boolean
 )

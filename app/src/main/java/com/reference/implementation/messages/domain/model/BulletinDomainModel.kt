@@ -1,14 +1,16 @@
 package com.reference.implementation.messages.domain.model
 
 import com.reference.implementation.messages.presentation.screens.bulletin.BulletinUiDetail
-import com.reference.implementation.messages.presentation.screens.message.MessageUiDetail
+import java.time.Instant
 
 data class BulletinDomainModel(
     val id: Int,
     val userId: Int,
     val title: String,
     val post: String,
-    val timestamp: String
+    val timestamp: String,
+    val timestampInstant: Instant,
+    val isBookmark: Boolean = false
 )
 
 fun BulletinDomainModel.toBulletinUiDetail(): BulletinUiDetail =
@@ -17,5 +19,6 @@ fun BulletinDomainModel.toBulletinUiDetail(): BulletinUiDetail =
         userId = this.userId,
         title = this.title,
         post = this.post,
-        timestamp = this.timestamp
+        timestamp = this.timestamp,
+        isBookmark = this.isBookmark
     )

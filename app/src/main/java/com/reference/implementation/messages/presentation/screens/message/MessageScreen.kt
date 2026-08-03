@@ -172,10 +172,10 @@ fun MessageScreen(
 
         is MessageUiState.Success -> {
             val list = currentState.list
-            val isImportantOnly = currentState.isImportantOnly
             val isRefreshing = currentState.isRefreshing
+            val isImportantOnly = currentState.isImportantOnly
             PullToRefreshBox(
-                isRefreshing = currentState.isRefreshing,
+                isRefreshing = isRefreshing,
                 onRefresh = onRefresh
             ) {
                 MessageDetails(
