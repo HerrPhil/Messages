@@ -1,7 +1,6 @@
 package com.reference.implementation.messages.domain.model
 
 import com.reference.implementation.messages.presentation.screens.bulletin.BulletinUiDetail
-import com.reference.implementation.messages.presentation.screens.message.MessageUiDetail
 import java.time.Instant
 
 data class BulletinDomainModel(
