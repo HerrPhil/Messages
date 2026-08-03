@@ -124,4 +124,15 @@ fun RefreshTokenDto.toDomainModel(): RefreshTokenDomainModel =
     RefreshTokenDomainModel(this.accessToken)
 
 fun BulletinDto.toBulletinDomainModel(): BulletinDomainModel =
-    BulletinDomainModel(this.id, this.userId, this.title, this.post, this.timestamp)
+    BulletinDomainModel(
+        this.id,
+        this.userId,
+        this.title,
+        this.post,
+        this.timestamp,
+        timestampInstant = try {
+            Instant.parse(this.timestamp)
+        } catch (_: Exception) {
+            Instant.EPOCH
+        }
+    )

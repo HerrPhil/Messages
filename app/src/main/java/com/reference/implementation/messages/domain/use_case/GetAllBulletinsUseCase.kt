@@ -2,19 +2,23 @@ package com.reference.implementation.messages.domain.use_case
 
 import com.reference.implementation.messages.data.repository.NetworkResult
 import com.reference.implementation.messages.domain.model.BulletinDomainModel
-import com.reference.implementation.messages.domain.model.MessageDomainModel
 import com.reference.implementation.messages.domain.repository.BulletinCacheRepository
-import com.reference.implementation.messages.domain.repository.MessageCacheRepository
+import com.reference.implementation.messages.domain.repository.UserPreferencesRepository
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import okio.IOException
 import retrofit2.HttpException
-import java.time.Instant
 
-class GetAllBulletinsUseCase(private val repo: BulletinCacheRepository) {
+class GetAllBulletinsUseCase(
+    private val bulletinCacheRepository: BulletinCacheRepository,
+    private val userPreferencesRepository: UserPreferencesRepository
+) {
     operator fun invoke(): Flow<Resource<List<BulletinDomainModel>>> {
         // 1. Grab the raw stream from the repository
-        return repo.getAllBulletins().map { networkResult ->
+        return combine(
+            bulletinCacheRepository.getAllBulletins(),
+            userPreferencesRepository.getBookmarkBulletinIds()
+        ) { networkResult, bookmarkIds ->
             // 2. use the map operator to look inside the data stream
             when (networkResult) {
                 is NetworkResult.Loading -> Resource.Loading
@@ -22,8 +26,10 @@ class GetAllBulletinsUseCase(private val repo: BulletinCacheRepository) {
                     // 3. Apply pure domain business logic transformations
                     // (eg) show most recent messages first.
                     val transformedList =
-                        networkResult.data.sortedByDescending { messageDomainModel ->
-                            Instant.parse(messageDomainModel.timestamp)
+                        networkResult.data.sortedByDescending { bulletinDomainModel ->
+                            bulletinDomainModel.timestampInstant
+                        }.map { bulletin ->
+                            bulletin.copy(isBookmark = bulletin.id.toString() in bookmarkIds)
                         }
                     Resource.Success(data = transformedList)
                 }

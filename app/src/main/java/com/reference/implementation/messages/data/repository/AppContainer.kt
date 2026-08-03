@@ -34,6 +34,8 @@ import com.reference.implementation.messages.domain.use_case.LoadAllBulletinsUse
 import com.reference.implementation.messages.domain.use_case.LoadBulletinUseCase
 import com.reference.implementation.messages.domain.use_case.LoginUseCase
 import com.reference.implementation.messages.domain.use_case.LogoutUseCase
+import com.reference.implementation.messages.domain.use_case.MarkBulletinAsBookmarkUseCase
+import com.reference.implementation.messages.domain.use_case.MarkBulletinAsNotBookmarkUseCase
 import com.reference.implementation.messages.domain.use_case.MarkMessageAsImportantUseCase
 import com.reference.implementation.messages.domain.use_case.MarkMessageAsNotImportantUseCase
 import com.reference.implementation.messages.domain.use_case.MarkMessageAsReadUseCase
@@ -78,6 +80,8 @@ interface AppContainer {
     val getBulletinUseCase: GetBulletinUseCase
     val markMessageAsImportantUseCase: MarkMessageAsImportantUseCase
     val markMessageAsNotImportantUseCase: MarkMessageAsNotImportantUseCase
+    val markBulletinAsBookmarkUseCase: MarkBulletinAsBookmarkUseCase
+    val markBulletinAsNotBookmarkUseCase: MarkBulletinAsNotBookmarkUseCase
     val authSessionManager: AuthSessionManager
     val roleManager: RoleManager
 }
@@ -318,7 +322,7 @@ class AppMessageContainer(context: Context) : AppContainer {
     }
 
     override val getAllBulletinsUseCase: GetAllBulletinsUseCase by lazy {
-        GetAllBulletinsUseCase(bulletinCacheRepository)
+        GetAllBulletinsUseCase(bulletinCacheRepository, userPreferencesRepository)
     }
 
     override val loadBulletinUseCase: LoadBulletinUseCase by lazy {
@@ -335,6 +339,14 @@ class AppMessageContainer(context: Context) : AppContainer {
 
     override val markMessageAsNotImportantUseCase: MarkMessageAsNotImportantUseCase by lazy {
         MarkMessageAsNotImportantUseCase(userPreferencesRepository)
+    }
+
+    override val markBulletinAsBookmarkUseCase: MarkBulletinAsBookmarkUseCase by lazy {
+        MarkBulletinAsBookmarkUseCase(userPreferencesRepository)
+    }
+
+    override val markBulletinAsNotBookmarkUseCase: MarkBulletinAsNotBookmarkUseCase by lazy {
+        MarkBulletinAsNotBookmarkUseCase(userPreferencesRepository)
     }
 
 }

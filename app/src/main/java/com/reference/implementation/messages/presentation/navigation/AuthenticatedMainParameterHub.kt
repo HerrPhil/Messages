@@ -253,7 +253,7 @@ fun AuthenticatedMainParameterHub(
                     }
 
                     val onImportantOnlyToggled = remember {
-                        { enabled: Boolean -> viewModel.onImportantOnlyTogged(enabled) }
+                        { enabled: Boolean -> viewModel.onImportantOnlyToggled(enabled) }
                     }
 
 
@@ -264,9 +264,6 @@ fun AuthenticatedMainParameterHub(
                         }
                     }
 
-
-
-
                     val onMessageClicked: (Int) -> Unit = remember(isRefreshing) {
                         { messageId ->
                             // The hub owns the controller and executes the actual routing
@@ -276,8 +273,6 @@ fun AuthenticatedMainParameterHub(
                         }
                     }
 
-
-
                     val onToggleImportantMessageClicked: (Int, Boolean) -> Unit = remember(isRefreshing) {
                         { messageId, newIsImportant ->
                             // The hub owns the controller and executes the actual routing
@@ -286,8 +281,6 @@ fun AuthenticatedMainParameterHub(
                             }
                         }
                     }
-
-
 
                     // The UNDO action
                     val onRestoreMessage: (MessageDomainModel) -> Unit = remember(isRefreshing) {
@@ -364,6 +357,9 @@ fun AuthenticatedMainParameterHub(
                             viewModel.onRefresh()
                         }
                     }
+                    val onBookmarkOnlyToggled: (Boolean) -> Unit = remember {
+                        { enabled -> viewModel.onBookmarkOnlyToggled(enabled) }
+                    }
                     val onButtonClick: (Int) -> Unit = remember(isRefreshing) {
                         { bulletinId ->
                             // The hub owns the controller and executes the actual routing
@@ -372,11 +368,16 @@ fun AuthenticatedMainParameterHub(
                             }
                         }
                     }
+                    val onToggleBookmarkBulletinClicked: (Int, Boolean) -> Unit = remember(isRefreshing) {
+                        { bulletin, newIsBookmark -> viewModel.onToggleBookmarkBulletinClicked(bulletin, newIsBookmark) }
+                    }
 
                     BulletinScreen(
                         uiState = uiState,
                         onRefresh = onRefresh,
-                        onBulletinClicked = onButtonClick
+                        onBookmarkOnlyToggled = onBookmarkOnlyToggled,
+                        onBulletinClicked = onButtonClick,
+                        onToggleBookmarkBulletinClicked = onToggleBookmarkBulletinClicked
                     )
                 }
 
