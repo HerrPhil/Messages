@@ -247,8 +247,6 @@ fun BulletinItemCard(
             }
     ) {
 
-        // TODO re-factor UI to match messages.
-
         Row(
             modifier = Modifier
                 .fillMaxWidth()
