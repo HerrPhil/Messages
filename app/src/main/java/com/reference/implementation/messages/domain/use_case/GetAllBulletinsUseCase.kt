@@ -1,13 +1,10 @@
 package com.reference.implementation.messages.domain.use_case
 
-import com.reference.implementation.messages.data.repository.NetworkResult
 import com.reference.implementation.messages.domain.model.BulletinDomainModel
 import com.reference.implementation.messages.domain.repository.BulletinCacheRepository
 import com.reference.implementation.messages.domain.repository.UserPreferencesRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
-import okio.IOException
-import retrofit2.HttpException
 
 class GetAllBulletinsUseCase(
     private val bulletinCacheRepository: BulletinCacheRepository,
