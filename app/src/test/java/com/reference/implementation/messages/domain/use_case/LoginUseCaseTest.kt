@@ -76,7 +76,7 @@ class LoginUseCaseTest {
         }
         assertTrue(resourceResult is Resource.Error)
         val message = (resourceResult as Resource.Error).message
-        assertEquals("login is unavailable", message)
+        assertEquals("Login is unavailable", message)
     }
 
     @Test
