@@ -1,5 +1,9 @@
 package com.reference.implementation.messages.domain.use_case
 
+import com.reference.implementation.messages.data.repository.NetworkResult
+import okio.IOException
+import retrofit2.HttpException
+
 fun getResourceErrorByCode(screen: String, code: Int): Resource<Nothing> {
     return when (code) {
         400 -> Resource.Error("Something went wrong") // BAD REQUEST
@@ -15,5 +19,21 @@ fun getResourceErrorByCode(screen: String, code: Int): Resource<Nothing> {
         503 -> Resource.Error("$screen is unavailable")
         504 -> Resource.Error("Something went wrong") // GATEWAY TIMEOUT
         else -> Resource.Error("Something went wrong")
+    }
+}
+
+inline fun <T : Any, R> NetworkResult<T>.toResource(
+    domainDetailsContext: String,
+    transform: (T) -> R
+): Resource<R> {
+    return when(this) {
+        is NetworkResult.Loading -> Resource.Loading
+        is NetworkResult.Success -> Resource.Success(transform(data))
+        is NetworkResult.Error -> getResourceErrorByCode(domainDetailsContext, code)
+        is NetworkResult.Exception -> when(e) {
+            is IOException -> Resource.Error("No internet connection")
+            is HttpException -> getResourceErrorByCode(domainDetailsContext, e.code())
+            else -> Resource.Error("Unknown error occurred")
+        }
     }
 }
