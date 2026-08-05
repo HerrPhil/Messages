@@ -71,7 +71,7 @@ class RefreshTokenUseCaseTest {
         }
         assertTrue(resourceResult is Resource.Error)
         val resourceErrorMessage = (resourceResult as Resource.Error).message
-        assertEquals("RefreshTokenUseCase $forbiddenMessage", resourceErrorMessage)
+        assertEquals("Refresh Token $forbiddenMessage", resourceErrorMessage)
 
     }
 
@@ -98,7 +98,7 @@ class RefreshTokenUseCaseTest {
             }
             assertTrue(resourceResult is Resource.Error)
             val resourceErrorMessage = (resourceResult as Resource.Error).message
-            assertEquals("RefreshTokenUseCase $unauthorizedMessage", resourceErrorMessage)
+            assertEquals("Refresh Token $unauthorizedMessage", resourceErrorMessage)
 
         }
 

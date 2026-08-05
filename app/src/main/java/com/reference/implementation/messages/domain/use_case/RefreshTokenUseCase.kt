@@ -10,33 +10,13 @@ class RefreshTokenUseCase(private val repo: RefreshTokenRepository) {
     suspend operator fun invoke(
         tokenUsedByRequest: String
     ): Resource<RefreshTokenDomainModel> {
-        return when (val refreshTokenNetworkResult = repo.refreshToken(tokenUsedByRequest)) {
-            is NetworkResult.Loading -> Resource.Loading
-            is NetworkResult.Success -> {
-                Resource.Success(data = refreshTokenNetworkResult.data)
-            }
-
-            is NetworkResult.Error -> {
-                if (refreshTokenNetworkResult.code == 403) { // Get force logout message from backend
-                    Resource.Error("RefreshTokenUseCase ${refreshTokenNetworkResult.message}")
-                } else {
-                    getResourceErrorByCode("RefreshTokenUseCase", refreshTokenNetworkResult.code)
-                }
-            }
-
-            is NetworkResult.Exception -> {
-                when (refreshTokenNetworkResult.e) {
-                    is IOException -> Resource.Error("No internet connection")
-                    is HttpException -> {
-                        getResourceErrorByCode(
-                            "RefreshTokenUseCase",
-                            refreshTokenNetworkResult.e.code()
-                        )
-                    }
-
-                    else -> Resource.Error("Unknown error occurred")
-                }
-            }
+        val refreshTokenNetworkResult = repo.refreshToken(tokenUsedByRequest)
+        if (refreshTokenNetworkResult is NetworkResult.Error && refreshTokenNetworkResult.code == 403) {
+            // shows expired refresh token message from server, more informative than "Refresh Token forbidden"
+            return Resource.Error("Refresh Token ${refreshTokenNetworkResult.message}")
+        }
+        return refreshTokenNetworkResult.toResource("Refresh Token") { refreshTokenDomainModel ->
+            refreshTokenDomainModel
         }
     }
 }
