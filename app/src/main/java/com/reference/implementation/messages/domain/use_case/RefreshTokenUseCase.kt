@@ -3,8 +3,6 @@ package com.reference.implementation.messages.domain.use_case
 import com.reference.implementation.messages.data.repository.NetworkResult
 import com.reference.implementation.messages.domain.model.RefreshTokenDomainModel
 import com.reference.implementation.messages.domain.repository.RefreshTokenRepository
-import okio.IOException
-import retrofit2.HttpException
 
 class RefreshTokenUseCase(private val repo: RefreshTokenRepository) {
     suspend operator fun invoke(
