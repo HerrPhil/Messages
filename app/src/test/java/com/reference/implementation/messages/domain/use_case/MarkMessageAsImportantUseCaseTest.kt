@@ -1,6 +1,5 @@
 package com.reference.implementation.messages.domain.use_case
 
-import com.reference.implementation.messages.domain.repository.MessageCacheRepository
 import com.reference.implementation.messages.domain.repository.UserPreferencesRepository
 import io.mockk.coEvery
 import io.mockk.coVerify

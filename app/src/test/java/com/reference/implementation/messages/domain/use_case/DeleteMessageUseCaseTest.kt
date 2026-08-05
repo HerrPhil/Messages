@@ -1,6 +1,5 @@
 package com.reference.implementation.messages.domain.use_case
 
-import com.reference.implementation.messages.domain.model.MessageDomainModel
 import com.reference.implementation.messages.domain.repository.MessageCacheRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -8,7 +7,6 @@ import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
 import org.junit.Before
 import org.junit.Test
-import java.time.Instant
 
 class DeleteMessageUseCaseTest {
 
