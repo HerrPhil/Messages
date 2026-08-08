@@ -57,6 +57,7 @@ class GetAdminDashboardUseCaseTest {
 
     }
 
+    @Test
     fun `invoke combines user stream and message stream and bulletin stream into enriched Resource Success`() =
         runTest {
             val numberOfUsers = 7
@@ -100,6 +101,7 @@ class GetAdminDashboardUseCaseTest {
             }
         }
 
+    @Test
     fun `invoke combines slow user stream and message stream and bulletin stream into enriched Resource Success`() =
         runTest {
             val userFlow = MutableStateFlow<NetworkResult<Int>>(
@@ -142,6 +144,7 @@ class GetAdminDashboardUseCaseTest {
             }
         }
 
+    @Test
     fun `invoke combines user stream and slow message stream and bulletin stream into enriched Resource Success`() =
         runTest {
             val numberOfUsers = 7
@@ -184,6 +187,7 @@ class GetAdminDashboardUseCaseTest {
             }
         }
 
+    @Test
     fun `invoke combines user stream and message stream and slow bulletin stream into enriched Resource Success`() =
         runTest {
             val numberOfUsers = 7
@@ -226,6 +230,7 @@ class GetAdminDashboardUseCaseTest {
             }
         }
 
+    @Test
     fun `invoke combines NetworkResult 2 Errors and 1 Exception to Resource Success correctly`() =
         runTest {
             val userFlow = MutableStateFlow<NetworkResult<Int>>(
@@ -267,6 +272,7 @@ class GetAdminDashboardUseCaseTest {
 
         }
 
+    @Test
     fun `invoke combines NetworkResult 3 Errors to Resource Success correctly`() =
         runTest {
             val userFlow = MutableStateFlow<NetworkResult<Int>>(
