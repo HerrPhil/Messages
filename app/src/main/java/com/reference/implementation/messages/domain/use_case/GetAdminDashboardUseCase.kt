@@ -30,9 +30,6 @@ class GetAdminDashboardUseCase(
             val messages = (messageRes as? NetworkResult.Success)?.data
             val bulletins = (bulletinRes as? NetworkResult.Success)?.data
 
-            // Check for catastrophic hard error (e.g. if the ONE stream fails)
-            val networkFailed = messageRes is NetworkResult.Error
-
             // Check for catastrophic hard error (e.g. if ALL streams failed)
             // Like, server(s) down, internet down, etc.
             val allFailed = listOf(

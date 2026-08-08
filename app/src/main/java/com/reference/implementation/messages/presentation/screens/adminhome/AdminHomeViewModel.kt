@@ -3,6 +3,7 @@ package com.reference.implementation.messages.presentation.screens.adminhome
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.reference.implementation.messages.data.audit.Audit
+import com.reference.implementation.messages.domain.model.toAdminHomeUiState
 import com.reference.implementation.messages.domain.use_case.GetAdminDashboardUseCase
 import com.reference.implementation.messages.domain.use_case.Resource
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,11 +32,7 @@ class AdminHomeViewModel(
                 }
             }
 
-            is Resource.Success -> AdminHomeUiState.Success(
-                usersCount = resourceResult.data.usersCount,
-                summaryMessages = resourceResult.data.summaryMessages,
-                bulletinsCount = resourceResult.data.bulletinsCount
-            )
+            is Resource.Success -> resourceResult.data.toAdminHomeUiState()
 
             is Resource.Error -> AdminHomeUiState.Error(resourceResult.message)
         }

@@ -31,6 +31,7 @@ interface ApiService {
     @GET("messages")
     suspend fun getMessages(): Response<List<MessageDto>>
 
+    // TODO get real about whether this gets used.
     // Get message by unique ID, expect one JSON object, empty when not found, otherwise populated
     @GET("messages/{id}")
     suspend fun getMessage(@Path("id") id: Int): Response<MessageDto>
@@ -42,9 +43,11 @@ interface ApiService {
     @POST("messages")
     suspend fun addMessage(@Body messageRequestDto: MessageRequestDto): Response<MessageDto>
 
+    // TODO get real about whether this gets used.
     @PUT("messages/{id}")
     suspend fun updateMessage(@Path("id") id: Int, @Body messageDto: MessageDto): Response<MessageDto>
 
+    // TODO get real about whether this gets used.
     @PATCH("messages/{id}")
     suspend fun partialUpdateMessage(@Path("id") id: Int, @Body patchMessageRequestDto: PartialMessageRequestDto): Response<MessageDto>
 
