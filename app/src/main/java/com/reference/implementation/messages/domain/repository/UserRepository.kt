@@ -6,4 +6,5 @@ import kotlinx.coroutines.flow.Flow
 
 interface UserRepository {
     fun getUserInfoFlow(): Flow<NetworkResult<LoginUserDomainModel>>
+    fun getUserCount(onRetry: suspend (Int) -> Unit): Flow<NetworkResult<Int>>
 }

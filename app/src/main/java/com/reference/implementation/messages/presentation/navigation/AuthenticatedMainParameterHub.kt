@@ -1,5 +1,6 @@
 package com.reference.implementation.messages.presentation.navigation
 
+import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
@@ -26,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -42,6 +44,9 @@ import com.reference.implementation.messages.domain.model.MessageDomainModel
 import com.reference.implementation.messages.presentation.AppViewModelProvider
 import com.reference.implementation.messages.presentation.components.detailComposable
 import com.reference.implementation.messages.presentation.screens.adminhome.AdminHomeScreen
+import com.reference.implementation.messages.presentation.screens.adminhome.AdminHomeUiEvent
+import com.reference.implementation.messages.presentation.screens.adminhome.AdminHomeUiState
+import com.reference.implementation.messages.presentation.screens.adminhome.AdminHomeViewModel
 import com.reference.implementation.messages.presentation.screens.adminmessage.AdminMessageScreen
 import com.reference.implementation.messages.presentation.screens.bulletin.BulletinDetailScreen
 import com.reference.implementation.messages.presentation.screens.bulletin.BulletinDetailViewModel
@@ -222,7 +227,11 @@ fun AuthenticatedMainParameterHub(
         ) {
 
             composable<Route.AdminHome> {
-                AdminHomeScreen()
+                val viewModel: AdminHomeViewModel =
+                    viewModel(factory = AppViewModelProvider.Factory)
+                val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+                AdminHomeScreen(uiState = uiState)
             }
 
             composable<Route.AdminMessages> {
@@ -273,14 +282,18 @@ fun AuthenticatedMainParameterHub(
                         }
                     }
 
-                    val onToggleImportantMessageClicked: (Int, Boolean) -> Unit = remember(isRefreshing) {
-                        { messageId, newIsImportant ->
-                            // The hub owns the controller and executes the actual routing
-                            if (!isRefreshing) {
-                                viewModel.onToggleImportantMessageClicked(messageId, newIsImportant)
+                    val onToggleImportantMessageClicked: (Int, Boolean) -> Unit =
+                        remember(isRefreshing) {
+                            { messageId, newIsImportant ->
+                                // The hub owns the controller and executes the actual routing
+                                if (!isRefreshing) {
+                                    viewModel.onToggleImportantMessageClicked(
+                                        messageId,
+                                        newIsImportant
+                                    )
+                                }
                             }
                         }
-                    }
 
                     // The UNDO action
                     val onRestoreMessage: (MessageDomainModel) -> Unit = remember(isRefreshing) {
@@ -368,9 +381,15 @@ fun AuthenticatedMainParameterHub(
                             }
                         }
                     }
-                    val onToggleBookmarkBulletinClicked: (Int, Boolean) -> Unit = remember(isRefreshing) {
-                        { bulletin, newIsBookmark -> viewModel.onToggleBookmarkBulletinClicked(bulletin, newIsBookmark) }
-                    }
+                    val onToggleBookmarkBulletinClicked: (Int, Boolean) -> Unit =
+                        remember(isRefreshing) {
+                            { bulletin, newIsBookmark ->
+                                viewModel.onToggleBookmarkBulletinClicked(
+                                    bulletin,
+                                    newIsBookmark
+                                )
+                            }
+                        }
 
                     BulletinScreen(
                         uiState = uiState,

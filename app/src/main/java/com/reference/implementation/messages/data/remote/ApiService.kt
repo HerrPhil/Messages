@@ -25,6 +25,9 @@ interface ApiService {
         @Header("x-refresh-scenario") scenario: String?  = null // Dynamic test hook!!!!
     ): Response<RefreshTokenDto>
 
+    @GET("users")
+    suspend fun getUsers(): Response<List<UserDto>>
+
     @GET("messages")
     suspend fun getMessages(): Response<List<MessageDto>>
 
