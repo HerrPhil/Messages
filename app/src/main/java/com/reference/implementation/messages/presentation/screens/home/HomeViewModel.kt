@@ -38,11 +38,11 @@ class HomeViewModel(
             is Resource.Success -> resourceResult.data.toHomeUiState()
         }
     }.onStart {
-        // 👈 Fires EVERY TIME collectAsStateWithLifecycle() connects!
+        // Fires EVERY TIME collectAsStateWithLifecycle() connects!
         Audit.createInstance()
             .writeLog("HomeViewModel UI subscribed: HomeUiState flow collection started")
     }.onCompletion {
-        // 👈 Fires when the UI unsubscribes (or after WhileSubscribed timeout)
+        // Fires when the UI unsubscribes (or after WhileSubscribed timeout)
         Audit.createInstance()
             .writeLog("HomeViewModelUI unsubscribed: HomeUiState flow collection ended")
     }.stateIn(

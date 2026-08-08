@@ -329,7 +329,8 @@ fun MessageSummaryInfoPreview() {
             color = MaterialTheme.colorScheme.surface,
             modifier = Modifier.padding(16.dp)
         ) {
-            MessageSummaryInfo(10, 4)
+            MessageSummaryInfo(null, null)
+//            MessageSummaryInfo(10, 4)
         }
     }
 }
@@ -378,7 +379,7 @@ fun MessageSummaryInfo(
                     // Make the unread skeleton slightly shorter so
                     SkeletonText(
                         modifier = Modifier
-                            .width(80.dp)
+                            .width(100.dp)
                             .height(32.dp),
                         shimmerColor = MaterialTheme.colorScheme.tertiaryContainer,
                         shape = MaterialTheme.shapes.medium

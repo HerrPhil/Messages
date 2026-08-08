@@ -13,6 +13,7 @@ import com.reference.implementation.messages.data.manager.RoleManager
 import com.reference.implementation.messages.data.manager.SessionManager
 import com.reference.implementation.messages.data.remote.ApiService
 import com.reference.implementation.messages.domain.repository.BulletinCacheRepository
+import com.reference.implementation.messages.domain.repository.BulletinRepository
 import com.reference.implementation.messages.domain.repository.LoginRepository
 import com.reference.implementation.messages.domain.repository.LogoutRepository
 import com.reference.implementation.messages.domain.repository.MessageCacheRepository
@@ -25,6 +26,7 @@ import com.reference.implementation.messages.domain.repository.UserRepository
 import com.reference.implementation.messages.domain.use_case.DeleteMessageUseCase
 import com.reference.implementation.messages.domain.use_case.ForceLogoutUseCase
 import com.reference.implementation.messages.domain.use_case.GetActiveMessagesUseCase
+import com.reference.implementation.messages.domain.use_case.GetAdminDashboardUseCase
 import com.reference.implementation.messages.domain.use_case.GetAllBulletinsUseCase
 import com.reference.implementation.messages.domain.use_case.GetBulletinUseCase
 import com.reference.implementation.messages.domain.use_case.GetMessageUiEventsUseCase
@@ -82,6 +84,7 @@ interface AppContainer {
     val markMessageAsNotImportantUseCase: MarkMessageAsNotImportantUseCase
     val markBulletinAsBookmarkUseCase: MarkBulletinAsBookmarkUseCase
     val markBulletinAsNotBookmarkUseCase: MarkBulletinAsNotBookmarkUseCase
+    val getAdminDashboardUseCase: GetAdminDashboardUseCase
     val authSessionManager: AuthSessionManager
     val roleManager: RoleManager
 }
@@ -228,7 +231,7 @@ class AppMessageContainer(context: Context) : AppContainer {
     }
 
     private val userRepository: UserRepository by lazy {
-        UserRepositoryImpl(sessionManager)
+        UserRepositoryImpl(apiService, sessionManager)
     }
 
     private val messageRepository: MessageRepository by lazy {
@@ -257,6 +260,10 @@ class AppMessageContainer(context: Context) : AppContainer {
 
     private val userPreferencesRepository: UserPreferencesRepository by lazy {
         UserPreferencesRepositoryImpl(dataStore = context.dataStore)
+    }
+
+    private val bulletinRepository: BulletinRepository by lazy {
+        BulletinRepositoryImpl(apiService)
     }
 
     /**
@@ -347,6 +354,10 @@ class AppMessageContainer(context: Context) : AppContainer {
 
     override val markBulletinAsNotBookmarkUseCase: MarkBulletinAsNotBookmarkUseCase by lazy {
         MarkBulletinAsNotBookmarkUseCase(userPreferencesRepository)
+    }
+
+    override val getAdminDashboardUseCase: GetAdminDashboardUseCase by lazy {
+        GetAdminDashboardUseCase(userRepository, messageRepository, bulletinRepository)
     }
 
 }

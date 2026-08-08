@@ -10,6 +10,7 @@ import com.reference.implementation.messages.domain.repository.MessageRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
@@ -21,6 +22,39 @@ class MessageRepositoryImpl(
     private val apiService: ApiService,
     private val sessionManager: SessionManager
 ) : MessageRepository {
+
+    override fun getSummaryMessages(onRetry: suspend (Int) -> Unit): Flow<NetworkResult<String>> =
+        flow {
+
+            emit(NetworkResult.Loading)
+
+            val response = retryIO(times = 3, onRetry = onRetry) {
+                apiService.getMessages()
+            }
+
+            delay(7000)
+
+            val body = response.body()
+            if (response.isSuccessful && body != null) {
+                val unreadMessages = body.count { !it.read }
+                val allMessages = body.size
+                val summaryMessage = "$unreadMessages / $allMessages"
+
+                emit(NetworkResult.Success(summaryMessage))
+            } else {
+                emit(NetworkResult.Error(response.code(), response.message()))
+            }
+
+
+        }.catch { e ->
+            if (e is CancellationException) throw e
+            Audit.createInstance().writeLog(e.message ?: "no messages")
+            emit(NetworkResult.Exception(e))
+        }.onCompletion {
+            withContext(NonCancellable) {
+                Audit.createInstance().writeLog("${auditLogTimestamp()} get messages ended")
+            }
+        }.flowOn(Dispatchers.IO) // Note: Dispatchers.IO is better suited for Network/API calls!
 
     /**
      * This is Phase 1 code of my re-factor of GetUserDashboardUseCase.

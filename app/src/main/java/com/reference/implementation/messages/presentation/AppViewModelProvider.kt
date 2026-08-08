@@ -85,7 +85,7 @@ object AppViewModelProvider {
         // The message view model initializer.
         initializer {
             AdminHomeViewModel(
-                // TODO add use case(s) to get admin dashboard info
+                messageApplication().container.getAdminDashboardUseCase
             )
         }
 

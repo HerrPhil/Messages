@@ -135,28 +135,28 @@ class GetUserDashboardUseCaseTest {
                 val initialItem = awaitItem()
                 assertTrue(initialItem is Resource.Loading)
 
-                // 1. Next emission: Resource.Success(UserDashboardDomainModel)
+                // 2. Next emission: Resource.Success(UserDashboardDomainModel)
                 val nextItem = awaitItem()
                 assertTrue(nextItem is Resource.Success)
 
                 val actualDashboard = (nextItem as Resource.Success).data
 
-                // 2. the user info
+                // 3. the user info
                 assertEquals("test user", actualDashboard.userName)
                 assertEquals("test_user@test.com", actualDashboard.userEmail)
 
-                // 3. the message info
+                // 4. the message info
                 assertEquals(2, actualDashboard.unreadMessages)
                 assertEquals(0, actualDashboard.readMessages)
 
-                // 4. role info
+                // 5. role info
                 assertFalse(actualDashboard.roles?.isEmpty() ?: false)
                 assertEquals(3, actualDashboard.roles?.size ?: 0)
                 assertEquals("Developer", actualDashboard.roles?.get(0))
                 assertEquals("Tester", actualDashboard.roles?.get(1))
                 assertEquals("Manager", actualDashboard.roles?.get(2))
 
-                // 5. permission info
+                // 6. permission info
                 assertFalse(actualDashboard.permissions?.isEmpty() ?: false)
                 assertEquals(3, actualDashboard.permissions?.size ?: 0)
                 assertEquals("Coding", actualDashboard.permissions?.get(0))
@@ -225,28 +225,28 @@ class GetUserDashboardUseCaseTest {
                 val initialItem = awaitItem()
                 assertTrue(initialItem is Resource.Loading)
 
-                // 1. Next emission: Resource.Success(UserDashboardDomainModel)
+                // 2. Next emission: Resource.Success(UserDashboardDomainModel)
                 val nextItem = awaitItem()
                 assertTrue(nextItem is Resource.Success)
 
                 val actualDashboard = (nextItem as Resource.Success).data
 
-                // 2. the user info
+                // 3. the user info
                 assertNull(actualDashboard.userName)
                 assertNull(actualDashboard.userEmail)
 
-                // 3. the message info
+                // 4. the message info
                 assertEquals(2, actualDashboard.unreadMessages)
                 assertEquals(0, actualDashboard.readMessages)
 
-                // 4. role info
+                // 5. role info
                 assertFalse(actualDashboard.roles?.isEmpty() ?: false)
                 assertEquals(3, actualDashboard.roles?.size ?: 0)
                 assertEquals("Developer", actualDashboard.roles?.get(0))
                 assertEquals("Tester", actualDashboard.roles?.get(1))
                 assertEquals("Manager", actualDashboard.roles?.get(2))
 
-                // 5. permission info
+                // 6. permission info
                 assertFalse(actualDashboard.permissions?.isEmpty() ?: false)
                 assertEquals(3, actualDashboard.permissions?.size ?: 0)
                 assertEquals("Coding", actualDashboard.permissions?.get(0))
@@ -296,28 +296,28 @@ class GetUserDashboardUseCaseTest {
                 val initialItem = awaitItem()
                 assertTrue(initialItem is Resource.Loading)
 
-                // 1. Next emission: Resource.Success(UserDashboardDomainModel)
+                // 2. Next emission: Resource.Success(UserDashboardDomainModel)
                 val nextItem = awaitItem()
                 assertTrue(nextItem is Resource.Success)
 
                 val actualDashboard = (nextItem as Resource.Success).data
 
-                // 2. the user info
+                // 3. the user info
                 assertEquals("test user", actualDashboard.userName)
                 assertEquals("test_user@test.com", actualDashboard.userEmail)
 
-                // 3. the message info
+                // 4. the message info
                 assertNull(actualDashboard.unreadMessages)
                 assertNull(actualDashboard.readMessages)
 
-                // 4. role info
+                // 5. role info
                 assertFalse(actualDashboard.roles?.isEmpty() ?: false)
                 assertEquals(3, actualDashboard.roles?.size ?: 0)
                 assertEquals("Developer", actualDashboard.roles?.get(0))
                 assertEquals("Tester", actualDashboard.roles?.get(1))
                 assertEquals("Manager", actualDashboard.roles?.get(2))
 
-                // 5. permission info
+                // 6. permission info
                 assertFalse(actualDashboard.permissions?.isEmpty() ?: false)
                 assertEquals(3, actualDashboard.permissions?.size ?: 0)
                 assertEquals("Coding", actualDashboard.permissions?.get(0))
@@ -384,24 +384,24 @@ class GetUserDashboardUseCaseTest {
                 val initialItem = awaitItem()
                 assertTrue(initialItem is Resource.Loading)
 
-                // 1. Next emission: Resource.Success(UserDashboardDomainModel)
+                // 2. Next emission: Resource.Success(UserDashboardDomainModel)
                 val nextItem = awaitItem()
                 assertTrue(nextItem is Resource.Success)
 
                 val actualDashboard = (nextItem as Resource.Success).data
 
-                // 2. the user info
+                // 3. the user info
                 assertEquals("test user", actualDashboard.userName)
                 assertEquals("test_user@test.com", actualDashboard.userEmail)
 
-                // 3. the message info
+                // 4. the message info
                 assertEquals(2, actualDashboard.unreadMessages)
                 assertEquals(0, actualDashboard.readMessages)
 
-                // 4. role info
+                // 5. role info
                 assertNull(actualDashboard.roles)
 
-                // 5. permission info
+                // 6. permission info
                 assertFalse(actualDashboard.permissions?.isEmpty() ?: false)
                 assertEquals(3, actualDashboard.permissions?.size ?: 0)
                 assertEquals("Coding", actualDashboard.permissions?.get(0))
@@ -469,28 +469,28 @@ class GetUserDashboardUseCaseTest {
                 val initialItem = awaitItem()
                 assertTrue(initialItem is Resource.Loading)
 
-                // 1. Next emission: Resource.Success(UserDashboardDomainModel)
+                // 2. Next emission: Resource.Success(UserDashboardDomainModel)
                 val nextItem = awaitItem()
                 assertTrue(nextItem is Resource.Success)
 
                 val actualDashboard = (nextItem as Resource.Success).data
 
-                // 2. the user info
+                // 3. the user info
                 assertEquals("test user", actualDashboard.userName)
                 assertEquals("test_user@test.com", actualDashboard.userEmail)
 
-                // 3. the message info
+                // 4. the message info
                 assertEquals(2, actualDashboard.unreadMessages)
                 assertEquals(0, actualDashboard.readMessages)
 
-                // 4. role info
+                // 5. role info
                 assertFalse(actualDashboard.roles?.isEmpty() ?: false)
                 assertEquals(3, actualDashboard.roles?.size ?: 0)
                 assertEquals("Developer", actualDashboard.roles?.get(0))
                 assertEquals("Tester", actualDashboard.roles?.get(1))
                 assertEquals("Manager", actualDashboard.roles?.get(2))
 
-                // 5. permission info
+                // 6. permission info
                 assertNull(actualDashboard.permissions)
 
                 cancelAndIgnoreRemainingEvents()
@@ -527,24 +527,24 @@ class GetUserDashboardUseCaseTest {
                 val initialItem = awaitItem()
                 assertTrue(initialItem is Resource.Loading)
 
-                // 1. Next emission: Resource.Success(UserDashboardDomainModel)
+                // 2. Next emission: Resource.Success(UserDashboardDomainModel)
                 val nextItem = awaitItem()
                 assertTrue(nextItem is Resource.Success)
 
                 val actualDashboard = (nextItem as Resource.Success).data
 
-                // 2. the user info
+                // 3. the user info
                 assertNull(actualDashboard.userName)
                 assertNull(actualDashboard.userEmail)
 
-                // 3. the message info
+                // 4. the message info
                 assertNull(actualDashboard.unreadMessages)
                 assertNull(actualDashboard.readMessages)
 
-                // 4. role info
+                // 5. role info
                 assertNull(actualDashboard.roles)
 
-                // 5. permission info
+                // 6. permission info
                 assertNull(actualDashboard.permissions)
 
                 cancelAndIgnoreRemainingEvents()
@@ -580,10 +580,11 @@ class GetUserDashboardUseCaseTest {
                 val initialItem = awaitItem()
                 assertTrue(initialItem is Resource.Loading)
 
-                // 1. Next emission: Resource.Success(UserDashboardDomainModel)
+                // 3. Next emission: Resource.Success(UserDashboardDomainModel)
                 val nextItem = awaitItem()
                 assertTrue(nextItem is Resource.Error)
 
+                // 4. Assert there is only error
                 val errorMessage = (nextItem as Resource.Error).message
                 assertEquals("Unable to load dashboard data.", errorMessage)
 

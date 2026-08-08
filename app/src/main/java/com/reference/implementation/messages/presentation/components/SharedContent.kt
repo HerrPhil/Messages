@@ -22,6 +22,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -94,9 +95,42 @@ fun LoadingContentPreview() {
 fun LoadingContent() {
     Box(
         modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.Center
     ) {
         CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+    }
+}
+
+
+@Preview(name = "Light Mode", showBackground = true)
+@Preview(
+    name = "Dark Mode",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+    showBackground = true
+)
+@Composable
+fun ErrorAndRetryContentPreview() {
+    MessagesTheme {
+        Surface(color = MaterialTheme.colorScheme.surface) {
+            ErrorAndRetryContent("Something is wrong", {})
+        }
+    }
+}
+
+
+@Composable
+fun ErrorAndRetryContent(errorMessage: String, onRefresh: () -> Unit) {
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(text = errorMessage, color = MaterialTheme.colorScheme.error)
+            Spacer(modifier = Modifier.height(8.dp))
+            Button(onClick = onRefresh) { Text("Retry") }
+        }
     }
 }
 
@@ -322,12 +356,13 @@ fun SkeletonText(
 
 // Reusable 400ms Horizontal Slide Transitions for Detail Screens
 
-val detailEnterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
-    slideIntoContainer(
-        towards = AnimatedContentTransitionScope.SlideDirection.Left,
-        animationSpec = tween(400)
-    ) + fadeIn(animationSpec = tween(400))
-}
+val detailEnterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition =
+    {
+        slideIntoContainer(
+            towards = AnimatedContentTransitionScope.SlideDirection.Left,
+            animationSpec = tween(400)
+        ) + fadeIn(animationSpec = tween(400))
+    }
 
 val detailExitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
     slideOutOfContainer(
@@ -336,19 +371,21 @@ val detailExitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -
     ) + fadeOut(animationSpec = tween(400))
 }
 
-val detailPopEnterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition = {
-    slideIntoContainer(
-        towards = AnimatedContentTransitionScope.SlideDirection.Right,
-        animationSpec = tween(400)
-    ) + fadeIn(animationSpec = tween(400))
-}
+val detailPopEnterTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> EnterTransition =
+    {
+        slideIntoContainer(
+            towards = AnimatedContentTransitionScope.SlideDirection.Right,
+            animationSpec = tween(400)
+        ) + fadeIn(animationSpec = tween(400))
+    }
 
-val detailPopExitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition = {
-    slideOutOfContainer(
-        towards = AnimatedContentTransitionScope.SlideDirection.Right,
-        animationSpec = tween(400)
-    ) + fadeOut(animationSpec = tween(400))
-}
+val detailPopExitTransition: AnimatedContentTransitionScope<NavBackStackEntry>.() -> ExitTransition =
+    {
+        slideOutOfContainer(
+            towards = AnimatedContentTransitionScope.SlideDirection.Right,
+            animationSpec = tween(400)
+        ) + fadeOut(animationSpec = tween(400))
+    }
 
 // 🟢 Helper Function: Encapsulates detail transitions into a single custom builder
 inline fun <reified T : Any> NavGraphBuilder.detailComposable(
