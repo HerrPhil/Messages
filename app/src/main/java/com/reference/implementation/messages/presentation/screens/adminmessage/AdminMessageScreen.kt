@@ -283,6 +283,50 @@ fun AdminMessageDetailsPreview() {
     }
 }
 
+@Preview(name = "Light Mode", showBackground = true)
+@Preview(
+    name = "Dark Mode",
+    uiMode = Configuration.UI_MODE_NIGHT_YES,
+    showBackground = true
+)
+@Preview(name = "Landscape", widthDp = 640, heightDp = 360)
+@Composable
+fun AdminMessageDetailsEmptyPreview() {
+    val searchQuery = "update"
+    val userOptionQuery = "kim"
+    val userOption = UserUiDetail(
+        id = 123,
+        name = "bob",
+        isAdmin = true
+    )
+    val userOptions = listOf(userOption)
+    MessagesTheme {
+        Surface(
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            AdminMessageDetails(
+                searchQuery = searchQuery,
+                userOptionQuery = userOptionQuery,
+                isImportantOnly = false,
+                isAdminSelected = true,
+                onImportantOnlyToggled = {},
+                onSearchValueChanged = {},
+                onDelete = {},
+                onToggleReadStatus = { _, _ -> },
+                onMessageClicked = {},
+                onToggleImportantMessageClicked = { _, _ -> },
+                onUserOptionChanged = {},
+                onUserOptionClicked = { _, _ -> },
+                onLoadSelectedMessages = {},
+                list = emptyList(),
+                userOptions = userOptions,
+                isRefreshing = false,
+                snackbarHostState = SnackbarHostState()
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminMessageDetails(
@@ -330,8 +374,7 @@ fun AdminMessageDetails(
             item {
                 // The root content container is a standard Column
                 Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth()
                 ) {
 
                     MessageSearchInput(
@@ -429,13 +472,19 @@ fun AdminMessageDetails(
 
             item {
                 if (list.isEmpty() && searchQuery.isNotEmpty()) {
-                    EmptyListContent("No matches for $searchQuery")
+                    Column {
+                        Spacer(modifier = Modifier.height(80.dp))
+                        EmptyListContent("No matches for $searchQuery")
+                    }
                 }
             }
 
             item {
                 if (list.isEmpty() && searchQuery.isEmpty()) {
-                    EmptyListContent("No messages")
+                    Column {
+                        Spacer(modifier = Modifier.height(80.dp))
+                        EmptyListContent("No messages")
+                    }
                 }
             }
         }
