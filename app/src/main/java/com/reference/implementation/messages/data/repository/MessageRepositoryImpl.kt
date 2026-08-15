@@ -32,8 +32,6 @@ class MessageRepositoryImpl(
                 apiService.getMessages()
             }
 
-            delay(7000)
-
             val body = response.body()
             if (response.isSuccessful && body != null) {
                 val unreadMessages = body.count { !it.read }

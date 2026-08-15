@@ -44,7 +44,18 @@ class MessageCacheRepositoryImpl(
 
     override val uiEvents = _uiEventChannel.receiveAsFlow()
 
-    override suspend fun refreshMessagesByUser(onRetry: suspend (Int) -> Unit) {
+    override suspend fun refreshMessagesOfActiveUser(onRetry: suspend (Int) -> Unit) {
+        val userId = when (val userIdResult = sessionManager.getSessionUserId()) {
+            is SessionResult.Authenticated -> userIdResult.data
+            else -> 0
+        }
+        refreshMessagesOfSelectedUser(userId, onRetry)
+    }
+
+    override suspend fun refreshMessagesOfSelectedUser(
+        userId: Int,
+        onRetry: suspend (Int) -> Unit
+    ) {
 
         // Force the cache to show "Loading" if it is a manual retry/refresh action
         _messagesByUserCache.value = NetworkResult.Loading
@@ -52,18 +63,15 @@ class MessageCacheRepositoryImpl(
         // force the execution onto the IO thread pool
         withContext(Dispatchers.IO) {
             try {
-                val userId = when (val userIdResult = sessionManager.getSessionUserId()) {
-                    is SessionResult.Authenticated -> userIdResult.data
-                    else -> 0
-                }
                 val response = retryIO(times = 3, onRetry = onRetry) {
                     apiService.getMessages(userId)
                 }
-                if (response.isSuccessful && response.body() != null) {
+                val body = response.body()
+                if (response.isSuccessful && body != null) {
                     // DTO never leaves this layer - see the DTO extension function!
                     // Update the SSOT cache with fresh data!
                     _messagesByUserCache.value =
-                        NetworkResult.Success(response.body()!!.map { it.toMessageDomainModel() })
+                        NetworkResult.Success(body.map { it.toMessageDomainModel() })
                 } else {
                     // Transform unsuccessful Retrofit calls.
                     // Update the SSOT cache with the network result error!
@@ -88,7 +96,6 @@ class MessageCacheRepositoryImpl(
             try {
                 val response = retryIO(times = 3, onRetry = { attempt ->
                     Log.d("markMessageAsRead", "number of retries is $attempt")
-                    // TODO play with passing a UIEvent of Retrying
                 }) {
                     apiService.markMessageAsRead(messageId, MarkMessageAsReadDto())
                 }
@@ -128,7 +135,6 @@ class MessageCacheRepositoryImpl(
             try {
                 val response = retryIO(times = 3, onRetry = { attempt ->
                     Log.d("markMessageAsRead", "number of retries is $attempt")
-                    // TODO play with passing a UIEvent of Retrying
                 }) {
                     apiService.markMessageAsUnread(messageId, MarkMessageAsUnreadDto())
                 }
@@ -202,7 +208,6 @@ class MessageCacheRepositoryImpl(
                     // 3. Make your live network call to Express backend
                     val response = retryIO(times = 3, onRetry = { attempt ->
                         Log.d("markMessageAsRead", "number of retries is $attempt")
-                        // TODO play with passing a UIEvent of Retrying
                     }) {
                         apiService.removeMessage(messageId)
                     }
@@ -255,7 +260,6 @@ class MessageCacheRepositoryImpl(
                 val messageRequestDto = deletedMessage.toMessageRequestDto()
                 val response = retryIO(times = 3, onRetry = { attempt ->
                     Log.d("markMessageAsRead", "number of retries is $attempt")
-                    // TODO play with passing a UIEvent of Retrying
                 }) {
                     apiService.addMessage(messageRequestDto)
                 }

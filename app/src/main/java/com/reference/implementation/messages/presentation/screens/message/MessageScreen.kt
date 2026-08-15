@@ -43,6 +43,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
@@ -645,7 +646,7 @@ fun MessageItemCardPreview() {
         read = true,
         userId = 456,
         createdAt = "2026-07-13T22:28:56.321Z",
-        isImportant = false
+        isImportant = true
     )
     MessagesTheme {
         Surface(
@@ -771,7 +772,9 @@ fun MessageItemCard(
                         } else {
                             "Mark as important"
                         },
-                        tint = if (message.isImportant) {
+                        tint = if (isRefreshing) {
+                            LocalContentColor.current
+                        } else if (message.isImportant) {
                             MaterialTheme.colorScheme.primary
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant

@@ -26,8 +26,6 @@ class BulletinRepositoryImpl(
                 apiService.getBulletins()
             }
 
-            delay(9000)
-
             val body = response.body()
             if (response.isSuccessful && body != null) {
                 emit(NetworkResult.Success(body.size)) // number of bulletins

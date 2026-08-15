@@ -80,30 +80,6 @@ class SessionManager(
         }
     }
 
-//    fun getSessionRoleTargetUserId(): SessionResult<Int> {
-//        return when (val currentSessionState = _sessionFlow.value) {
-//            is NetworkSessionState.NoSession -> {
-//                SessionResult.NoValue
-//            }
-//
-//            is NetworkSessionState.ActiveSession -> {
-//                SessionResult.Authenticated(currentSessionState.role.id)
-//            }
-//        }
-//    }
-//
-//    fun getSessionRolePermissionId(): SessionResult<Int> {
-//        return when (val currentSessionState = _sessionFlow.value) {
-//            is NetworkSessionState.NoSession -> {
-//                SessionResult.NoValue
-//            }
-//
-//            is NetworkSessionState.ActiveSession -> {
-//                SessionResult.Authenticated(currentSessionState.role.permissionId)
-//            }
-//        }
-//    }
-
     /**
      * The session user DTO
      * and session role DTO
