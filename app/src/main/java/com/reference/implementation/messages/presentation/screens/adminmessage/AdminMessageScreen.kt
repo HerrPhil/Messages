@@ -43,6 +43,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.outlined.StarOutline
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DockedSearchBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
@@ -54,7 +55,6 @@ import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SearchBar
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -235,6 +235,7 @@ fun AdminMessageScreen(
     uiMode = Configuration.UI_MODE_NIGHT_YES,
     showBackground = true
 )
+@Preview(name = "Landscape", widthDp = 640, heightDp = 360)
 @Composable
 fun AdminMessageDetailsPreview() {
     val searchQuery = "update"
@@ -264,7 +265,7 @@ fun AdminMessageDetailsPreview() {
                 searchQuery = searchQuery,
                 userOptionQuery = userOptionQuery,
                 isImportantOnly = false,
-                isAdminSelected = false,
+                isAdminSelected = true,
                 onImportantOnlyToggled = {},
                 onSearchValueChanged = {},
                 onDelete = {},
@@ -319,116 +320,121 @@ fun AdminMessageDetails(
         },
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
-        // The root content container is a standard Column
-        Column(
+
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding) // Consumes the Scaffold top bar/ system spacing
+                .padding(innerPadding),
         ) {
 
-            MessageSearchInput(
-                searchQuery = searchQuery,
-                onSearchValueChanged,
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 0.dp)
-//                modifier = Modifier.padding(horizontal = 16.dp, vertical = 2.dp)
-            )
-
-            FilterChip(
-                selected = isImportantOnly,
-                onClick = { onImportantOnlyToggled(!isImportantOnly) },
-                label = { Text("Important Only") },
-                leadingIcon = {
-                    if (isImportantOnly) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = "Selected"
-                        )
-                    }
-                },
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 8.dp, bottom = 0.dp)
-            )
-
-
-            // User list selection
-            UserSearchInput(
-                userOptions = userOptions,
-                userOptionQuery = userOptionQuery,
-                onUserOptionChanged = onUserOptionChanged,
-                onUserOptionClicked = onUserOptionClicked,
-                onLoadSelectedMessages = onLoadSelectedMessages,
-                modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 0.dp)
-            )
-
-
-            // This Box is the "Anchor Container"
-            Box(modifier = Modifier.weight(1f)) {
-
-                // Scrollable List (Fills the remaining vertical space)
-                LazyColumn(
+            // 1. Filtering Widgets
+            item {
+                // The root content container is a standard Column
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    contentPadding = PaddingValues(bottom = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    items(
-                        items = list,
-                        key = { message -> message.id },
-                    ) { message ->
 
-                        if (isAdminSelected) {
-                            SwipeableMessageItem(
-                                message = message,
-                                isRefreshing = isRefreshing,
-                                onDelete = { onDelete(message.id) },
-                                onToggleReadStatus = {
-                                    onToggleReadStatus(message.id, !message.read)
-                                },
-                                onItemClicked = { onMessageClicked(message.id) },
-                                onToggleImportantClicked = {
-                                    onToggleImportantMessageClicked(
-                                        message.id,
-                                        !message.isImportant
-                                    )
-                                },
-                                // THE FIX: Generate the scoped modifier here where the scope is valid!
-                                modifier = Modifier.animateItem()
-                            )
-                        } else {
-                            MonitorMessageItemCard(
-                                message = message,
-//                                isRefreshing = isRefreshing,
-                                onItemClicked = { onMessageClicked(message.id) }
-//                                onToggleImportantClicked = {}
-                            )
-                        }
+                    MessageSearchInput(
+                        searchQuery = searchQuery,
+                        onSearchValueChanged,
+                        modifier = Modifier.padding(
+                            start = 16.dp,
+                            end = 16.dp,
+                            top = 8.dp,
+                            bottom = 0.dp
+                        )
+                    )
 
+                    FilterChip(
+                        selected = isImportantOnly,
+                        onClick = { onImportantOnlyToggled(!isImportantOnly) },
+                        label = { Text("Important Only") },
+                        leadingIcon = {
+                            if (isImportantOnly) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Selected"
+                                )
+                            }
+                        },
+                        modifier = Modifier.padding(
+                            start = 16.dp,
+                            end = 16.dp,
+                            top = 8.dp,
+                            bottom = 0.dp
+                        )
+                    )
 
-//                        SwipeableMessageItem(
-//                            message = message,
-//                            isRefreshing = isRefreshing,
-//                            onDelete = { onDelete(message.id) },
-//                            onToggleReadStatus = {
-//                                onToggleReadStatus(message.id, !message.read)
-//                            },
-//                            onItemClicked = { onMessageClicked(message.id) },
-//                            onToggleImportantClicked = {
-//                                onToggleImportantMessageClicked(
-//                                    message.id,
-//                                    !message.isImportant
-//                                )
-//                            },
-//                            // THE FIX: Generate the scoped modifier here where the scope is valid!
-//                            modifier = Modifier.animateItem()
-//                        )
-
-
-                    }
+                    // User list selection
+                    UserSearchInput(
+                        userOptions = userOptions,
+                        userOptionQuery = userOptionQuery,
+                        onUserOptionChanged = onUserOptionChanged,
+                        onUserOptionClicked = onUserOptionClicked,
+                        onLoadSelectedMessages = onLoadSelectedMessages,
+                        modifier = Modifier.padding(
+                            start = 16.dp,
+                            end = 16.dp,
+                            top = 4.dp,
+                            bottom = 16.dp
+                        )
+                    )
                 }
+            }
 
+            // 2. The List Data (Scrollable Content
+            items(
+                items = list,
+                key = { message -> message.id },
+            ) { message ->
+                if (isAdminSelected) {
+                    SwipeableMessageItem(
+                        message = message,
+                        isRefreshing = isRefreshing,
+                        onDelete = { onDelete(message.id) },
+                        onToggleReadStatus = {
+                            onToggleReadStatus(message.id, !message.read)
+                        },
+                        onItemClicked = { onMessageClicked(message.id) },
+                        onToggleImportantClicked = {
+                            onToggleImportantMessageClicked(
+                                message.id,
+                                !message.isImportant
+                            )
+                        },
+                        // THE FIX: Generate the scoped modifier here where the scope is valid!
+                        modifier = Modifier
+                            .animateItem()
+                            .padding(
+                                start = 16.dp,
+                                end = 16.dp,
+                                top = 4.dp,
+                                bottom = 4.dp
+                            )
+                    )
+                } else {
+                    MonitorMessageItemCard(
+                        message = message,
+                        onItemClicked = { onMessageClicked(message.id) },
+                        modifier = Modifier
+                            .padding(
+                                start = 16.dp,
+                                end = 16.dp,
+                                top = 4.dp,
+                                bottom = 4.dp
+                            )
+                    )
+                }
+            }
+
+            item {
                 if (list.isEmpty() && searchQuery.isNotEmpty()) {
                     EmptyListContent("No matches for $searchQuery")
                 }
+            }
+
+            item {
                 if (list.isEmpty() && searchQuery.isEmpty()) {
                     EmptyListContent("No messages")
                 }
@@ -528,25 +534,30 @@ private fun UserSearchInput(
 
     // rememberSaveable() → Visual & layout state (isExpanded, scrollPosition, isBottomSheetOpen).
     var expanded by rememberSaveable { mutableStateOf(false) }
+    val onRememberExpandedChange: (Boolean) -> Unit = {
+        expanded = it
+    }
 
     if (userOptions == null) {
         SkeletonText()
     } else {
         // My first SearchBar of Material 3 design
-        SearchBar(
+        // DockedSearchBar bar is used instead of SearchBar
+        // because it consumes less real estate.
+        DockedSearchBar(
             inputField = {
                 SearchBarDefaults.InputField(
                     query = userOptionQuery,
                     onQueryChange = onUserOptionChanged,
-                    onSearch = { expanded = false },
+                    onSearch = { onRememberExpandedChange(false) },
                     expanded = expanded,
-                    onExpandedChange = { expanded = it },
+                    onExpandedChange = onRememberExpandedChange,
                     placeholder = { Text(text = "Search users...") },
                     modifier = Modifier.fillMaxWidth()
                 )
             },
             expanded = expanded,
-            onExpandedChange = { expanded = it },
+            onExpandedChange = onRememberExpandedChange,
             modifier = modifier
         ) {
             Column(Modifier.verticalScroll(rememberScrollState())) {
@@ -559,7 +570,7 @@ private fun UserSearchInput(
                                 onUserOptionClicked(userOption.id, userOption.isAdmin)
                                 onUserOptionChanged(userOption.name)
                                 onLoadSelectedMessages()
-                                expanded = false
+                                onRememberExpandedChange(false)
                             }
                     )
                 }
@@ -567,7 +578,6 @@ private fun UserSearchInput(
         }
     }
 }
-
 
 @Preview(name = "Light Mode", showBackground = true)
 @Preview(
@@ -958,9 +968,6 @@ fun MessageItemCard(
 }
 
 
-
-
-
 @Preview(name = "Light Mode", showBackground = true)
 @Preview(
     name = "Dark Mode",
@@ -991,20 +998,20 @@ fun MonitorMessageItemCardPreview() {
 }
 
 
-
 @Composable
 fun MonitorMessageItemCard(
     message: MessageUiDetail,
 //    isRefreshing: Boolean,
     onItemClicked: () -> Unit,
 //    onToggleImportantClicked: () -> Unit
+    modifier: Modifier = Modifier
 ) {
     OutlinedCard(
         colors = CardDefaults.outlinedCardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             contentColor = MaterialTheme.colorScheme.onSurfaceVariant
         ),
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable {
                 onItemClicked()
