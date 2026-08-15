@@ -42,6 +42,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.reference.implementation.messages.presentation.components.DateTimeLabel
+import com.reference.implementation.messages.presentation.components.EmptyListContent
 import com.reference.implementation.messages.presentation.components.ErrorContent
 import com.reference.implementation.messages.presentation.components.LoadingContent
 import com.reference.implementation.messages.presentation.components.RetryingContent
@@ -103,6 +104,7 @@ fun BulletinScreen(
     uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
     showBackground = true
 )
+@Preview(name = "Landscape", widthDp = 640, heightDp = 360)
 @Composable
 fun BulletinDetailsPreview() {
     val list = List(4, { index ->
@@ -131,6 +133,31 @@ fun BulletinDetailsPreview() {
     }
 }
 
+@Preview(name = "Light Mode", showBackground = true)
+@Preview(
+    name = "Dark Mode",
+    uiMode = android.content.res.Configuration.UI_MODE_NIGHT_YES,
+    showBackground = true
+)
+@Preview(name = "Landscape", widthDp = 640, heightDp = 360)
+@Composable
+fun BulletinDetailsEmptyPreview() {
+    MessagesTheme {
+        Surface(
+            color = MaterialTheme.colorScheme.surface
+        ) {
+            BulletinDetails(
+                list = emptyList(),
+                isRefreshing = false,
+                isBookmarkOnly = false,
+                onBookmarkOnlyToggled = {},
+                onBulletinClicked = {},
+                onToggleBookmarkBulletinClicked = { _, _ -> }
+            )
+        }
+    }
+}
+
 @Composable
 fun BulletinDetails(
     list: List<BulletinUiDetail>,
@@ -142,54 +169,70 @@ fun BulletinDetails(
 ) {
 
     Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-        // The root content container is a standard Column
-        Column(
+
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
 
-            FilterChip(
-                selected = isBookmarkOnly,
-                onClick = { onBookmarkOnlyToggled(!isBookmarkOnly) },
-                label = { Text("Bookmark Only") },
-                leadingIcon = {
-                    if (isBookmarkOnly) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = "Selected"
-                        )
-                    }
-                },
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-
-            // This Box is the "Anchor Container"
-            Box(modifier = Modifier.weight(1f)) {
-
-                // Scrollable List (Fills the remaining vertical space)
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    contentPadding = PaddingValues(bottom = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+            item {
+                // The root content container is a standard Column
+                Column(
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    items(
-                        items = list,
-                        key = { bulletin -> bulletin.id }
-                    ) { bulletin ->
-                        BulletinItemCard(
-                            bulletin = bulletin,
-                            isRefreshing = isRefreshing,
-                            onItemClicked = { onBulletinClicked(bulletin.id) },
-                            onToggleBookmarkClicked = {
-                                onToggleBookmarkBulletinClicked(
-                                    bulletin.id,
-                                    !bulletin.isBookmark
+
+                    FilterChip(
+                        selected = isBookmarkOnly,
+                        onClick = { onBookmarkOnlyToggled(!isBookmarkOnly) },
+                        label = { Text("Bookmark Only") },
+                        leadingIcon = {
+                            if (isBookmarkOnly) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Selected"
                                 )
                             }
+                        },
+                        modifier = Modifier.padding(
+                            start = 16.dp,
+                            end = 16.dp,
+                            top = 8.dp,
+                            bottom = 0.dp
                         )
+                    )
+                }
+            }
+
+            items(
+                items = list,
+                key = { bulletin -> bulletin.id }
+            ) { bulletin ->
+                BulletinItemCard(
+                    bulletin = bulletin,
+                    isRefreshing = isRefreshing,
+                    onItemClicked = { onBulletinClicked(bulletin.id) },
+                    onToggleBookmarkClicked = {
+                        onToggleBookmarkBulletinClicked(
+                            bulletin.id,
+                            !bulletin.isBookmark
+                        )
+                    },
+                    modifier = Modifier
+                        .padding(
+                            start = 16.dp,
+                            end = 16.dp,
+                            top = 4.dp,
+                            bottom = 4.dp
+                        )
+                )
+            }
+
+            item {
+                if (list.isEmpty()) {
+                    Column {
+                        Spacer(modifier = Modifier.height(80.dp))
+                        EmptyListContent("No messages")
                     }
                 }
             }
@@ -233,14 +276,15 @@ fun BulletinItemCard(
     bulletin: BulletinUiDetail,
     isRefreshing: Boolean,
     onItemClicked: () -> Unit,
-    onToggleBookmarkClicked: () -> Unit
+    onToggleBookmarkClicked: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     OutlinedCard(
         colors = CardDefaults.outlinedCardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             contentColor = MaterialTheme.colorScheme.onSurfaceVariant
         ),
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable {
                 onItemClicked()
