@@ -30,10 +30,12 @@ class LoginUseCaseTest {
 
         val email = "test@turbine.com"
         val name = "qa tester"
+        val id = 1234
 
         val loginUser = LoginUserDomainModel(
             email = email,
-            name = name
+            name = name,
+            id = id
         )
 
         coEvery { loginRepository.login(any(), any(), any()) } returns NetworkResult.Success(
@@ -51,6 +53,7 @@ class LoginUseCaseTest {
         val loggedInUser = (resourceResult as Resource.Success).data
         assertEquals(email, loggedInUser.email)
         assertEquals(name, loggedInUser.name)
+        assertEquals(id, loggedInUser.id)
     }
 
     @Test

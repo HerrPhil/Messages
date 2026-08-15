@@ -81,7 +81,7 @@ class GetUserDashboardUseCaseTest {
         runTest {
 
             // Arrange
-            val user1 = LoginUserDomainModel("test_user@test.com", "test user")
+            val user1 = LoginUserDomainModel("test_user@test.com", "test user", 1234)
             val userFlow = MutableStateFlow<NetworkResult<LoginUserDomainModel>>(
                 NetworkResult.Success(user1)
             )
@@ -143,6 +143,7 @@ class GetUserDashboardUseCaseTest {
 
                 // 3. the user info
                 assertEquals("test user", actualDashboard.userName)
+                assertEquals("test_user@test.com", actualDashboard.userEmail)
                 assertEquals("test_user@test.com", actualDashboard.userEmail)
 
                 // 4. the message info
@@ -262,7 +263,7 @@ class GetUserDashboardUseCaseTest {
         runTest {
 
             // Arrange
-            val user1 = LoginUserDomainModel("test_user@test.com", "test user")
+            val user1 = LoginUserDomainModel("test_user@test.com", "test user", 1234)
             val userFlow = MutableStateFlow<NetworkResult<LoginUserDomainModel>>(
                 NetworkResult.Success(user1)
             )
@@ -333,7 +334,7 @@ class GetUserDashboardUseCaseTest {
         runTest {
 
             // Arrange
-            val user1 = LoginUserDomainModel("test_user@test.com", "test user")
+            val user1 = LoginUserDomainModel("test_user@test.com", "test user", 1234)
             val userFlow = MutableStateFlow<NetworkResult<LoginUserDomainModel>>(
                 NetworkResult.Success(user1)
             )
@@ -418,7 +419,7 @@ class GetUserDashboardUseCaseTest {
         runTest {
 
             // Arrange
-            val user1 = LoginUserDomainModel("test_user@test.com", "test user")
+            val user1 = LoginUserDomainModel("test_user@test.com", "test user", 1234)
             val userFlow = MutableStateFlow<NetworkResult<LoginUserDomainModel>>(
                 NetworkResult.Success(user1)
             )

@@ -29,11 +29,6 @@ data class MessageRequestDto(
 )
 
 @Serializable
-data class PartialMessageRequestDto(
-    val body: String
-)
-
-@Serializable
 data class MarkMessageAsReadDto(
     val read: Boolean = true
 )
@@ -100,7 +95,7 @@ data class BulletinDto(
     val timestamp: String // Kept as raw ISO 8601 String (e.g. 2026-07-13T22:28:56.321Z = GMT+0)
 )
 
-fun UserDto.toDomainModel(): LoginUserDomainModel = LoginUserDomainModel(this.email, this.name)
+fun UserDto.toDomainModel(): LoginUserDomainModel = LoginUserDomainModel(this.email, this.name, this.id)
 
 fun MessageDto.toMessageDomainModel(): MessageDomainModel =
     MessageDomainModel(

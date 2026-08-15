@@ -7,7 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.reference.implementation.messages.domain.model.MessageDomainModel
 import com.reference.implementation.messages.domain.model.toMessageUiDetail
 import com.reference.implementation.messages.domain.use_case.DeleteMessageUseCase
-import com.reference.implementation.messages.domain.use_case.GetActiveMessagesUseCase
+import com.reference.implementation.messages.domain.use_case.GetCachedMessagesUseCase
 import com.reference.implementation.messages.domain.use_case.GetMessageUiEventsUseCase
 import com.reference.implementation.messages.domain.use_case.LoadActiveMessagesUseCase
 import com.reference.implementation.messages.domain.use_case.MarkMessageAsImportantUseCase
@@ -30,7 +30,7 @@ import kotlinx.coroutines.launch
 class MessageViewModel(
     private val savedStateHandle: SavedStateHandle,
     private val loadActiveMessagesUseCase: LoadActiveMessagesUseCase,
-    getActiveMessagesUseCase: GetActiveMessagesUseCase,
+    getCachedMessagesUseCase: GetCachedMessagesUseCase,
     private val markMessageAsReadUseCase: MarkMessageAsReadUseCase,
     private val markMessageAsUnreadUseCase: MarkMessageAsUnreadUseCase,
     private val deleteMessageUseCase: DeleteMessageUseCase,
@@ -65,7 +65,7 @@ class MessageViewModel(
         // if a new trigger value comes down _loadTrigger (e.g. attempt 1 ---> attempt 2),
         // it cancels the previous database/network stream execution and starts a fresh one.
         // Standard combine does not cancel in-flight work when values change!
-        _loadTrigger.flatMapLatest { getActiveMessagesUseCase() },
+        _loadTrigger.flatMapLatest { getCachedMessagesUseCase() },
         _isRefreshing,
         searchQuery,
         _isImportantOnly

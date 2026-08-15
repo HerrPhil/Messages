@@ -8,7 +8,8 @@ import kotlinx.coroutines.flow.Flow
 interface MessageCacheRepository {
     val uiEvents: Flow<MessageUiEvent>
     fun getMessagesByUser(): Flow<NetworkResult<List<MessageDomainModel>>>
-    suspend fun refreshMessagesByUser(onRetry: suspend (Int) -> Unit)
+    suspend fun refreshMessagesOfActiveUser(onRetry: suspend (Int) -> Unit)
+    suspend fun refreshMessagesOfSelectedUser(userId:Int, onRetry: suspend (Int) -> Unit)
     suspend fun markMessageAsRead(messageId: Int)
     suspend fun markMessageAsUnread(messageId: Int)
     suspend fun deleteMessage(messageId: Int)

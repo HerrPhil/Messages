@@ -33,6 +33,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
@@ -44,6 +45,9 @@ import com.reference.implementation.messages.presentation.components.detailCompo
 import com.reference.implementation.messages.presentation.screens.adminhome.AdminHomeScreen
 import com.reference.implementation.messages.presentation.screens.adminhome.AdminHomeViewModel
 import com.reference.implementation.messages.presentation.screens.adminmessage.AdminMessageScreen
+import com.reference.implementation.messages.presentation.screens.adminmessage.AdminMessageUiState
+import com.reference.implementation.messages.presentation.screens.adminmessage.AdminMessageViewModel
+import com.reference.implementation.messages.presentation.screens.adminmessage.MonitorMessageDetailScreen
 import com.reference.implementation.messages.presentation.screens.bulletin.BulletinDetailScreen
 import com.reference.implementation.messages.presentation.screens.bulletin.BulletinDetailViewModel
 import com.reference.implementation.messages.presentation.screens.bulletin.BulletinScreen
@@ -230,10 +234,6 @@ fun AuthenticatedMainParameterHub(
                 AdminHomeScreen(uiState = uiState)
             }
 
-            composable<Route.AdminMessages> {
-                AdminMessageScreen()
-            }
-
             composable<Route.Home> {
                 val viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory)
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -252,9 +252,7 @@ fun AuthenticatedMainParameterHub(
                     val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
                     val uiEvents = viewModel.uiEvents
                     val onSearchChanged: (String) -> Unit = remember {
-                        { newQuery ->
-                            viewModel.onSearchChanged(newQuery)
-                        }
+                        { newQuery -> viewModel.onSearchChanged(newQuery) }
                     }
 
                     val onImportantOnlyToggled = remember {
@@ -292,13 +290,15 @@ fun AuthenticatedMainParameterHub(
                         }
 
                     // The UNDO action
-                    val onRestoreMessage: (MessageDomainModel) -> Unit = remember(isRefreshing) {
-                        { deletedMessage ->
-                            if (!isRefreshing) {
-                                viewModel.onRestoreMessage(deletedMessage)
+                    val onRestoreMessage: (MessageDomainModel) -> Unit =
+                        remember(isRefreshing) {
+                            { deletedMessage ->
+                                if (!isRefreshing) {
+                                    viewModel.onRestoreMessage(deletedMessage)
+                                }
                             }
                         }
-                    }
+
                     val onDeleteMessage: (Int) -> Unit = remember(isRefreshing) {
                         { messageId ->
                             if (!isRefreshing) {
@@ -306,6 +306,7 @@ fun AuthenticatedMainParameterHub(
                             }
                         }
                     }
+
                     val onToggleReadStatus: (Int, Boolean) -> Unit = remember(isRefreshing) {
                         { messageId, newReadStatus ->
                             if (!isRefreshing) {
@@ -331,26 +332,156 @@ fun AuthenticatedMainParameterHub(
                 }
 
                 detailComposable<Route.MessageDetail> {
-                    // ViewModel is automatically constructed with the correct ID inside the SavedStateHandle!
-                    val viewModel: MessageDetailViewModel =
+                    SetUpMessageDetailScreenDestination(childNavController)
+                }
+            }
+
+            navigation<Route.AdminMessageGraph>(startDestination = Route.AdminMessages) {
+
+                composable<Route.AdminMessages> {
+                    val viewModel: AdminMessageViewModel =
                         viewModel(factory = AppViewModelProvider.Factory)
-                    // Grab the data stream from the ViewModel
+                    val key: Any = MyKeyObject
                     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-                    val onDeleteMessage: (Int) -> Unit = { messageId ->
-                        viewModel.onDeleteMessage(messageId)
-                    }
-                    val onToggleReadStatus: (Int, Boolean) -> Unit = { messageId, newReadStatus ->
-                        viewModel.onToggleReadStatus(messageId, newReadStatus)
+                    val isRefreshing =
+                        (uiState as? AdminMessageUiState.Success)?.isRefreshing == true
+                    val isAdminSelected =
+                        (uiState as? AdminMessageUiState.Success)?.isAdminSelected == true
+                    val searchQuery by viewModel.searchQuery.collectAsStateWithLifecycle()
+                    val userOptionQuery by viewModel.userOptionQuery.collectAsStateWithLifecycle()
+                    val uiEvents = viewModel.uiEvents
+                    val onSearchChanged: (String) -> Unit = remember {
+                        { newQuery -> viewModel.onSearchChanged(newQuery) }
                     }
 
-                    MessageDetailScreen(
-                        uiState = uiState,
-                        // Executing popBackStack clears this destination off the stack
-                        // and returns the user back to the message list smoothly
-                        onNavigateBack = { childNavController.popBackStack() },
+                    val onImportantOnlyToggled = remember {
+                        { enabled: Boolean -> viewModel.onImportantOnlyToggled(enabled) }
+                    }
+
+                    // used by pull-to-refresh - does not get disabled when refreshing
+                    val onRefresh: () -> Unit = remember {
+                        { viewModel.onRefresh() }
+                    }
+
+                    val onMessageClicked: (Int) -> Unit =
+                        remember(isRefreshing, isAdminSelected) {
+
+                            // The extra key, "isAdminSelected", is necessary since the UI State
+                            // changes several times. It starts as Loading on a few calls.
+                            // Then it settles into Success.
+                            // When UI state is Loading then "isAdminSelected" defaults to false.
+                            // Without the "isAdminSelected" key,
+                            // this prematurely locks in the lambda to the else condition,
+                            // With the "isAdminSelected" key,
+                            // then the lambda gets updated correctly,
+
+                            { messageId ->
+                                // The hub owns the controller and executes the actual routing
+                                if (!isRefreshing) {
+                                    if (isAdminSelected) {
+                                        childNavController.navigate(
+                                            Route.AdminMessageDetail(id = messageId)
+                                        )
+                                    } else {
+                                        childNavController.navigate(
+                                            Route.AdminMonitorMessageDetail(id = messageId)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+
+                    val onToggleImportantMessageClicked: (Int, Boolean) -> Unit =
+                        remember(isRefreshing) {
+                            { messageId, newIsImportant ->
+                                // The hub owns the controller and executes the actual routing
+                                if (!isRefreshing) {
+                                    viewModel.onToggleImportantMessageClicked(
+                                        messageId,
+                                        newIsImportant
+                                    )
+                                }
+                            }
+                        }
+
+                    // The UNDO action
+                    val onRestoreMessage: (MessageDomainModel) -> Unit =
+                        remember(isRefreshing) {
+                            { deletedMessage ->
+                                if (!isRefreshing) {
+                                    viewModel.onRestoreMessage(deletedMessage)
+                                }
+                            }
+                        }
+
+                    val onDeleteMessage: (Int) -> Unit =
+                        remember(isRefreshing) {
+                            { messageId ->
+                                if (!isRefreshing) {
+                                    viewModel.onDeleteMessage(messageId)
+                                }
+                            }
+                        }
+
+                    val onToggleReadStatus: (Int, Boolean) -> Unit =
+                        remember(isRefreshing) {
+                            { messageId, newReadStatus ->
+                                if (!isRefreshing) {
+                                    viewModel.onToggleReadStatus(messageId, newReadStatus)
+                                }
+                            }
+                        }
+
+                    val onUserOptionChanged: (String) -> Unit =
+                        remember {
+                            { newQuery -> viewModel.onUserOptionQueryChanged(newQuery) }
+                        }
+
+                    val onUserOptionClicked: (Int, Boolean) -> Unit =
+                        remember {
+                            { newUserId, newIsAdmin ->
+                                viewModel.onUserOptionClicked(
+                                    newUserId,
+                                    newIsAdmin
+                                )
+                            }
+                        }
+
+                    val onLoadSelectedMessages: () -> Unit =
+                        remember(isRefreshing) {
+                            {
+                                if (!isRefreshing) {
+                                    viewModel.loadSelectedMessageData()
+                                }
+                            }
+                        }
+
+                    AdminMessageScreen(
+                        uiState,
+                        uiEvents,
+                        key,
+                        searchQuery,
+                        userOptionQuery,
+                        onImportantOnlyToggled,
+                        onRefresh,
+                        onMessageClicked,
+                        onToggleImportantMessageClicked,
+                        onSearchChanged,
+                        onRestoreMessage,
                         onDeleteMessage,
-                        onToggleReadStatus
+                        onToggleReadStatus,
+                        onUserOptionChanged,
+                        onUserOptionClicked,
+                        onLoadSelectedMessages
                     )
+                }
+
+                detailComposable<Route.AdminMessageDetail> {
+                    SetUpMessageDetailScreenDestination(childNavController)
+                }
+
+                detailComposable<Route.AdminMonitorMessageDetail> {
+                    SetUpMonitorMessageDetailScreenDestination(childNavController)
                 }
             }
 
@@ -415,3 +546,46 @@ fun AuthenticatedMainParameterHub(
     }
 }
 
+
+@Composable
+fun SetUpMessageDetailScreenDestination(childNavController: NavHostController) {
+    // ViewModel is automatically constructed with the correct ID inside the SavedStateHandle!
+    val viewModel: MessageDetailViewModel =
+        viewModel(factory = AppViewModelProvider.Factory)
+    // Grab the data stream from the ViewModel
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val onDeleteMessage: (Int) -> Unit = { messageId ->
+        viewModel.onDeleteMessage(messageId)
+    }
+    val onToggleReadStatus: (Int, Boolean) -> Unit = { messageId, newReadStatus ->
+        viewModel.onToggleReadStatus(messageId, newReadStatus)
+    }
+
+    MessageDetailScreen(
+        uiState = uiState,
+        // Executing popBackStack clears this destination off the stack
+        // and returns the user back to the message list smoothly
+        onNavigateBack = { childNavController.popBackStack() },
+        onDeleteMessage,
+        onToggleReadStatus
+    )
+}
+
+@Composable
+fun SetUpMonitorMessageDetailScreenDestination(childNavController: NavHostController) {
+    // ViewModel is automatically constructed with the correct ID inside the SavedStateHandle!
+    val viewModel: MessageDetailViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    // Grab the data stream from the ViewModel
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val onDeleteMessage: (Int) -> Unit = { _ -> } // do nothing - only monitor
+    val onToggleReadStatus: (Int, Boolean) -> Unit = { _, _ -> } // do nothing - only monitor
+
+    MonitorMessageDetailScreen(
+        uiState = uiState,
+        // Executing popBackStack clears this destination off the stack
+        // and returns the user back to the message list smoothly
+        onNavigateBack = { childNavController.popBackStack() },
+        onDeleteMessage,
+        onToggleReadStatus
+    )
+}

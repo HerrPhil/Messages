@@ -57,7 +57,7 @@ object AppViewModelProvider {
             MessageViewModel(
                 savedStateHandle,
                 messageApplication().container.loadActiveMessagesUseCase,
-                messageApplication().container.getActiveMessagesUseCase,
+                messageApplication().container.getCachedMessagesUseCase,
                 messageApplication().container.markMessageAsReadUseCase,
                 messageApplication().container.markMessageAsUnreadUseCase,
                 messageApplication().container.deleteMessageUseCase,
@@ -75,7 +75,7 @@ object AppViewModelProvider {
             // 2. Instantiate the ViewModel cleanly
             MessageDetailViewModel(
                 savedStateHandle,
-                messageApplication().container.getActiveMessagesUseCase,
+                messageApplication().container.getCachedMessagesUseCase,
                 messageApplication().container.markMessageAsReadUseCase,
                 messageApplication().container.markMessageAsUnreadUseCase,
                 messageApplication().container.deleteMessageUseCase
@@ -86,13 +86,6 @@ object AppViewModelProvider {
         initializer {
             AdminHomeViewModel(
                 messageApplication().container.getAdminDashboardUseCase
-            )
-        }
-
-        // The message view model initializer.
-        initializer {
-            AdminMessageViewModel(
-                // TODO add use case(s) to get admin message info
             )
         }
 
@@ -117,6 +110,25 @@ object AppViewModelProvider {
             )
         }
 
+        initializer {
+            val savedStateHandle = this.createSavedStateHandle()
+
+            AdminMessageViewModel(
+                savedStateHandle,
+                messageApplication().container.loadActiveMessagesUseCase,
+                messageApplication().container.loadSelectedMessagesUseCase,
+                messageApplication().container.getCachedMessagesUseCase,
+                messageApplication().container.loadAllUsersUseCase,
+                messageApplication().container.getAdminUserInformationUseCase,
+                messageApplication().container.markMessageAsReadUseCase,
+                messageApplication().container.markMessageAsUnreadUseCase,
+                messageApplication().container.deleteMessageUseCase,
+                messageApplication().container.restoreMessageUseCase,
+                messageApplication().container.markMessageAsImportantUseCase,
+                messageApplication().container.markMessageAsNotImportantUseCase,
+                messageApplication().container.getMessageUiEventsUseCase
+            )
+        }
     }
 }
 

@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config xmlns:android="http://schemas.android.com/apk/res/android">
     <domain-config cleartextTrafficPermitted="true">
+        <!-- following is computer IP address used by WiFi connected device -->
+<!--        <domain includeSubdomains="true">10.0.0.204</domain>-->
+        <!-- following is android studio IP address used by emulator device -->
         <domain includeSubdomains="true">10.0.2.2</domain>
     </domain-config>
 </network-security-config>

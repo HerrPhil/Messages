@@ -3,10 +3,13 @@ package com.reference.implementation.messages.domain.use_case
 import com.reference.implementation.messages.domain.model.MessageDomainModel
 import com.reference.implementation.messages.domain.repository.MessageCacheRepository
 import com.reference.implementation.messages.domain.repository.UserPreferencesRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.onStart
 
-class GetActiveMessagesUseCase(
+class GetCachedMessagesUseCase(
     private val messageCacheRepository: MessageCacheRepository,
     private val userPreferencesRepository: UserPreferencesRepository
 ) {
@@ -26,5 +29,7 @@ class GetActiveMessagesUseCase(
                 }
             }
         }
+            .onStart { emit(Resource.Loading) }
+            .flowOn(Dispatchers.Default)
     }
 }

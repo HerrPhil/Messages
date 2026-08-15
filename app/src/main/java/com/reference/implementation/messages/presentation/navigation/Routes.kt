@@ -34,7 +34,7 @@ sealed class Route {
     data object MessagesGraph : Route() {
         @Transient
         override val icon = Icons.Default.Email
-        override val label = "Messages Graph"
+        override val label = "Messages"
     }
 
     @Suppress("Unused")
@@ -42,14 +42,14 @@ sealed class Route {
     data object AdminMessageGraph : Route() {
         @Transient
         override val icon = Icons.AutoMirrored.Filled.ListAlt
-        override val label = "Admin Message Graph"
+        override val label = "Admin Messages"
     }
 
     @Serializable
     data object BulletinsGraph : Route() {
         @Transient
         override val icon = Icons.AutoMirrored.Filled.List
-        override val label = "Bulletins Graph"
+        override val label = "Bulletins"
     }
 
     @Serializable
@@ -110,6 +110,12 @@ sealed class Route {
 
     @Serializable
     data class MessageDetail(val id: Int)
+
+    @Serializable
+    data class AdminMessageDetail(val id: Int)
+
+    @Serializable
+    data class AdminMonitorMessageDetail(val id: Int)
 
     @Serializable
     data class BulletinDetail(val id: Int)

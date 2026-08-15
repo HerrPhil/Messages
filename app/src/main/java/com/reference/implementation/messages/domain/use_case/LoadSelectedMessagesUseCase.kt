@@ -2,10 +2,11 @@ package com.reference.implementation.messages.domain.use_case
 
 import com.reference.implementation.messages.domain.repository.MessageCacheRepository
 
-class LoadActiveMessagesUseCase(private val repo: MessageCacheRepository) {
+class LoadSelectedMessagesUseCase(private val repo: MessageCacheRepository) {
     suspend operator fun invoke(
+        userId: Int,
         onRetry: suspend (Int) -> Unit
     ) {
-        repo.refreshMessagesOfActiveUser(onRetry)
+        repo.refreshMessagesOfSelectedUser(userId, onRetry)
     }
 }

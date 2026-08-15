@@ -7,7 +7,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.reference.implementation.messages.domain.model.toMessageUiDetail
 import com.reference.implementation.messages.domain.use_case.DeleteMessageUseCase
-import com.reference.implementation.messages.domain.use_case.GetActiveMessagesUseCase
+import com.reference.implementation.messages.domain.use_case.GetCachedMessagesUseCase
 import com.reference.implementation.messages.domain.use_case.MarkMessageAsReadUseCase
 import com.reference.implementation.messages.domain.use_case.MarkMessageAsUnreadUseCase
 import com.reference.implementation.messages.domain.use_case.Resource
@@ -22,7 +22,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalCoroutinesApi::class)
 class MessageDetailViewModel(
     savedStateHandle: SavedStateHandle,
-    getActiveMessagesUseCase: GetActiveMessagesUseCase,
+    getCachedMessagesUseCase: GetCachedMessagesUseCase,
     private val markMessageAsReadUseCase: MarkMessageAsReadUseCase,
     private val markMessageAsUnreadUseCase: MarkMessageAsUnreadUseCase,
     private val deleteMessageUseCase: DeleteMessageUseCase
@@ -32,7 +32,7 @@ class MessageDetailViewModel(
     private val messageId: Int = checkNotNull(savedStateHandle.toRoute<Route.MessageDetail>().id)
 
     val uiState: StateFlow<MessageDetailUiState> =
-        getActiveMessagesUseCase().map { resourceResult ->
+        getCachedMessagesUseCase().map { resourceResult ->
             when (resourceResult) {
                 is Resource.Loading -> {
                     MessageDetailUiState.Loading

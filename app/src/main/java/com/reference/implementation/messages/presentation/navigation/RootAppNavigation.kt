@@ -105,8 +105,19 @@ fun RootAppNavigation(
                         defaultRoute = Route.AdminHome::class.qualifiedName ?: "No route",
                         onRouteSelectTitle = { qualifiedRouteName ->
                             when (qualifiedRouteName) {
-                                Route.AdminMessages::class.qualifiedName -> "Administrator Message Centre"
+                                Route.AdminMessages::class.qualifiedName -> "Admin Messages Centre"
+                                // The following option reduces title flicker
+                                // when NavHost state changes instantly,
+                                // and top bar visibility slide up
+                                // and fade out are still processing.
+                                Route.AdminMessageDetail::class.qualifiedName + "/{id}" -> "Admin Message Centre"
+                                Route.AdminMonitorMessageDetail::class.qualifiedName + "/{id}" -> "Admin Message Centre"
                                 Route.Bulletins::class.qualifiedName -> "Bulletin Board"
+                                // The following option reduces title flicker
+                                // when NavHost state changes instantly,
+                                // and top bar visibility slide up
+                                // and fade out are still processing.
+                                Route.BulletinDetail::class.qualifiedName + "/{id}" -> "Bulletin Board"
                                 // Home title move to "else" to make "when" statement exhaustive.
                                 else -> "Administrator Home Page"
                             }
@@ -114,8 +125,8 @@ fun RootAppNavigation(
                         },
                         bottomBarTabs = listOf(
                             Route.AdminHome,
-                            Route.AdminMessages,
-                            Route.Bulletins
+                            Route.AdminMessageGraph,
+                            Route.BulletinsGraph
                         )
                     )
 

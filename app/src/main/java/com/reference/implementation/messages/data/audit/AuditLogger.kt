@@ -11,7 +11,7 @@ class Audit {
     }
 
     fun writeLog(message: String) {
-        // TODO write. the message to an audit logger repository or SIEM
+        // FUTURE FEATURE - write the message to an audit logger repository or SIEM.
         Log.d("audit", message)
     }
 }

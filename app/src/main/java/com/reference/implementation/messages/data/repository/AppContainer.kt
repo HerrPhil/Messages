@@ -25,15 +25,18 @@ import com.reference.implementation.messages.domain.repository.UserPreferencesRe
 import com.reference.implementation.messages.domain.repository.UserRepository
 import com.reference.implementation.messages.domain.use_case.DeleteMessageUseCase
 import com.reference.implementation.messages.domain.use_case.ForceLogoutUseCase
-import com.reference.implementation.messages.domain.use_case.GetActiveMessagesUseCase
+import com.reference.implementation.messages.domain.use_case.GetCachedMessagesUseCase
 import com.reference.implementation.messages.domain.use_case.GetAdminDashboardUseCase
+import com.reference.implementation.messages.domain.use_case.GetAdminUserInformationUseCase
 import com.reference.implementation.messages.domain.use_case.GetAllBulletinsUseCase
 import com.reference.implementation.messages.domain.use_case.GetBulletinUseCase
 import com.reference.implementation.messages.domain.use_case.GetMessageUiEventsUseCase
 import com.reference.implementation.messages.domain.use_case.GetUserDashboardUseCase
 import com.reference.implementation.messages.domain.use_case.LoadActiveMessagesUseCase
 import com.reference.implementation.messages.domain.use_case.LoadAllBulletinsUseCase
+import com.reference.implementation.messages.domain.use_case.LoadAllUsersUseCase
 import com.reference.implementation.messages.domain.use_case.LoadBulletinUseCase
+import com.reference.implementation.messages.domain.use_case.LoadSelectedMessagesUseCase
 import com.reference.implementation.messages.domain.use_case.LoginUseCase
 import com.reference.implementation.messages.domain.use_case.LogoutUseCase
 import com.reference.implementation.messages.domain.use_case.MarkBulletinAsBookmarkUseCase
@@ -70,7 +73,8 @@ interface AppContainer {
     val getUserDashboardUseCase: GetUserDashboardUseCase
     val refreshTokenUseCase: RefreshTokenUseCase
     val loadActiveMessagesUseCase: LoadActiveMessagesUseCase
-    val getActiveMessagesUseCase: GetActiveMessagesUseCase
+    val loadSelectedMessagesUseCase: LoadSelectedMessagesUseCase
+    val getCachedMessagesUseCase: GetCachedMessagesUseCase
     val markMessageAsReadUseCase: MarkMessageAsReadUseCase
     val markMessageAsUnreadUseCase: MarkMessageAsUnreadUseCase
     val deleteMessageUseCase: DeleteMessageUseCase
@@ -85,6 +89,8 @@ interface AppContainer {
     val markBulletinAsBookmarkUseCase: MarkBulletinAsBookmarkUseCase
     val markBulletinAsNotBookmarkUseCase: MarkBulletinAsNotBookmarkUseCase
     val getAdminDashboardUseCase: GetAdminDashboardUseCase
+    val loadAllUsersUseCase: LoadAllUsersUseCase
+    val getAdminUserInformationUseCase: GetAdminUserInformationUseCase
     val authSessionManager: AuthSessionManager
     val roleManager: RoleManager
 }
@@ -192,7 +198,9 @@ class AppMessageContainer(context: Context) : AppContainer {
         val contentType = "application/json".toMediaType()
 
         Retrofit.Builder()
-//            .baseUrl("http://192.168.215.165:4000/")
+            // following is computer IP address used by WiFi connected device
+//            .baseUrl("http://10.0.0.204:4000/")
+            // following is android studio IP address used by emulator device
             .baseUrl("http://10.0.2.2:4000/")
             .client(client) // This is incorporating the logging of the HTTP client
             // This is the magic line for Kotlinx Serialization
@@ -300,8 +308,8 @@ class AppMessageContainer(context: Context) : AppContainer {
         LoadActiveMessagesUseCase(messageCacheRepository)
     }
 
-    override val getActiveMessagesUseCase: GetActiveMessagesUseCase by lazy {
-        GetActiveMessagesUseCase(messageCacheRepository, userPreferencesRepository)
+    override val getCachedMessagesUseCase: GetCachedMessagesUseCase by lazy {
+        GetCachedMessagesUseCase(messageCacheRepository, userPreferencesRepository)
     }
 
     override val markMessageAsReadUseCase: MarkMessageAsReadUseCase by lazy {
@@ -358,6 +366,18 @@ class AppMessageContainer(context: Context) : AppContainer {
 
     override val getAdminDashboardUseCase: GetAdminDashboardUseCase by lazy {
         GetAdminDashboardUseCase(userRepository, messageRepository, bulletinRepository)
+    }
+
+    override val loadAllUsersUseCase: LoadAllUsersUseCase by lazy {
+        LoadAllUsersUseCase(userRepository)
+    }
+
+    override val getAdminUserInformationUseCase: GetAdminUserInformationUseCase by lazy {
+        GetAdminUserInformationUseCase(userRepository)
+    }
+
+    override val loadSelectedMessagesUseCase: LoadSelectedMessagesUseCase by lazy {
+        LoadSelectedMessagesUseCase(messageCacheRepository)
     }
 
 }

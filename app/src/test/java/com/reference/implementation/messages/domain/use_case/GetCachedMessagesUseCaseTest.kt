@@ -18,15 +18,15 @@ import org.junit.Test
 import java.io.IOException
 import java.time.Instant
 
-class GetActiveMessagesUseCaseTest {
+class GetCachedMessagesUseCaseTest {
 
     private val messageCacheRepository: MessageCacheRepository = mockk()
     private val userPreferencesRepository: UserPreferencesRepository = mockk()
-    private lateinit var useCase: GetActiveMessagesUseCase // under test
+    private lateinit var useCase: GetCachedMessagesUseCase // under test
 
     @Before
     fun setUp() {
-        useCase = GetActiveMessagesUseCase(messageCacheRepository, userPreferencesRepository)
+        useCase = GetCachedMessagesUseCase(messageCacheRepository, userPreferencesRepository)
     }
 
     @Test
@@ -66,20 +66,24 @@ class GetActiveMessagesUseCaseTest {
 
             // Act & Assert
             useCase().test {
-                // 1. Initial emission: Neither message is important, list is sorted by date descending (message2 first)
+                // 1. Initial emission: onStart outputs Loading
                 val initialItem = awaitItem()
-                assertTrue(initialItem is Resource.Success)
+                assertTrue(initialItem is Resource.Loading)
 
-                val initialList = (initialItem as Resource.Success).data
-                assertEquals(2, initialList.size)
-                assertEquals(102, initialList[0].id)
-                assertFalse(initialList[0].isImportant)
-                assertFalse(initialList[1].isImportant)
+                // 2. Initial emission: Neither message is important, list is sorted by date descending (message2 first)
+                val nextItem = awaitItem()
+                assertTrue(nextItem is Resource.Success)
 
-                // 2. Simulate the user toggling 'Important' on message 102 in DataStore
+                val nextList = (nextItem as Resource.Success).data
+                assertEquals(2, nextList.size)
+                assertEquals(102, nextList[0].id)
+                assertFalse(nextList[0].isImportant)
+                assertFalse(nextList[1].isImportant)
+
+                // 3. Simulate the user toggling 'Important' on message 102 in DataStore
                 importantIdsFlow.value = setOf("102")
 
-                // 3. Reactively await second emission
+                // 4. Reactively await second emission
                 val updatedItem = awaitItem()
                 assertTrue(updatedItem is Resource.Success)
 
@@ -105,6 +109,10 @@ class GetActiveMessagesUseCaseTest {
 
         // Act & Assert
         useCase().test {
+            // 1. Initial emission: onStart outputs Loading
+            val initialItem = awaitItem()
+            assertTrue(initialItem is Resource.Loading)
+
             val item = awaitItem()
             assertTrue(item is Resource.Error)
             assertEquals("No internet connection", (item as Resource.Error).message)
@@ -126,6 +134,10 @@ class GetActiveMessagesUseCaseTest {
 
         // Act & Assert
         useCase().test {
+            // 1. Initial emission: onStart outputs Loading
+            val initialItem = awaitItem()
+            assertTrue(initialItem is Resource.Loading)
+
             val item = awaitItem()
             assertTrue(item is Resource.Error)
             assertEquals("Message Details not authorized", (item as Resource.Error).message)

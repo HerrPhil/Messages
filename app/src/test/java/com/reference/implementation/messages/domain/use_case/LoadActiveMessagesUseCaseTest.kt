@@ -21,14 +21,14 @@ class LoadActiveMessagesUseCaseTest {
     @Test
     fun `invoke delegates the refresh all bulletins to the repository correctly`() = runTest {
 
-        coEvery { messageCacheRepository.refreshMessagesByUser(any()) } returns Unit
+        coEvery { messageCacheRepository.refreshMessagesOfActiveUser(any()) } returns Unit
 
         // Act
         useCase.invoke({})
 
         // Assert
         coVerify(exactly = 1) {
-            messageCacheRepository.refreshMessagesByUser(any())
+            messageCacheRepository.refreshMessagesOfActiveUser(any())
         }
     }
 }

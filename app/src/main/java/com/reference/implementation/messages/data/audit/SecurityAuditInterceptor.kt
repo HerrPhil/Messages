@@ -39,7 +39,7 @@ class SecurityAuditInterceptor : Interceptor {
     private fun auditLog(level: String, url: String, message: String, requestStart: Long) {
         // In a real (production) app,
         // this might send data to a secure remote logger like Timber or Firebase.
-        // TODO store audit logs for techs in a remote logger (free)
+        // FUTURE FEATURE - store audit logs for techs in a remote logger.
         println("[$level] [AUDIT] | URL: $url | MESSAGE: $message| START TIMESTAMP: $requestStart | END TIMESTAMP: ${System.currentTimeMillis()}")
     }
 }
