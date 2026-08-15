@@ -29,11 +29,6 @@ data class MessageRequestDto(
 )
 
 @Serializable
-data class PartialMessageRequestDto(
-    val body: String
-)
-
-@Serializable
 data class MarkMessageAsReadDto(
     val read: Boolean = true
 )
