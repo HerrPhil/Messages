@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -268,77 +267,167 @@ fun MessageDetails(
         },
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
-        // The root content container is a standard Column
-        Column(
+
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(innerPadding) // Consumes the Scaffold top bar/ system spacing
+                .padding(innerPadding)
         ) {
 
-            MessageSearchInput(
-                searchQuery = searchQuery,
-                onSearchValueChanged,
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
+            item {
 
-            FilterChip(
-                selected = isImportantOnly,
-                onClick = { onImportantOnlyToggled(!isImportantOnly) },
-                label = { Text("Important Only") },
-                leadingIcon = {
-                    if (isImportantOnly) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = "Selected"
-                        )
-                    }
-                },
-                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-            )
-
-            // This Box is the "Anchor Container"
-            Box(modifier = Modifier.weight(1f)) {
-
-                // Scrollable List (Fills the remaining vertical space)
-                LazyColumn(
+                // The root content container is a standard Column
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    contentPadding = PaddingValues(bottom = 16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                        .fillMaxSize()
+                        .padding(innerPadding) // Consumes the Scaffold top bar/ system spacing
                 ) {
-                    items(
-                        items = list,
-                        key = { message -> message.id },
-                    ) { message ->
-                        SwipeableMessageItem(
-                            message = message,
-                            isRefreshing = isRefreshing,
-                            onDelete = { onDelete(message.id) },
-                            onToggleReadStatus = {
-                                onToggleReadStatus(message.id, !message.read)
-                            },
-                            onItemClicked = { onMessageClicked(message.id) },
-                            onToggleImportantClicked = {
-                                onToggleImportantMessageClicked(
-                                    message.id,
-                                    !message.isImportant
+
+                    MessageSearchInput(
+                        searchQuery = searchQuery,
+                        onSearchValueChanged,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+
+                    FilterChip(
+                        selected = isImportantOnly,
+                        onClick = { onImportantOnlyToggled(!isImportantOnly) },
+                        label = { Text("Important Only") },
+                        leadingIcon = {
+                            if (isImportantOnly) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Selected"
                                 )
-                            },
-                            // THE FIX: Generate the scoped modifier here where the scope is valid!
-                            modifier = Modifier.animateItem()
+                            }
+                        },
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+            }
+
+            items(
+                items = list,
+                key = { message -> message.id },
+
+                ) { message ->
+                SwipeableMessageItem(
+                    message = message,
+                    isRefreshing = isRefreshing,
+                    onDelete = { onDelete(message.id) },
+                    onToggleReadStatus = {
+                        onToggleReadStatus(message.id, !message.read)
+                    },
+                    onItemClicked = { onMessageClicked(message.id) },
+                    onToggleImportantClicked = {
+                        onToggleImportantMessageClicked(
+                            message.id,
+                            !message.isImportant
                         )
+                    },
+                    // THE FIX: Generate the scoped modifier here where the scope is valid!
+                    modifier = Modifier
+                        .padding(
+                            start = 16.dp,
+                            end = 16.dp,
+                            top = 4.dp,
+                            bottom = 4.dp
+                        )
+                        .animateItem()
+                )
+            }
+
+            item {
+                if (list.isEmpty() && searchQuery.isNotEmpty()) {
+                    Column {
+                        Spacer(modifier = Modifier.height(80.dp))
+                        EmptyListContent("No matches for $searchQuery")
                     }
                 }
+            }
 
-                if (list.isEmpty() && searchQuery.isNotEmpty()) {
-                    EmptyListContent("No matches for $searchQuery")
-                }
+            item {
                 if (list.isEmpty() && searchQuery.isEmpty()) {
-                    EmptyListContent("No messages")
+                    Column {
+                        Spacer(modifier = Modifier.height(80.dp))
+                        EmptyListContent("No messages")
+                    }
                 }
             }
         }
+
+
+//        // The root content container is a standard Column
+//        Column(
+//            modifier = Modifier
+//                .fillMaxSize()
+//                .padding(innerPadding) // Consumes the Scaffold top bar/ system spacing
+//        ) {
+//
+//            MessageSearchInput(
+//                searchQuery = searchQuery,
+//                onSearchValueChanged,
+//                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+//            )
+//
+//            FilterChip(
+//                selected = isImportantOnly,
+//                onClick = { onImportantOnlyToggled(!isImportantOnly) },
+//                label = { Text("Important Only") },
+//                leadingIcon = {
+//                    if (isImportantOnly) {
+//                        Icon(
+//                            imageVector = Icons.Default.Check,
+//                            contentDescription = "Selected"
+//                        )
+//                    }
+//                },
+//                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
+//            )
+//
+//            // This Box is the "Anchor Container"
+//            Box(modifier = Modifier.weight(1f)) {
+//
+//                // Scrollable List (Fills the remaining vertical space)
+//                LazyColumn(
+//                    modifier = Modifier
+//                        .fillMaxWidth()
+//                        .padding(horizontal = 16.dp, vertical = 8.dp),
+//                    contentPadding = PaddingValues(bottom = 16.dp),
+//                    verticalArrangement = Arrangement.spacedBy(8.dp)
+//                ) {
+//                    items(
+//                        items = list,
+//                        key = { message -> message.id },
+//                    ) { message ->
+//                        SwipeableMessageItem(
+//                            message = message,
+//                            isRefreshing = isRefreshing,
+//                            onDelete = { onDelete(message.id) },
+//                            onToggleReadStatus = {
+//                                onToggleReadStatus(message.id, !message.read)
+//                            },
+//                            onItemClicked = { onMessageClicked(message.id) },
+//                            onToggleImportantClicked = {
+//                                onToggleImportantMessageClicked(
+//                                    message.id,
+//                                    !message.isImportant
+//                                )
+//                            },
+//                            // THE FIX: Generate the scoped modifier here where the scope is valid!
+//                            modifier = Modifier.animateItem()
+//                        )
+//                    }
+//                }
+//
+//                if (list.isEmpty() && searchQuery.isNotEmpty()) {
+//                    EmptyListContent("No matches for $searchQuery")
+//                }
+//                if (list.isEmpty() && searchQuery.isEmpty()) {
+//                    EmptyListContent("No messages")
+//                }
+//            }
+//        }
     }
 }
 

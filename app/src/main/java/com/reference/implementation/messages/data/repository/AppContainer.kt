@@ -200,6 +200,7 @@ class AppMessageContainer(context: Context) : AppContainer {
         Retrofit.Builder()
             // following is computer IP address used by WiFi connected device
 //            .baseUrl("http://10.0.0.204:4000/")
+//            .baseUrl("http://192.168.215.110:4000/")
             // following is android studio IP address used by emulator device
             .baseUrl("http://10.0.2.2:4000/")
             .client(client) // This is incorporating the logging of the HTTP client

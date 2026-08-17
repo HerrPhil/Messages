@@ -3,6 +3,7 @@
     <domain-config cleartextTrafficPermitted="true">
         <!-- following is computer IP address used by WiFi connected device -->
 <!--        <domain includeSubdomains="true">10.0.0.204</domain>-->
+<!--        <domain includeSubdomains="true">192.168.215.110</domain>-->
         <!-- following is android studio IP address used by emulator device -->
         <domain includeSubdomains="true">10.0.2.2</domain>
     </domain-config>
