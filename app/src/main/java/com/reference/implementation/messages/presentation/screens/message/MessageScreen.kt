@@ -81,7 +81,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.flowWithLifecycle
-import com.reference.implementation.messages.domain.model.MessageDomainModel
+import com.reference.implementation.domain.model.MessageDomainModel
 import com.reference.implementation.messages.presentation.components.DateTimeLabel
 import com.reference.implementation.messages.presentation.components.EmptyListContent
 import com.reference.implementation.messages.presentation.components.ErrorContent

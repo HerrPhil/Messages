@@ -1,5 +1,8 @@
 package com.reference.implementation.messages.data.repository
 
+import com.reference.implementation.domain.model.LoginUserDomainModel
+import com.reference.implementation.domain.repository.LoginRepository
+import com.reference.implementation.domain.util.NetworkResult
 import com.reference.implementation.messages.data.audit.Audit
 import com.reference.implementation.messages.data.manager.AccessTokenManager
 import com.reference.implementation.messages.data.manager.AuthSessionManager
@@ -11,8 +14,6 @@ import com.reference.implementation.messages.data.remote.ApiService
 import com.reference.implementation.messages.data.remote.LoginRequestDto
 import com.reference.implementation.messages.data.remote.RoleDto
 import com.reference.implementation.messages.data.remote.toDomainModel
-import com.reference.implementation.messages.domain.model.LoginUserDomainModel
-import com.reference.implementation.messages.domain.repository.LoginRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async

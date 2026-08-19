@@ -5,8 +5,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.reference.implementation.messages.domain.use_case.LoginUseCase
-import com.reference.implementation.messages.domain.use_case.Resource
+import com.reference.implementation.domain.use_case.LoginUseCase
+import com.reference.implementation.domain.use_case.Resource
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay

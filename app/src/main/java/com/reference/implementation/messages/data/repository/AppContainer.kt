@@ -12,41 +12,41 @@ import com.reference.implementation.messages.data.manager.RefreshTokenManager
 import com.reference.implementation.messages.data.manager.RoleManager
 import com.reference.implementation.messages.data.manager.SessionManager
 import com.reference.implementation.messages.data.remote.ApiService
-import com.reference.implementation.messages.domain.repository.BulletinCacheRepository
-import com.reference.implementation.messages.domain.repository.BulletinRepository
-import com.reference.implementation.messages.domain.repository.LoginRepository
-import com.reference.implementation.messages.domain.repository.LogoutRepository
-import com.reference.implementation.messages.domain.repository.MessageCacheRepository
-import com.reference.implementation.messages.domain.repository.MessageRepository
-import com.reference.implementation.messages.domain.repository.PermissionRepository
-import com.reference.implementation.messages.domain.repository.RefreshTokenRepository
-import com.reference.implementation.messages.domain.repository.RoleRepository
-import com.reference.implementation.messages.domain.repository.UserPreferencesRepository
-import com.reference.implementation.messages.domain.repository.UserRepository
-import com.reference.implementation.messages.domain.use_case.DeleteMessageUseCase
-import com.reference.implementation.messages.domain.use_case.ForceLogoutUseCase
-import com.reference.implementation.messages.domain.use_case.GetCachedMessagesUseCase
-import com.reference.implementation.messages.domain.use_case.GetAdminDashboardUseCase
-import com.reference.implementation.messages.domain.use_case.GetAdminUserInformationUseCase
-import com.reference.implementation.messages.domain.use_case.GetAllBulletinsUseCase
-import com.reference.implementation.messages.domain.use_case.GetBulletinUseCase
-import com.reference.implementation.messages.domain.use_case.GetMessageUiEventsUseCase
-import com.reference.implementation.messages.domain.use_case.GetUserDashboardUseCase
-import com.reference.implementation.messages.domain.use_case.LoadActiveMessagesUseCase
-import com.reference.implementation.messages.domain.use_case.LoadAllBulletinsUseCase
-import com.reference.implementation.messages.domain.use_case.LoadAllUsersUseCase
-import com.reference.implementation.messages.domain.use_case.LoadBulletinUseCase
-import com.reference.implementation.messages.domain.use_case.LoadSelectedMessagesUseCase
-import com.reference.implementation.messages.domain.use_case.LoginUseCase
-import com.reference.implementation.messages.domain.use_case.LogoutUseCase
-import com.reference.implementation.messages.domain.use_case.MarkBulletinAsBookmarkUseCase
-import com.reference.implementation.messages.domain.use_case.MarkBulletinAsNotBookmarkUseCase
-import com.reference.implementation.messages.domain.use_case.MarkMessageAsImportantUseCase
-import com.reference.implementation.messages.domain.use_case.MarkMessageAsNotImportantUseCase
-import com.reference.implementation.messages.domain.use_case.MarkMessageAsReadUseCase
-import com.reference.implementation.messages.domain.use_case.MarkMessageAsUnreadUseCase
-import com.reference.implementation.messages.domain.use_case.RefreshTokenUseCase
-import com.reference.implementation.messages.domain.use_case.RestoreMessageUseCase
+import com.reference.implementation.domain.repository.BulletinCacheRepository
+import com.reference.implementation.domain.repository.BulletinRepository
+import com.reference.implementation.domain.repository.LoginRepository
+import com.reference.implementation.domain.repository.LogoutRepository
+import com.reference.implementation.domain.repository.MessageCacheRepository
+import com.reference.implementation.domain.repository.MessageRepository
+import com.reference.implementation.domain.repository.PermissionRepository
+import com.reference.implementation.domain.repository.RefreshTokenRepository
+import com.reference.implementation.domain.repository.RoleRepository
+import com.reference.implementation.domain.repository.UserPreferencesRepository
+import com.reference.implementation.domain.repository.UserRepository
+import com.reference.implementation.domain.use_case.DeleteMessageUseCase
+import com.reference.implementation.domain.use_case.ForceLogoutUseCase
+import com.reference.implementation.domain.use_case.GetCachedMessagesUseCase
+import com.reference.implementation.domain.use_case.GetAdminDashboardUseCase
+import com.reference.implementation.domain.use_case.GetAdminUserInformationUseCase
+import com.reference.implementation.domain.use_case.GetAllBulletinsUseCase
+import com.reference.implementation.domain.use_case.GetBulletinUseCase
+import com.reference.implementation.domain.use_case.GetMessageEventsUseCase
+import com.reference.implementation.domain.use_case.GetUserDashboardUseCase
+import com.reference.implementation.domain.use_case.LoadActiveMessagesUseCase
+import com.reference.implementation.domain.use_case.LoadAllBulletinsUseCase
+import com.reference.implementation.domain.use_case.LoadAllUsersUseCase
+import com.reference.implementation.domain.use_case.LoadBulletinUseCase
+import com.reference.implementation.domain.use_case.LoadSelectedMessagesUseCase
+import com.reference.implementation.domain.use_case.LoginUseCase
+import com.reference.implementation.domain.use_case.LogoutUseCase
+import com.reference.implementation.domain.use_case.MarkBulletinAsBookmarkUseCase
+import com.reference.implementation.domain.use_case.MarkBulletinAsNotBookmarkUseCase
+import com.reference.implementation.domain.use_case.MarkMessageAsImportantUseCase
+import com.reference.implementation.domain.use_case.MarkMessageAsNotImportantUseCase
+import com.reference.implementation.domain.use_case.MarkMessageAsReadUseCase
+import com.reference.implementation.domain.use_case.MarkMessageAsUnreadUseCase
+import com.reference.implementation.domain.use_case.RefreshTokenUseCase
+import com.reference.implementation.domain.use_case.RestoreMessageUseCase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -79,7 +79,7 @@ interface AppContainer {
     val markMessageAsUnreadUseCase: MarkMessageAsUnreadUseCase
     val deleteMessageUseCase: DeleteMessageUseCase
     val restoreMessageUseCase: RestoreMessageUseCase
-    val getMessageUiEventsUseCase: GetMessageUiEventsUseCase
+    val getMessageEventsUseCase: GetMessageEventsUseCase
     val loadAllBulletinsUseCase: LoadAllBulletinsUseCase
     val getAllBulletinsUseCase: GetAllBulletinsUseCase
     val loadBulletinUseCase: LoadBulletinUseCase
@@ -116,13 +116,13 @@ class AppMessageContainer(context: Context) : AppContainer {
 
 
     /**
-     * This is related to login/logout.
+     * This is related to log in & logout.
      * It is the Global State Source (Application Layer) whether the user is authenticated.
      */
     override val authSessionManager = AuthSessionManager()
 
     /**
-     * This is related to login.
+     * This is related to log in event.
      * It is the Global State Source (Application Layer) of the authenticated user's role.
      * Think "Regular User" or "Administrator".
      */
@@ -198,7 +198,7 @@ class AppMessageContainer(context: Context) : AppContainer {
         val contentType = "application/json".toMediaType()
 
         Retrofit.Builder()
-            // following is computer IP address used by WiFi connected device
+            // following is computer IP address used by Wi-Fi connected device
 //            .baseUrl("http://10.0.0.204:4000/")
 //            .baseUrl("http://192.168.215.110:4000/")
             // following is android studio IP address used by emulator device
@@ -329,8 +329,8 @@ class AppMessageContainer(context: Context) : AppContainer {
         RestoreMessageUseCase(messageCacheRepository)
     }
 
-    override val getMessageUiEventsUseCase: GetMessageUiEventsUseCase by lazy {
-        GetMessageUiEventsUseCase(messageCacheRepository)
+    override val getMessageEventsUseCase: GetMessageEventsUseCase by lazy {
+        GetMessageEventsUseCase(messageCacheRepository)
     }
 
     override val loadAllBulletinsUseCase: LoadAllBulletinsUseCase by lazy {

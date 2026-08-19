@@ -1,6 +1,10 @@
 package com.reference.implementation.messages.data.repository
 
 import android.util.Log
+import com.reference.implementation.domain.model.MessageDomainEvent
+import com.reference.implementation.domain.model.MessageDomainModel
+import com.reference.implementation.domain.repository.MessageCacheRepository
+import com.reference.implementation.domain.util.NetworkResult
 import com.reference.implementation.messages.data.audit.Audit
 import com.reference.implementation.messages.data.manager.SessionManager
 import com.reference.implementation.messages.data.manager.SessionResult
@@ -9,9 +13,6 @@ import com.reference.implementation.messages.data.remote.MarkMessageAsReadDto
 import com.reference.implementation.messages.data.remote.MarkMessageAsUnreadDto
 import com.reference.implementation.messages.data.remote.toMessageDomainModel
 import com.reference.implementation.messages.data.remote.toMessageRequestDto
-import com.reference.implementation.messages.domain.model.MessageDomainModel
-import com.reference.implementation.messages.domain.repository.MessageCacheRepository
-import com.reference.implementation.messages.presentation.screens.message.MessageUiEvent
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
@@ -26,7 +27,8 @@ class MessageCacheRepositoryImpl(
     private val sessionManager: SessionManager
 ) : MessageCacheRepository {
 
-    private val _uiEventChannel = Channel<MessageUiEvent>(Channel.BUFFERED)
+    private val _uiEventChannel = Channel<MessageDomainEvent>(Channel.BUFFERED)
+//    private val _uiEventChannel = Channel<MessageUiEvent>(Channel.BUFFERED)
 
     // 1. The Local Memory Cache (The Single Source of Truth)
     private val _messagesByUserCache =
@@ -40,7 +42,7 @@ class MessageCacheRepositoryImpl(
 //    val messagesByUserCache: StateFlow<NetworkResult<List<MessageDomainModel>>> =
 //        _messagesByUserCache.asStateFlow()
 
-    override fun getMessageUiEvents(): Flow<MessageUiEvent> = _uiEventChannel.receiveAsFlow()
+    override fun getMessageDomainEvents(): Flow<MessageDomainEvent> = _uiEventChannel.receiveAsFlow()
 
     override val uiEvents = _uiEventChannel.receiveAsFlow()
 
@@ -126,7 +128,8 @@ class MessageCacheRepositoryImpl(
             toggleReadStatus(messageId, true) // Internal update of hot Status Flow
         } else {
             Log.d("markMessageAsRead", "send a message UI event")
-            _uiEventChannel.send(MessageUiEvent.showToast("Unable to mark message as read"))
+            _uiEventChannel.send(MessageDomainEvent.MessageMarkReadFailureFeedback)
+//            _uiEventChannel.send(MessageUiEvent.showToast("Unable to mark message as read"))
         }
     }
 
@@ -165,7 +168,8 @@ class MessageCacheRepositoryImpl(
             toggleReadStatus(messageId, false) // Internal update of hot Status Flow
         } else {
             Log.d("markMessageAsUnread", "send a message UI event")
-            _uiEventChannel.send(MessageUiEvent.showToast("Unable to mark the messages as unread"))
+            _uiEventChannel.send(MessageDomainEvent.MessageMarkUnReadFailureFeedback)
+//            _uiEventChannel.send(MessageUiEvent.showToast("Unable to mark the messages as unread"))
         }
     }
 
@@ -214,14 +218,16 @@ class MessageCacheRepositoryImpl(
 
                     if (response.isSuccessful) {
                         // Success! We have an empty JSON object, {}.
-                        _uiEventChannel.send(MessageUiEvent.showDeleteSnackbar(targetMessage))
+                        _uiEventChannel.send(MessageDomainEvent.MessageDeleteSuccessFeedback(targetMessage))
+//                        _uiEventChannel.send(MessageUiEvent.showDeleteSnackbar(targetMessage))
                     } else {
                         // 4. ROLLBACK: Put the original state back into the Flow.
                         // The UI will automatically detect this and smoothly animate the card back
                         _messagesByUserCache.value = originalState
 
                         // 5. Alert the user via your one-shot event channel
-                        _uiEventChannel.send(MessageUiEvent.showToast("Unable to delete message. Please try again."))
+                        _uiEventChannel.send(MessageDomainEvent.MessageDeleteFailureFeedback)
+//                        _uiEventChannel.send(MessageUiEvent.showToast("Unable to delete message. Please try again."))
                     }
                 } catch (e: Exception) {
                     Audit.createInstance().writeLog(e.message ?: "no message")
@@ -230,7 +236,8 @@ class MessageCacheRepositoryImpl(
                     _messagesByUserCache.value = originalState
 
                     // 5. Alert the user via your one-shot event channel
-                    _uiEventChannel.send(MessageUiEvent.showToast("Unable to delete message. Please try again."))
+                    _uiEventChannel.send(MessageDomainEvent.MessageDeleteFailureFeedback)
+//                    _uiEventChannel.send(MessageUiEvent.showToast("Unable to delete message. Please try again."))
                 } finally {
                     withContext(NonCancellable) {
                         Audit.createInstance()
@@ -264,17 +271,20 @@ class MessageCacheRepositoryImpl(
                     apiService.addMessage(messageRequestDto)
                 }
                 if (response.isSuccessful) {
-                    _uiEventChannel.send(MessageUiEvent.showToast("Deleted message restored"))
+                    _uiEventChannel.send(MessageDomainEvent.MessageRestoreSuccessFeedback)
+//                    _uiEventChannel.send(MessageUiEvent.showToast("Deleted message restored"))
                 } else {
                     // ROLLBACK UNDO: If the server failed to restore, then remove it again
                     _messagesByUserCache.value = backupState
-                    _uiEventChannel.send(MessageUiEvent.showToast("Could not restore message"))
+                    _uiEventChannel.send(MessageDomainEvent.MessageRestoreFailureFeedback)
+//                    _uiEventChannel.send(MessageUiEvent.showToast("Could not restore message"))
                 }
             } catch (e: Exception) {
                 Audit.createInstance().writeLog(e.message ?: "no message")
                 // ROLLBACK UNDO: If the server failed to restore, then remove it again
                 _messagesByUserCache.value = backupState
-                _uiEventChannel.send(MessageUiEvent.showToast("Could not restore message"))
+                _uiEventChannel.send(MessageDomainEvent.MessageRestoreFailureFeedback)
+//                _uiEventChannel.send(MessageUiEvent.showToast("Could not restore message"))
             } finally {
                 withContext(NonCancellable) {
                     Audit.createInstance()

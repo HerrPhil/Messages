@@ -1,10 +1,11 @@
 package com.reference.implementation.messages.data.repository
 
+import com.reference.implementation.domain.model.UserRoleDomainModel
+import com.reference.implementation.domain.repository.RoleRepository
+import com.reference.implementation.domain.util.NetworkResult
 import com.reference.implementation.messages.data.audit.Audit
 import com.reference.implementation.messages.data.manager.SessionManager
 import com.reference.implementation.messages.data.manager.SessionResult
-import com.reference.implementation.messages.domain.model.UserRoleDomainModel
-import com.reference.implementation.messages.domain.repository.RoleRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable

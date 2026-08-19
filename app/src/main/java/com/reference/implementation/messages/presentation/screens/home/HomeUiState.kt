@@ -1,5 +1,7 @@
 package com.reference.implementation.messages.presentation.screens.home
 
+import com.reference.implementation.domain.model.UserDashboardDomainModel
+
 sealed interface HomeUiState {
     object Idle : HomeUiState
     object Loading : HomeUiState
@@ -16,3 +18,13 @@ sealed interface HomeUiState {
     //    data class Warning(val message: String) : HomeUiState()
     data class Error(val message: String) : HomeUiState
 }
+
+fun UserDashboardDomainModel.toHomeUiState(): HomeUiState =
+    HomeUiState.Success(
+        userName = this.userName,
+        userEmail = this.userEmail,
+        unreadMessages = this.unreadMessages,
+        readMessages = this.readMessages,
+        roles = this.roles,
+        permissions = this.permissions
+    )

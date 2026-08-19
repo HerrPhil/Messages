@@ -3,13 +3,12 @@ package com.reference.implementation.messages.presentation.screens.bulletin
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.reference.implementation.messages.domain.model.BulletinDomainModel
-import com.reference.implementation.messages.domain.model.toBulletinUiDetail
-import com.reference.implementation.messages.domain.use_case.GetAllBulletinsUseCase
-import com.reference.implementation.messages.domain.use_case.LoadAllBulletinsUseCase
-import com.reference.implementation.messages.domain.use_case.MarkBulletinAsBookmarkUseCase
-import com.reference.implementation.messages.domain.use_case.MarkBulletinAsNotBookmarkUseCase
-import com.reference.implementation.messages.domain.use_case.Resource
+import com.reference.implementation.domain.model.BulletinDomainModel
+import com.reference.implementation.domain.use_case.GetAllBulletinsUseCase
+import com.reference.implementation.domain.use_case.LoadAllBulletinsUseCase
+import com.reference.implementation.domain.use_case.MarkBulletinAsBookmarkUseCase
+import com.reference.implementation.domain.use_case.MarkBulletinAsNotBookmarkUseCase
+import com.reference.implementation.domain.use_case.Resource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -160,3 +159,4 @@ private data class BulletinInput(
     val isRefreshing: Boolean,
     val isBookmarkOnly: Boolean
 )
+

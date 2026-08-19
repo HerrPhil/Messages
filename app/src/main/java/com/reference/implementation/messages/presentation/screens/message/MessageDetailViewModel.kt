@@ -5,12 +5,11 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
-import com.reference.implementation.messages.domain.model.toMessageUiDetail
-import com.reference.implementation.messages.domain.use_case.DeleteMessageUseCase
-import com.reference.implementation.messages.domain.use_case.GetCachedMessagesUseCase
-import com.reference.implementation.messages.domain.use_case.MarkMessageAsReadUseCase
-import com.reference.implementation.messages.domain.use_case.MarkMessageAsUnreadUseCase
-import com.reference.implementation.messages.domain.use_case.Resource
+import com.reference.implementation.domain.use_case.DeleteMessageUseCase
+import com.reference.implementation.domain.use_case.GetCachedMessagesUseCase
+import com.reference.implementation.domain.use_case.MarkMessageAsReadUseCase
+import com.reference.implementation.domain.use_case.MarkMessageAsUnreadUseCase
+import com.reference.implementation.domain.use_case.Resource
 import com.reference.implementation.messages.presentation.navigation.Route
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.SharingStarted

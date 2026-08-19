@@ -24,3 +24,4 @@ dependencyResolutionManagement {
 
 rootProject.name = "Messages"
 include(":app")
+include(":core:domain")
