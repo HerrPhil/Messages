@@ -2,8 +2,6 @@ package com.reference.implementation.domain.use_case
 
 import com.reference.implementation.domain.model.LoginUserDomainModel
 import com.reference.implementation.domain.repository.LoginRepository
-import com.reference.implementation.domain.use_case.LoginUseCase
-import com.reference.implementation.domain.use_case.Resource
 import com.reference.implementation.domain.util.NetworkResult
 import io.mockk.coEvery
 import io.mockk.coVerify

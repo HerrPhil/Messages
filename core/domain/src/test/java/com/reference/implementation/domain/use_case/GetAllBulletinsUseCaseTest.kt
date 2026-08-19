@@ -4,8 +4,6 @@ import app.cash.turbine.test
 import com.reference.implementation.domain.model.BulletinDomainModel
 import com.reference.implementation.domain.repository.BulletinCacheRepository
 import com.reference.implementation.domain.repository.UserPreferencesRepository
-import com.reference.implementation.domain.use_case.GetAllBulletinsUseCase
-import com.reference.implementation.domain.use_case.Resource
 import com.reference.implementation.domain.util.NetworkResult
 import io.mockk.every
 import io.mockk.mockk

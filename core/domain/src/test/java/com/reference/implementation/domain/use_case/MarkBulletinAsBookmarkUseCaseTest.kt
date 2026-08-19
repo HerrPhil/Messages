@@ -1,7 +1,6 @@
 package com.reference.implementation.domain.use_case
 
 import com.reference.implementation.domain.repository.UserPreferencesRepository
-import com.reference.implementation.domain.use_case.MarkBulletinAsBookmarkUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk

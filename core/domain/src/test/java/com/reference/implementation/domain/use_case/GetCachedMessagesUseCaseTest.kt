@@ -4,8 +4,6 @@ import app.cash.turbine.test
 import com.reference.implementation.domain.model.MessageDomainModel
 import com.reference.implementation.domain.repository.MessageCacheRepository
 import com.reference.implementation.domain.repository.UserPreferencesRepository
-import com.reference.implementation.domain.use_case.GetCachedMessagesUseCase
-import com.reference.implementation.domain.use_case.Resource
 import com.reference.implementation.domain.util.NetworkResult
 import io.mockk.every
 import io.mockk.mockk

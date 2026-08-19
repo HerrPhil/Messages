@@ -2,8 +2,6 @@ package com.reference.implementation.domain.use_case
 
 import com.reference.implementation.domain.model.RefreshTokenDomainModel
 import com.reference.implementation.domain.repository.RefreshTokenRepository
-import com.reference.implementation.domain.use_case.RefreshTokenUseCase
-import com.reference.implementation.domain.use_case.Resource
 import com.reference.implementation.domain.util.NetworkResult
 import io.mockk.coEvery
 import io.mockk.coVerify

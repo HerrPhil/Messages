@@ -1,7 +1,6 @@
 package com.reference.implementation.domain.use_case
 
 import com.reference.implementation.domain.repository.LogoutRepository
-import com.reference.implementation.domain.use_case.LogoutUseCase
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk

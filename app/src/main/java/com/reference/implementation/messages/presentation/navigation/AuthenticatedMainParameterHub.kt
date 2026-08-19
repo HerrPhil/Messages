@@ -60,8 +60,6 @@ import com.reference.implementation.messages.presentation.screens.message.Messag
 import com.reference.implementation.messages.presentation.screens.message.MessageScreen
 import com.reference.implementation.messages.presentation.screens.message.MessageUiState
 import com.reference.implementation.messages.presentation.screens.message.MessageViewModel
-import com.reference.implementation.messages.presentation.screens.message.toMessageUiEvent
-import kotlinx.coroutines.flow.map
 
 object MyKeyObject
 
