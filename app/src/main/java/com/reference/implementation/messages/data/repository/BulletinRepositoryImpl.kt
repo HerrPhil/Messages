@@ -1,8 +1,9 @@
 package com.reference.implementation.messages.data.repository
 
+import com.reference.implementation.domain.repository.BulletinRepository
+import com.reference.implementation.domain.util.NetworkResult
 import com.reference.implementation.messages.data.audit.Audit
 import com.reference.implementation.messages.data.remote.ApiService
-import com.reference.implementation.messages.domain.repository.BulletinRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable

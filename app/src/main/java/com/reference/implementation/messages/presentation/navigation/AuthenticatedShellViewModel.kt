@@ -2,7 +2,7 @@ package com.reference.implementation.messages.presentation.navigation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.reference.implementation.messages.domain.use_case.LogoutUseCase
+import com.reference.implementation.domain.use_case.LogoutUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 

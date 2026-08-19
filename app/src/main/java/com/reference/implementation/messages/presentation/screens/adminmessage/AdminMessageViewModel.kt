@@ -4,29 +4,30 @@ import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.reference.implementation.messages.domain.model.MessageDomainModel
-import com.reference.implementation.messages.domain.model.UserOptionDomainModel
-import com.reference.implementation.messages.domain.model.toMessageUiDetail
-import com.reference.implementation.messages.domain.model.toUserUiDetail
-import com.reference.implementation.messages.domain.use_case.DeleteMessageUseCase
-import com.reference.implementation.messages.domain.use_case.GetCachedMessagesUseCase
-import com.reference.implementation.messages.domain.use_case.GetAdminUserInformationUseCase
-import com.reference.implementation.messages.domain.use_case.GetMessageUiEventsUseCase
-import com.reference.implementation.messages.domain.use_case.LoadActiveMessagesUseCase
-import com.reference.implementation.messages.domain.use_case.LoadAllUsersUseCase
-import com.reference.implementation.messages.domain.use_case.LoadSelectedMessagesUseCase
-import com.reference.implementation.messages.domain.use_case.MarkMessageAsImportantUseCase
-import com.reference.implementation.messages.domain.use_case.MarkMessageAsNotImportantUseCase
-import com.reference.implementation.messages.domain.use_case.MarkMessageAsReadUseCase
-import com.reference.implementation.messages.domain.use_case.MarkMessageAsUnreadUseCase
-import com.reference.implementation.messages.domain.use_case.Resource
-import com.reference.implementation.messages.domain.use_case.RestoreMessageUseCase
+import com.reference.implementation.domain.model.MessageDomainModel
+import com.reference.implementation.domain.model.UserOptionDomainModel
+import com.reference.implementation.domain.use_case.DeleteMessageUseCase
+import com.reference.implementation.domain.use_case.GetCachedMessagesUseCase
+import com.reference.implementation.domain.use_case.GetAdminUserInformationUseCase
+import com.reference.implementation.domain.use_case.GetMessageEventsUseCase
+import com.reference.implementation.domain.use_case.LoadActiveMessagesUseCase
+import com.reference.implementation.domain.use_case.LoadAllUsersUseCase
+import com.reference.implementation.domain.use_case.LoadSelectedMessagesUseCase
+import com.reference.implementation.domain.use_case.MarkMessageAsImportantUseCase
+import com.reference.implementation.domain.use_case.MarkMessageAsNotImportantUseCase
+import com.reference.implementation.domain.use_case.MarkMessageAsReadUseCase
+import com.reference.implementation.domain.use_case.MarkMessageAsUnreadUseCase
+import com.reference.implementation.domain.use_case.Resource
+import com.reference.implementation.domain.use_case.RestoreMessageUseCase
+import com.reference.implementation.messages.presentation.screens.message.toMessageUiDetail
+import com.reference.implementation.messages.presentation.screens.message.toMessageUiEvent
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -45,7 +46,7 @@ class AdminMessageViewModel(
     private val restoreMessageUseCase: RestoreMessageUseCase,
     private val markMessageAsImportantUseCase: MarkMessageAsImportantUseCase,
     private val markMessageAsNotImportantUseCase: MarkMessageAsNotImportantUseCase,
-    getMessageUiEventsUseCase: GetMessageUiEventsUseCase
+    getMessageEventsUseCase: GetMessageEventsUseCase
 ) : ViewModel() {
 
     companion object {
@@ -203,7 +204,10 @@ class AdminMessageViewModel(
         initialValue = AdminMessageUiState.Loading
     )
 
-    val uiEvents = getMessageUiEventsUseCase()
+    val uiEvents = getMessageEventsUseCase()
+        .map { messageDomainEvent ->
+            messageDomainEvent.toMessageUiEvent()
+        }
 
     init {
         // Initialize messages

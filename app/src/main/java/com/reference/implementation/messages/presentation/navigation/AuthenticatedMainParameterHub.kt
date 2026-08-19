@@ -39,7 +39,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
-import com.reference.implementation.messages.domain.model.MessageDomainModel
+import com.reference.implementation.domain.model.MessageDomainModel
 import com.reference.implementation.messages.presentation.AppViewModelProvider
 import com.reference.implementation.messages.presentation.components.detailComposable
 import com.reference.implementation.messages.presentation.screens.adminhome.AdminHomeScreen

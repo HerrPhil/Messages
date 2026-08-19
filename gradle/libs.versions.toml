@@ -14,11 +14,16 @@ loggingInterceptor = "5.3.2"
 materialIconsExtended = "1.7.8"
 mockk = "1.14.11"
 navigationCompose = "2.9.8"
+okio = "3.18.1"
 retrofit = "3.0.0"
 converterKotlinxSerialization = "3.0.0"
 kotlinxSerializationJsonVersion = "1.11.0"
 okhttp = "5.3.2"
 turbine = "1.2.1"
+jetbrainsKotlinJvm = "2.3.21"
+
+# versions for modules
+coroutines = "1.11.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -42,13 +47,18 @@ androidx-compose-material-icons-extended = { module = "androidx.compose.material
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutinesTest" }
 logging-interceptor = { module = "com.squareup.okhttp3:logging-interceptor", version.ref = "loggingInterceptor" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
+okio = { module = "com.squareup.okio:okio", version.ref = "okio" }
 retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = "retrofit" }
 converter-kotlinx-serialization = { module = "com.squareup.retrofit2:converter-kotlinx-serialization", version.ref = "converterKotlinxSerialization" }
 jetbrains-kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinxSerializationJsonVersion" }
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 
+# libraries for modules
+kotlinx-coroutines-core = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-core", version.ref = "coroutines"}
+
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "jetbrainsKotlinJvm" }
 

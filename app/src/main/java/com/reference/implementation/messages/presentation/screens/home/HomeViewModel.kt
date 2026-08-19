@@ -3,9 +3,8 @@ package com.reference.implementation.messages.presentation.screens.home
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.reference.implementation.messages.data.audit.Audit
-import com.reference.implementation.messages.domain.model.toHomeUiState
-import com.reference.implementation.messages.domain.use_case.GetUserDashboardUseCase
-import com.reference.implementation.messages.domain.use_case.Resource
+import com.reference.implementation.domain.use_case.GetUserDashboardUseCase
+import com.reference.implementation.domain.use_case.Resource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted

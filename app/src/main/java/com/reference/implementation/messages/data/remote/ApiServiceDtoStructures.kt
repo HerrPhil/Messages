@@ -1,9 +1,9 @@
 package com.reference.implementation.messages.data.remote
 
-import com.reference.implementation.messages.domain.model.BulletinDomainModel
-import com.reference.implementation.messages.domain.model.MessageDomainModel
-import com.reference.implementation.messages.domain.model.LoginUserDomainModel
-import com.reference.implementation.messages.domain.model.RefreshTokenDomainModel
+import com.reference.implementation.domain.model.BulletinDomainModel
+import com.reference.implementation.domain.model.MessageDomainModel
+import com.reference.implementation.domain.model.LoginUserDomainModel
+import com.reference.implementation.domain.model.RefreshTokenDomainModel
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import java.time.Instant

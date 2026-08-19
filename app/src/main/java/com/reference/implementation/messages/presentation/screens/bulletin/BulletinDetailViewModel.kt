@@ -4,10 +4,9 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
-import com.reference.implementation.messages.domain.model.toBulletinUiDetail
-import com.reference.implementation.messages.domain.use_case.GetBulletinUseCase
-import com.reference.implementation.messages.domain.use_case.LoadBulletinUseCase
-import com.reference.implementation.messages.domain.use_case.Resource
+import com.reference.implementation.domain.use_case.GetBulletinUseCase
+import com.reference.implementation.domain.use_case.LoadBulletinUseCase
+import com.reference.implementation.domain.use_case.Resource
 import com.reference.implementation.messages.presentation.navigation.Route
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow

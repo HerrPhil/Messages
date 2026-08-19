@@ -64,7 +64,7 @@ object AppViewModelProvider {
                 messageApplication().container.restoreMessageUseCase,
                 messageApplication().container.markMessageAsImportantUseCase,
                 messageApplication().container.markMessageAsNotImportantUseCase,
-                messageApplication().container.getMessageUiEventsUseCase
+                messageApplication().container.getMessageEventsUseCase
             )
         }
 
@@ -126,7 +126,7 @@ object AppViewModelProvider {
                 messageApplication().container.restoreMessageUseCase,
                 messageApplication().container.markMessageAsImportantUseCase,
                 messageApplication().container.markMessageAsNotImportantUseCase,
-                messageApplication().container.getMessageUiEventsUseCase
+                messageApplication().container.getMessageEventsUseCase
             )
         }
     }

@@ -45,6 +45,10 @@ android {
 }
 
 dependencies {
+
+    // modules the app uses
+    implementation(project(":core:domain"))
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
