@@ -13,10 +13,10 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.reference.implementation.messages.data.audit.Audit
-import com.reference.implementation.messages.data.manager.AuthState
-import com.reference.implementation.messages.data.manager.UnauthReason
-import com.reference.implementation.messages.data.manager.UserRoleState
+import com.reference.implementation.data.manager.AuthState
+import com.reference.implementation.data.manager.UnauthReason
+import com.reference.implementation.data.manager.UserRoleState
+import com.reference.implementation.data.audit.auditLog
 import com.reference.implementation.messages.presentation.AppViewModelProvider
 import com.reference.implementation.messages.presentation.screens.login.LoginScreen
 import kotlinx.serialization.Serializable
@@ -94,8 +94,7 @@ fun RootAppNavigation(
         // Authenticated
         composable<MainHub> {
 
-            Audit.createInstance()
-                .writeLog("RootAppNavigation composable is navigating to Route.MainHub")
+            auditLog("RootAppNavigation composable is navigating to Route.MainHub")
 
             // Remember the config so it is only re-evaluated when the user role actually changes
             val config = remember(userRoleState) {

@@ -42,7 +42,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
-import com.reference.implementation.messages.data.audit.Audit
+import com.reference.implementation.data.audit.auditLog
 import com.reference.implementation.messages.ui.theme.MessagesTheme
 import java.time.Duration
 import java.time.Instant
@@ -252,7 +252,7 @@ fun getRelativeTimeString(
             }
         }
     } catch (e: Exception) {
-        Audit.createInstance().writeLog(e.message ?: "no message")
+        auditLog(e.message ?: "no message")
         "Unknown time"
     }
 }

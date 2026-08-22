@@ -2,9 +2,9 @@ package com.reference.implementation.messages.presentation.screens.adminhome
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.reference.implementation.data.audit.auditLog
 import com.reference.implementation.domain.use_case.GetAdminDashboardUseCase
 import com.reference.implementation.domain.use_case.Resource
-import com.reference.implementation.messages.data.audit.Audit
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -37,18 +37,18 @@ class AdminHomeViewModel(
         }
     }.onStart {
         // Fires EVERY TIME collectAsStateWithLifecycle() connects!
-        Audit.createInstance()
-            .writeLog("AdminHomeViewModel UI subscribed: HomeUiState flow collection started")
+        auditLog("AdminHomeViewModel UI subscribed: HomeUiState flow collection started")
+//        Audit.createInstance().writeLog("AdminHomeViewModel UI subscribed: HomeUiState flow collection started")
     }.onCompletion {
         // Fires when the UI unsubscribes (or after WhileSubscribed timeout)
-        Audit.createInstance()
-            .writeLog("AdminHomeViewModel unsubscribed: HomeUiState flow collection ended")
+        auditLog("AdminHomeViewModel unsubscribed: HomeUiState flow collection ended")
+//        Audit.createInstance().writeLog("AdminHomeViewModel unsubscribed: HomeUiState flow collection ended")
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = AdminHomeUiState.Loading
     ).also {
-        Audit.createInstance().writeLog("AdminHomeViewModel declaration of uiState completed.")
+        auditLog("AdminHomeViewModel declaration of uiState completed.")
+//        Audit.createInstance().writeLog("AdminHomeViewModel declaration of uiState completed.")
     }
 }
-
