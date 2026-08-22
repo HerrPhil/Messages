@@ -57,9 +57,6 @@ import com.reference.implementation.domain.use_case.MarkMessageAsUnreadUseCase
 import com.reference.implementation.domain.use_case.RefreshTokenUseCase
 import com.reference.implementation.domain.use_case.RestoreMessageUseCase
 import com.reference.implementation.messages.BuildConfig
-import com.reference.implementation.messages.di.SecurityAuditInterceptor
-import com.reference.implementation.messages.di.AuthInterceptor
-import com.reference.implementation.messages.di.TokenAuthenticator
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob

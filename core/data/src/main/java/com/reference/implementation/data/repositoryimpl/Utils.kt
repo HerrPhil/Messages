@@ -8,7 +8,6 @@ import retrofit2.HttpException
 import java.io.IOException
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import kotlin.coroutines.coroutineContext
 
 internal suspend fun <T> retryIO(
     times: Int = 3,
@@ -27,14 +26,12 @@ internal suspend fun <T> retryIO(
             onRetry(attempt + 1) // add 1 for readability; repeat() is zero-based
             // 1. Only retry on IO/Network exceptions
             auditLog("Retry on IO exception: ".plus(io.message ?: "no message"))
-//            RepositoryAudit.createInstance().writeLog("Retry on IO exception: ".plus(io.message ?: "no message"))
         } catch (http: HttpException) {
             val code = http.code()
             if (code >= 500) {
                 onRetry(attempt + 1) // add 1 for readability; repeat() is zero-based
                 // 1.a. Do not retry on logic errors (like 401 Unauthorized)
                 auditLog("Retry on http 5** exception: ".plus(http.message ?: "no message"))
-//                RepositoryAudit.createInstance().writeLog("Retry on http 5** exception: ".plus(http.message ?: "no message"))
             }
         }
 

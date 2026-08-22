@@ -35,12 +35,10 @@ class BulletinRepositoryImpl(
         }.catch { e ->
             if (e is CancellationException) throw e
             auditLog(e.message ?: "no messages")
-//            RepositoryAudit.createInstance().writeLog(e.message ?: "no messages")
             emit(NetworkResult.Exception(e))
         }.onCompletion {
             withContext(NonCancellable) {
                 auditLog("${auditLogTimestamp()} get messages ended")
-//                RepositoryAudit.createInstance().writeLog("${auditLogTimestamp()} get messages ended")
             }
         }.flowOn(Dispatchers.IO) // Note: Dispatchers.IO is better suited for Network/API calls!
 

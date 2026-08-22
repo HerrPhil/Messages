@@ -54,12 +54,10 @@ class BulletinCacheRepositoryImpl(
                 }
             } catch (e: Exception) {
                 auditLog(e.message ?: "no message")
-//                RepositoryAudit.createInstance().writeLog(e.message ?: "no message")
                 _bulletinsCache.value = NetworkResult.Exception(e)
             } finally {
                 withContext(NonCancellable) {
                     auditLog("${auditLogTimestamp()} refresh bulletins ended")
-//                    RepositoryAudit.createInstance().writeLog("${auditLogTimestamp()} refresh bulletins ended")
                 }
             }
         }
@@ -90,12 +88,10 @@ class BulletinCacheRepositoryImpl(
                 }
             } catch (e: Exception) {
                 auditLog(e.message ?: "no message")
-//                RepositoryAudit.createInstance().writeLog(e.message ?: "no message")
                 _bulletinCache.value = NetworkResult.Exception(e)
             } finally {
                 withContext(NonCancellable) {
                     auditLog("${auditLogTimestamp()} refresh bulletin ended")
-//                    RepositoryAudit.createInstance().writeLog("${auditLogTimestamp()} refresh bulletin ended")
                 }
             }
         }

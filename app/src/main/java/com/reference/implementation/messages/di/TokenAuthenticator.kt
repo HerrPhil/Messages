@@ -3,7 +3,6 @@ package com.reference.implementation.messages.di
 import com.reference.implementation.domain.use_case.ForceLogoutUseCase
 import com.reference.implementation.domain.use_case.RefreshTokenUseCase
 import com.reference.implementation.domain.use_case.Resource
-import com.reference.implementation.messages.di.RetryTag
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
