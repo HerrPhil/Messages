@@ -2,7 +2,7 @@ package com.reference.implementation.messages.presentation.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.reference.implementation.messages.data.audit.Audit
+import com.reference.implementation.data.audit.auditLog
 import com.reference.implementation.domain.use_case.GetUserDashboardUseCase
 import com.reference.implementation.domain.use_case.Resource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -38,23 +38,21 @@ class HomeViewModel(
         }
     }.onStart {
         // Fires EVERY TIME collectAsStateWithLifecycle() connects!
-        Audit.createInstance()
-            .writeLog("HomeViewModel UI subscribed: HomeUiState flow collection started")
+        auditLog("HomeViewModel UI subscribed: HomeUiState flow collection started")
     }.onCompletion {
         // Fires when the UI unsubscribes (or after WhileSubscribed timeout)
-        Audit.createInstance()
-            .writeLog("HomeViewModelUI unsubscribed: HomeUiState flow collection ended")
+        auditLog("HomeViewModelUI unsubscribed: HomeUiState flow collection ended")
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = HomeUiState.Loading
     ).also {
-        Audit.createInstance().writeLog("HomeViewModel declaration of uiState completed.")
+        auditLog("HomeViewModel declaration of uiState completed.")
     }
 
     override fun onCleared() {
         super.onCleared()
-        Audit.createInstance().writeLog("HomeViewModel cleared from memory")
+        auditLog("HomeViewModel cleared from memory")
     }
 
 }

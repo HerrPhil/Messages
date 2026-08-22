@@ -2,8 +2,8 @@ package com.reference.implementation.messages
 
 import android.app.Application
 import android.util.Log
-import com.reference.implementation.messages.data.repository.AppContainer
-import com.reference.implementation.messages.data.repository.AppMessageContainer
+import com.reference.implementation.messages.di.AppContainer
+import com.reference.implementation.messages.di.AppMessageContainer
 
 class MessageApplication : Application() {
 

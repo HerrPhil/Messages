@@ -38,7 +38,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.reference.implementation.messages.data.audit.Audit
+import com.reference.implementation.data.audit.auditLog
 import com.reference.implementation.messages.presentation.AppViewModelProvider
 
 @Composable
@@ -213,8 +213,8 @@ fun SuccessMessage(loginUiState: LoginUiState.Success) {
     val userName = loginUiState.name
     val email = loginUiState.email
     Log.d("LoginScreen", "Success: user $userName, email $email, is logged in successfully")
-    Audit.createInstance()
-        .writeLog("Success: user $userName, email $email, is logged in successfully")
+    auditLog("Success: user $userName, email $email, is logged in successfully")
+//    Audit.createInstance().writeLog("Success: user $userName, email $email, is logged in successfully")
 }
 
 @Preview
