@@ -119,7 +119,7 @@ class BulletinCacheRepositoryImplTest {
                 assertEquals(NetworkResult.Loading, awaitItem())
 
                 // 3. Launch refreshBulletins() asynchronously in the test scope
-                @Suppress("UNUSED_VARIABLE")
+                @Suppress("unused", "UNUSED_VARIABLE")
                 val refreshJob = backgroundScope.launch(testDispatcher) {
                     repository.refreshBulletins(onRetry = { attempt ->
                         retryCount = attempt
@@ -180,6 +180,7 @@ class BulletinCacheRepositoryImplTest {
                 assertEquals(NetworkResult.Loading, awaitItem())
 
                 // 3. Launch refreshBulletins() asynchronously in the test scope
+                @Suppress("unused", "UNUSED_VARIABLE")
                 val refreshJob = backgroundScope.launch(testDispatcher) {
                     repository.refreshBulletins(onRetry = { attempt ->
                         retryCount = attempt
@@ -246,6 +247,7 @@ class BulletinCacheRepositoryImplTest {
                 assertEquals(NetworkResult.Loading, awaitItem())
 
                 // 3. Launch refreshBulletins() asynchronously in the test scope
+                @Suppress("unused", "UNUSED_VARIABLE")
                 val refreshJob = backgroundScope.launch(testDispatcher) {
                     repository.refreshBulletins(onRetry = { attempt ->
                         retryCount = attempt
@@ -306,6 +308,7 @@ class BulletinCacheRepositoryImplTest {
                 assertEquals(NetworkResult.Loading, awaitItem())
 
                 // 3. Launch refreshBulletins() asynchronously in the test scope
+                @Suppress("unused", "UNUSED_VARIABLE")
                 val refreshJob = backgroundScope.launch(testDispatcher) {
                     repository.refreshBulletins(onRetry = { attempt ->
                         retryCount = attempt
@@ -431,6 +434,7 @@ class BulletinCacheRepositoryImplTest {
                 assertEquals(NetworkResult.Loading, awaitItem())
 
                 // 3. Launch refreshBulletins() asynchronously in the test scope
+                @Suppress("unused", "UNUSED_VARIABLE")
                 val refreshJob = backgroundScope.launch(testDispatcher) {
                     repository.refreshBulletin(bulletinId = 6, onRetry = { attempt ->
                         retryCount = attempt
@@ -490,6 +494,7 @@ class BulletinCacheRepositoryImplTest {
                 assertEquals(NetworkResult.Loading, awaitItem())
 
                 // 3. Launch refreshBulletins() asynchronously in the test scope
+                @Suppress("unused", "UNUSED_VARIABLE")
                 val refreshJob = backgroundScope.launch(testDispatcher) {
                     repository.refreshBulletin(bulletinId = 6, onRetry = { attempt ->
                         retryCount = attempt
@@ -554,6 +559,7 @@ class BulletinCacheRepositoryImplTest {
                 assertEquals(NetworkResult.Loading, awaitItem())
 
                 // 3. Launch refreshBulletins() asynchronously in the test scope
+                @Suppress("unused", "UNUSED_VARIABLE")
                 val refreshJob = backgroundScope.launch(testDispatcher) {
                     repository.refreshBulletin(bulletinId = 6, onRetry = { attempt ->
                         retryCount = attempt
@@ -613,6 +619,7 @@ class BulletinCacheRepositoryImplTest {
                 assertEquals(NetworkResult.Loading, awaitItem())
 
                 // 3. Launch refreshBulletins() asynchronously in the test scope
+                @Suppress("unused", "UNUSED_VARIABLE")
                 val refreshJob = backgroundScope.launch(testDispatcher) {
                     repository.refreshBulletin(bulletinId = 6, onRetry = { attempt ->
                         retryCount = attempt
