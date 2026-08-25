@@ -292,7 +292,7 @@ class AppMessageContainer(context: Context) : AppContainer {
     }
 
     private val bulletinCacheRepository: BulletinCacheRepository by lazy {
-        BulletinCacheRepositoryImpl(apiService)
+        BulletinCacheRepositoryImpl(apiService = apiService)
     }
 
     private val userPreferencesRepository: UserPreferencesRepository by lazy {

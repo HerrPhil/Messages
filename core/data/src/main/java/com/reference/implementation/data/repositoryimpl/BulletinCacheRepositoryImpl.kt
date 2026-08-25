@@ -6,14 +6,17 @@ import com.reference.implementation.data.sources.ApiService
 import com.reference.implementation.domain.model.BulletinDomainModel
 import com.reference.implementation.domain.repository.BulletinCacheRepository
 import com.reference.implementation.domain.util.NetworkResult
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
+import retrofit2.HttpException
 
 class BulletinCacheRepositoryImpl(
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val apiService: ApiService
 ) : BulletinCacheRepository {
 
@@ -37,10 +40,14 @@ class BulletinCacheRepositoryImpl(
         // Force the cache to show "Loading" if it is a manual refresh/retry action
         _bulletinsCache.value = NetworkResult.Loading
 
-        withContext(Dispatchers.IO) {// work on the IO coroutine
+        withContext(ioDispatcher) {// work on the IO coroutine
             try {
                 val response = retryIO(times = 3, onRetry = onRetry) {
-                    apiService.getBulletins()
+                    val res = apiService.getBulletins()
+                    if (res.code() >= 500) {
+                        throw HttpException(res) // Force retryIO's catch block to trigger!
+                    }
+                    res
                 }
                 if (response.isSuccessful && response.body() != null) {
                     // DTO never leaves this layer - see the DTO extension function!
@@ -48,7 +55,7 @@ class BulletinCacheRepositoryImpl(
                     _bulletinsCache.value = NetworkResult.Success(
                         data = response.body()!!.map { dto -> dto.toBulletinDomainModel() })
                 } else {
-                    // Transform unsuccessful Retrofit call
+                    // Transform unsuccessful Retrofit call (4xx errors)
                     _bulletinsCache.value =
                         NetworkResult.Error(response.code(), response.message())
                 }
@@ -70,10 +77,14 @@ class BulletinCacheRepositoryImpl(
         // Force the cache to show "Loading" if it is a manual refresh/retry action
         _bulletinCache.value = NetworkResult.Loading
 
-        withContext(Dispatchers.IO) {
+        withContext(ioDispatcher) {
             try {
                 val response = retryIO(times = 3, onRetry = onRetry) {
-                    apiService.getBulletin(bulletinId)
+                    val res = apiService.getBulletin(bulletinId)
+                    if (res.code() >= 500) {
+                        throw HttpException(res) // Force retryIO's catch block to trigger!
+                    }
+                    res
                 }
                 if (response.isSuccessful && response.body() != null) {
                     // DTO never leaves this layer - see the DTO extension function!
@@ -82,7 +93,7 @@ class BulletinCacheRepositoryImpl(
                         data = response.body()!!.toBulletinDomainModel()
                     )
                 } else {
-                    // Transform unsuccessful Retrofit call
+                    // Transform unsuccessful Retrofit call (4xx errors)
                     _bulletinCache.value =
                         NetworkResult.Error(response.code(), response.message())
                 }
