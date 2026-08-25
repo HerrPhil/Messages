@@ -62,7 +62,31 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
 
-    // 6. Testing
-    testImplementation(libs.junit) // KEEP!!!!
+    // -------------------------------------------------------------------------
+    // Unit Test Dependencies (:core:data)
+    // -------------------------------------------------------------------------
+
+    // Standard Kotlin & JUnit 4 Test Runners
+    testImplementation(libs.junit)
+    testImplementation(kotlin("test"))
+
+    // Kotlin Coroutines Virtual Time & Dispatcher Control (StandardTestDispatcher, runTest)
+    testImplementation(libs.kotlinx.coroutines.test)
+
+    // Flow Assertion Framework (awaitItem, awaitComplete, etc.)
+    testImplementation(libs.turbine)
+
+    // MockWebServer for Retrofit/OkHttp Network Contract & HTTP 401 Testing
+    testImplementation(libs.okhttp.mockwebserver)
+
+    // MockK for Mocking Non-Network Components (DAOs, Storage Interfaces)
+    testImplementation(libs.mockk)
+
+    // Assertion Extensions (Google Truth or Kotlin Test extension functions)
+    testImplementation(libs.google.truth)
+
+
     androidTestImplementation(libs.androidx.junit) // KEEP!!!! (Optional depending on testing strategy)
+
+
 }
