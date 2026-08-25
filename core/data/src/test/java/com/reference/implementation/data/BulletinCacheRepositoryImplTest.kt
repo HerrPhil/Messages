@@ -119,6 +119,7 @@ class BulletinCacheRepositoryImplTest {
                 assertEquals(NetworkResult.Loading, awaitItem())
 
                 // 3. Launch refreshBulletins() asynchronously in the test scope
+                @Suppress
                 val refreshJob = backgroundScope.launch(testDispatcher) {
                     repository.refreshBulletins(onRetry = { attempt ->
                         retryCount = attempt
