@@ -29,6 +29,7 @@ import java.io.IOException
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BulletinCacheRepositoryImplTest {
@@ -79,7 +80,6 @@ class BulletinCacheRepositoryImplTest {
     @After
     fun tearDown() {
         mockWebServer.close()
-
         // clean up static mocks to prevent pollution across test files
         unmockkStatic(Log::class)
     }
@@ -149,7 +149,7 @@ class BulletinCacheRepositoryImplTest {
                 }
 
                 // 6. Assert retry callbacks and HTTP request counts
-                assertEquals(3, retryCount, "encountered 2 500 responses")
+                assertEquals(3, retryCount, "encountered 2 500 responses, 1 200 response")
                 assertEquals(3, mockWebServer.requestCount, "called api 3 times")
 
                 // Clean up Turbine collection
@@ -323,6 +323,14 @@ class BulletinCacheRepositoryImplTest {
                 val errorItem = awaitItem()
                 assertIs<NetworkResult.Exception>(errorItem)
                 assertIs<IOException>(errorItem.e)
+
+                val errorMessage = errorItem.e.message
+                if (errorMessage != null) {
+                    assertTrue(
+                        errorMessage.startsWith("Connection reset") ||
+                                errorMessage.startsWith("unexpected end of stream")
+                    )
+                }
 
                 // 6. Assert retry callbacks and HTTP request counts
                 assertEquals(3, retryCount, "encountered 2 IOException responses")
