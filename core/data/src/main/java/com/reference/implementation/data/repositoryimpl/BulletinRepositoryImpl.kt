@@ -5,6 +5,7 @@ import com.reference.implementation.data.sources.ApiService
 import com.reference.implementation.domain.repository.BulletinRepository
 import com.reference.implementation.domain.util.NetworkResult
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
@@ -13,8 +14,10 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.withContext
+import retrofit2.HttpException
 
 class BulletinRepositoryImpl(
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val apiService: ApiService
 ) : BulletinRepository {
     override fun getBulletinCount(onRetry: suspend (Int) -> Unit): Flow<NetworkResult<Int>> =
@@ -23,7 +26,11 @@ class BulletinRepositoryImpl(
             emit(NetworkResult.Loading)
 
             val response = retryIO(times = 3, onRetry = onRetry) {
-                apiService.getBulletins()
+                val res = apiService.getBulletins()
+                if (res.code() >= 500 ) {
+                    throw HttpException(res) // Force retryIO's catch block to trigger!
+                }
+                res
             }
 
             val body = response.body()
@@ -40,6 +47,6 @@ class BulletinRepositoryImpl(
             withContext(NonCancellable) {
                 auditLog("${auditLogTimestamp()} get messages ended")
             }
-        }.flowOn(Dispatchers.IO) // Note: Dispatchers.IO is better suited for Network/API calls!
+        }.flowOn(ioDispatcher) // Note: Dispatchers.IO is better suited for Network/API calls!
 
 }

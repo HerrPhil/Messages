@@ -300,7 +300,7 @@ class AppMessageContainer(context: Context) : AppContainer {
     }
 
     private val bulletinRepository: BulletinRepository by lazy {
-        BulletinRepositoryImpl(apiService)
+        BulletinRepositoryImpl(apiService = apiService)
     }
 
     /**
