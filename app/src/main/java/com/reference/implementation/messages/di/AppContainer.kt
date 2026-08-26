@@ -231,12 +231,12 @@ class AppMessageContainer(context: Context) : AppContainer {
     private val loginRepository: LoginRepository by lazy {
         // The container provides ("injects") the api service to the re=pository.
         LoginRepositoryImpl(
-            apiService,
-            accessTokenManager,
-            refreshTokenManager,
-            authSessionManager,
-            roleManager,
-            sessionManager
+            apiService = apiService,
+            accessTokenManager =  accessTokenManager,
+            refreshTokenManager = refreshTokenManager,
+            authSessionManager = authSessionManager,
+            roleManager = roleManager,
+            sessionManager = sessionManager
         )
     }
 

@@ -14,12 +14,15 @@ import com.reference.implementation.data.sources.ApiService
 import com.reference.implementation.domain.model.LoginUserDomainModel
 import com.reference.implementation.domain.repository.LoginRepository
 import com.reference.implementation.domain.util.NetworkResult
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
+import retrofit2.HttpException
 
 class LoginRepositoryImpl(
+    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
     private val apiService: ApiService,
     private val accessTokenManager: AccessTokenManager, // an application scope
     private val refreshTokenManager: RefreshTokenManager, // an application scope
@@ -36,11 +39,15 @@ class LoginRepositoryImpl(
 
         roleManager.updateRole(UserRoleState.Loading)
 
-        return withContext(Dispatchers.IO) {
+        return withContext(ioDispatcher) {
             try {
                 val loginRequestDto = LoginRequestDto(email, password)
                 val response = retryIO(times = 3, onRetry = onRetry) {
-                    apiService.login(loginRequestDto)
+                    val res = apiService.login(loginRequestDto)
+                    if (res.code() >= 500) {
+                        throw HttpException(res)
+                    }
+                    res
                 }
                 if (response.isSuccessful && response.body() != null) {
 
@@ -94,10 +101,14 @@ class LoginRepositoryImpl(
         userId: Int,
         onRetry: suspend (Int) -> Unit
     ): NetworkResult<List<RoleDto>> {
-        return withContext(Dispatchers.IO) {
+        return withContext(ioDispatcher) {
             try {
                 val response = retryIO(times = 3, onRetry = onRetry) {
-                    apiService.getRoles(targetUserId = userId)
+                    val res = apiService.getRoles(targetUserId = userId)
+                    if (res.code() >= 500) {
+                        throw HttpException(res)
+                    }
+                    res
                 }
                 if (response.isSuccessful && response.body() != null) {
                     val roles = response.body()!!
