@@ -904,6 +904,7 @@ class MessageCacheRepositoryImplTest {
         )
     }
 
+    @Suppress("all")
     private fun createSampleMessageJson(id: Int, read: Boolean): String {
         return """
     {
