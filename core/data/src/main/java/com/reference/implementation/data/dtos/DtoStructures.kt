@@ -1,5 +1,6 @@
 package com.reference.implementation.data.dtos
 
+import com.reference.implementation.domain.model.MessageDomainModel
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
@@ -90,3 +91,13 @@ data class BulletinDto(
     val post: String,
     val timestamp: String // Kept as raw ISO 8601 String (e.g. 2026-07-13T22:28:56.321Z = GMT+0)
 )
+
+fun MessageDomainModel.toDto(): MessageDto =
+    MessageDto(
+        id = this.id,
+        subject = this.subject,
+        body = this.body,
+        read = this.read,
+        userId = this.userId,
+        createdAt = this.createdAt
+    )

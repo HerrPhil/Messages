@@ -1,6 +1,5 @@
 package com.reference.implementation.data.repositoryimpl
 
-import android.util.Log
 import com.reference.implementation.data.audit.auditLog
 import com.reference.implementation.data.dtos.MarkMessageAsReadDto
 import com.reference.implementation.data.dtos.MarkMessageAsUnreadDto
@@ -22,7 +21,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.withContext
-import kotlin.collections.plus
+import retrofit2.HttpException
 
 class MessageCacheRepositoryImpl(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
@@ -36,15 +35,12 @@ class MessageCacheRepositoryImpl(
     private val _messagesByUserCache =
         MutableStateFlow<NetworkResult<List<MessageDomainModel>>>(NetworkResult.Loading)
 
-    // 2(a). The Read-Only Stream: Anyone can listen to this at any time
+    // 2. The Read-Only Stream: Anyone can listen to this at any time
     override fun getMessagesByUser(): Flow<NetworkResult<List<MessageDomainModel>>> =
         _messagesByUserCache.asStateFlow()
 
-    // 2(b). The Other Read-Only Stream (flavour): Anyone can listen to this at any time too
-//    val messagesByUserCache: StateFlow<NetworkResult<List<MessageDomainModel>>> =
-//        _messagesByUserCache.asStateFlow()
-
-    override fun getMessageDomainEvents(): Flow<MessageDomainEvent> = _uiEventChannel.receiveAsFlow()
+    override fun getMessageDomainEvents(): Flow<MessageDomainEvent> =
+        _uiEventChannel.receiveAsFlow()
 
     override val uiEvents = _uiEventChannel.receiveAsFlow()
 
@@ -68,7 +64,11 @@ class MessageCacheRepositoryImpl(
         withContext(ioDispatcher) {
             try {
                 val response = retryIO(times = 3, onRetry = onRetry) {
-                    apiService.getMessages(userId)
+                    val res = apiService.getMessages(userId)
+                    if (res.code() >= 500) {
+                        throw HttpException(res) // Force retryIO's catch block to trigger!
+                    }
+                    res
                 }
                 val body = response.body()
                 if (response.isSuccessful && body != null) {
@@ -76,13 +76,13 @@ class MessageCacheRepositoryImpl(
                     // Update the SSOT cache with fresh data!
                     _messagesByUserCache.value =
                         NetworkResult.Success(body.map { it.toMessageDomainModel() })
-                } else {
+                } else { // 4xx errors
                     // Transform unsuccessful Retrofit calls.
                     // Update the SSOT cache with the network result error!
                     _messagesByUserCache.value =
                         NetworkResult.Error(response.code(), response.message())
                 }
-            } catch (e: Exception) {
+            } catch (e: Exception) { // 5xx errors
                 auditLog(e.message ?: "no message")
                 // Update the SSOT cache with the network result exception!
                 _messagesByUserCache.value = NetworkResult.Exception(e)
@@ -94,27 +94,28 @@ class MessageCacheRepositoryImpl(
         }
     }
 
-    override suspend fun markMessageAsRead(messageId: Int) {
+    override suspend fun markMessageAsRead(messageId: Int, onRetry: suspend (Int) -> Unit) {
         val response = withContext(ioDispatcher) {
             try {
-                val response = retryIO(times = 3, onRetry = { attempt ->
-                    Log.d("markMessageAsRead", "number of retries is $attempt")
-                }) {
-                    apiService.markMessageAsRead(messageId, MarkMessageAsReadDto())
+                val response = retryIO(times = 3, onRetry = onRetry) {
+                    val res = apiService.markMessageAsRead(messageId, MarkMessageAsReadDto())
+                    if (res.code() >= 500) {
+                        throw HttpException(res) // Force retryIO's catch block to trigger!
+                    }
+                    res
                 }
-                if (response.isSuccessful) {
+                val body = response.body()
+                if (response.isSuccessful && body != null) {
                     // Success! We have a MessageDto with the updated 'read' value
                     // DTO never leaves this layer - see the DTO extension function!
                     // Update the SSOT cache with fresh data!
-                    response.body()?.let { messageDto ->
-                        NetworkResult.Success(messageDto.toMessageDomainModel())
-                    } ?: NetworkResult.Error(400, "Response body was empty")
-                } else {
+                    NetworkResult.Success(body.toMessageDomainModel())
+                } else { // 4xx errors
                     // Transform unsuccessful Retrofit calls.
                     // Update the SSOT cache with the network result error!
                     NetworkResult.Error(response.code(), response.message())
                 }
-            } catch (e: Exception) {
+            } catch (e: Exception) { // 5xxd errors
                 auditLog(e.message ?: "no message")
                 NetworkResult.Exception(e)
             } finally {
@@ -127,32 +128,32 @@ class MessageCacheRepositoryImpl(
         if (response is NetworkResult.Success) {
             toggleReadStatus(messageId, true) // Internal update of hot Status Flow
         } else {
-            Log.d("markMessageAsRead", "send a message UI event")
             _uiEventChannel.send(MessageDomainEvent.MessageMarkReadFailureFeedback)
         }
     }
 
-    override suspend fun markMessageAsUnread(messageId: Int) {
+    override suspend fun markMessageAsUnread(messageId: Int, onRetry: suspend (Int) -> Unit) {
         val response = withContext(ioDispatcher) {
             try {
-                val response = retryIO(times = 3, onRetry = { attempt ->
-                    Log.d("markMessageAsRead", "number of retries is $attempt")
-                }) {
-                    apiService.markMessageAsUnread(messageId, MarkMessageAsUnreadDto())
+                val response = retryIO(times = 3, onRetry = onRetry) {
+                    val res = apiService.markMessageAsUnread(messageId, MarkMessageAsUnreadDto())
+                    if (res.code() >= 500) {
+                        throw HttpException(res) // Force retryIO's catch block to trigger!
+                    }
+                    res
                 }
-                if (response.isSuccessful) {
+                val body = response.body()
+                if (response.isSuccessful && body != null) {
                     // Success! We have a MessageDto with the updated 'read' value
                     // DTO never leaves this layer - see the DTO extension function!
                     // Update the SSOT cache with fresh data!
-                    response.body()?.let { messageDto ->
-                        NetworkResult.Success(messageDto.toMessageDomainModel())
-                    } ?: NetworkResult.Error(400, "Response body was empty")
-                } else {
+                    NetworkResult.Success(body.toMessageDomainModel())
+                } else { // 4xx errors
                     // Transform unsuccessful Retrofit calls.
                     // Update the SSOT cache with the network result error!
                     NetworkResult.Error(response.code(), response.message())
                 }
-            } catch (e: Exception) {
+            } catch (e: Exception) { // 5xx errors
                 auditLog(e.message ?: "no message")
                 NetworkResult.Exception(e)
             } finally {
@@ -165,7 +166,6 @@ class MessageCacheRepositoryImpl(
         if (response is NetworkResult.Success) {
             toggleReadStatus(messageId, false) // Internal update of hot Status Flow
         } else {
-            Log.d("markMessageAsUnread", "send a message UI event")
             _uiEventChannel.send(MessageDomainEvent.MessageMarkUnReadFailureFeedback)
         }
     }
@@ -187,7 +187,7 @@ class MessageCacheRepositoryImpl(
         }
     }
 
-    override suspend fun deleteMessage(messageId: Int) {
+    override suspend fun deleteMessage(messageId: Int, onRetry: suspend (Int) -> Unit) {
         // 1. Capture the safety net snapshot of the current state
         val originalState = _messagesByUserCache.value
 
@@ -207,16 +207,22 @@ class MessageCacheRepositoryImpl(
             withContext(ioDispatcher) {
                 try {
                     // 3. Make your live network call to Express backend
-                    val response = retryIO(times = 3, onRetry = { attempt ->
-                        Log.d("markMessageAsRead", "number of retries is $attempt")
-                    }) {
-                        apiService.removeMessage(messageId)
+                    val response = retryIO(times = 3, onRetry = onRetry) {
+                        val res = apiService.removeMessage(messageId)
+                        if (res.code() >= 500) {
+                            throw HttpException(res) // Force retryIO's catch block to trigger!
+                        }
+                        res
                     }
 
                     if (response.isSuccessful) {
                         // Success! We have an empty JSON object, {}.
-                        _uiEventChannel.send(MessageDomainEvent.MessageDeleteSuccessFeedback(targetMessage))
-                    } else {
+                        _uiEventChannel.send(
+                            MessageDomainEvent.MessageDeleteSuccessFeedback(
+                                targetMessage
+                            )
+                        )
+                    } else { // 4xx errors
                         // 4. ROLLBACK: Put the original state back into the Flow.
                         // The UI will automatically detect this and smoothly animate the card back
                         _messagesByUserCache.value = originalState
@@ -224,7 +230,7 @@ class MessageCacheRepositoryImpl(
                         // 5. Alert the user via your one-shot event channel
                         _uiEventChannel.send(MessageDomainEvent.MessageDeleteFailureFeedback)
                     }
-                } catch (e: Exception) {
+                } catch (e: Exception) { // 5xx errors
                     auditLog(e.message ?: "no message")
                     // 4. ROLLBACK: Put the original state back into the Flow.
                     // The UI will automatically detect this and smoothly animate the card back
@@ -241,7 +247,10 @@ class MessageCacheRepositoryImpl(
         }
     }
 
-    override suspend fun restoreMessage(deletedMessage: MessageDomainModel) {
+    override suspend fun restoreMessage(
+        deletedMessage: MessageDomainModel,
+        onRetry: suspend (Int) -> Unit
+    ) {
         // 1. Snapshot the current state in case the network restore network call fails
         val backupState = _messagesByUserCache.value
 
@@ -258,19 +267,21 @@ class MessageCacheRepositoryImpl(
         withContext(ioDispatcher) {
             try {
                 val messageRequestDto = deletedMessage.toMessageRequestDto()
-                val response = retryIO(times = 3, onRetry = { attempt ->
-                    Log.d("markMessageAsRead", "number of retries is $attempt")
-                }) {
-                    apiService.addMessage(messageRequestDto)
+                val response = retryIO(times = 3, onRetry = onRetry) {
+                    val res = apiService.addMessage(messageRequestDto)
+                    if (res.code() >= 500) {
+                        throw HttpException(res) // Force retryIO's catch block to trigger!
+                    }
+                    res
                 }
                 if (response.isSuccessful) {
                     _uiEventChannel.send(MessageDomainEvent.MessageRestoreSuccessFeedback)
-                } else {
+                } else { // 4xx errors
                     // ROLLBACK UNDO: If the server failed to restore, then remove it again
                     _messagesByUserCache.value = backupState
                     _uiEventChannel.send(MessageDomainEvent.MessageRestoreFailureFeedback)
                 }
-            } catch (e: Exception) {
+            } catch (e: Exception) { // 5xx errors
                 auditLog(e.message ?: "no message")
                 // ROLLBACK UNDO: If the server failed to restore, then remove it again
                 _messagesByUserCache.value = backupState

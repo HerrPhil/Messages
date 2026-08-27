@@ -4,6 +4,9 @@ import com.reference.implementation.domain.repository.MessageCacheRepository
 
 class MarkMessageAsUnreadUseCase(private val repo: MessageCacheRepository) {
     suspend operator fun invoke(messageId: Int) {
-        repo.markMessageAsUnread(messageId)
+        repo.markMessageAsUnread(
+            messageId = messageId,
+            onRetry = { /* supports unit testing */ }
+        )
     }
 }

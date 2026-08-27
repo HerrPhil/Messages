@@ -10,9 +10,9 @@ interface MessageCacheRepository {
     fun getMessagesByUser(): Flow<NetworkResult<List<MessageDomainModel>>>
     suspend fun refreshMessagesOfActiveUser(onRetry: suspend (Int) -> Unit)
     suspend fun refreshMessagesOfSelectedUser(userId:Int, onRetry: suspend (Int) -> Unit)
-    suspend fun markMessageAsRead(messageId: Int)
-    suspend fun markMessageAsUnread(messageId: Int)
-    suspend fun deleteMessage(messageId: Int)
-    suspend fun restoreMessage(deletedMessage: MessageDomainModel)
+    suspend fun markMessageAsRead(messageId: Int, onRetry: suspend (Int) -> Unit)
+    suspend fun markMessageAsUnread(messageId: Int, onRetry: suspend (Int) -> Unit)
+    suspend fun deleteMessage(messageId: Int, onRetry: suspend (Int) -> Unit)
+    suspend fun restoreMessage(deletedMessage: MessageDomainModel, onRetry: suspend (Int) -> Unit)
     fun getMessageDomainEvents(): Flow<MessageDomainEvent>
 }
