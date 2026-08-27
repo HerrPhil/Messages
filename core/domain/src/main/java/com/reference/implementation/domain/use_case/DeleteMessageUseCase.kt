@@ -4,6 +4,9 @@ import com.reference.implementation.domain.repository.MessageCacheRepository
 
 class DeleteMessageUseCase(private val repo: MessageCacheRepository) {
     suspend operator fun invoke(messageId: Int) {
-        repo.deleteMessage(messageId)
+        repo.deleteMessage(
+            messageId = messageId,
+            onRetry = { /* supports unit testing */ }
+        )
     }
 }

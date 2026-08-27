@@ -7,6 +7,9 @@ class RestoreMessageUseCase(private val repo: MessageCacheRepository) {
     suspend operator fun invoke(
         deletedMessage: MessageDomainModel
     ) {
-        repo.restoreMessage(deletedMessage)
+        repo.restoreMessage(
+            deletedMessage = deletedMessage,
+            onRetry = { /* supports unit testing */ }
+        )
     }
 }
