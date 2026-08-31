@@ -35,7 +35,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import kotlin.test.fail
 
 class MessageRepositoryImplTest {
 
@@ -685,9 +684,11 @@ class MessageRepositoryImplTest {
                 assertIs<NetworkResult.Exception>(errorItem)
                 assertNotNull(errorItem.e.message)
                 val error = errorItem.e.message
-                assertTrue(actual =
-                    error?.startsWith("Fields [subject, body, read, userId, createdAt] are required")
-                    ?: false)
+                assertTrue(
+                    actual =
+                        error?.startsWith("Fields [subject, body, read, userId, createdAt] are required")
+                            ?: false
+                )
 
                 // 6. Assert retry callbacks and HTTP request counts
                 assertEquals(0, retryCount, "No retries on serialization failure")
