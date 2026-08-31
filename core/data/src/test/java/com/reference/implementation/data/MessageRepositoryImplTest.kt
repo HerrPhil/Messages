@@ -380,7 +380,6 @@ class MessageRepositoryImplTest {
 
         }
 
-
     @Test
     fun `getSummaryMessage emits Loading then retries IOException and returns Exception when API returns IOException 3x`() =
         runTest(testDispatcher) {
@@ -464,6 +463,10 @@ class MessageRepositoryImplTest {
 
             cancelAndIgnoreRemainingEvents()
         }
+
+        val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
+        assertEquals("GET", recordedRequest?.method)
+        assertEquals("/messages", recordedRequest?.path)
     }
 
     @Test
@@ -665,7 +668,7 @@ class MessageRepositoryImplTest {
                 MockResponse()
                     .setResponseCode(200)
                     .setHeader("Content-Type", "application/json")
-                    .setBody("""[{"id":"1"})""")
+                    .setBody("""[{"id":"1"}]""") // malformed JSON response - missing fields
             )
 
             var retryCount = 0
@@ -696,6 +699,10 @@ class MessageRepositoryImplTest {
 
                 cancelAndIgnoreRemainingEvents()
             }
+
+            // Verify request was sent to path matching user 42
+            val recordedRequest = mockWebServer.takeRequest()
+            assertEquals("/messages/userId/42", recordedRequest.path)
         }
 
     @Test
