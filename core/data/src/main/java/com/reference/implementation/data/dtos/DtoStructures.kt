@@ -1,7 +1,6 @@
 package com.reference.implementation.data.dtos
 
 import com.reference.implementation.domain.model.MessageDomainModel
-import com.reference.implementation.domain.model.UserPermissionDomainModel
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
