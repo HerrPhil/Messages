@@ -16,6 +16,7 @@ import io.mockk.coVerifyOrder
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
+import io.mockk.unmockkStatic
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
@@ -91,6 +92,8 @@ class LoginRepositoryImplTest {
     @After
     fun tearDown() {
         mockWebServer.shutdown()
+        // clean up static mocks to prevent pollution across test files
+        unmockkStatic(Log::class)
     }
 
     @Test

@@ -14,6 +14,7 @@ import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
+import io.mockk.unmockkStatic
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -78,6 +79,8 @@ class MessageCacheRepositoryImplTest {
     @After
     fun tearDown() {
         mockWebServer.shutdown()
+        // clean up static mocks to prevent pollution across test files
+        unmockkStatic(Log::class)
     }
 
     // =========================================================================
@@ -136,7 +139,8 @@ class MessageCacheRepositoryImplTest {
                 assertEquals("Welcome", successItem.data.first().subject)
 
                 // 6. Assert retry callbacks and HTTP request counts
-                assertEquals(0, retryCount, "no retries when user unauthenticated")
+                assertEquals(0, retryCount, "no retries when user authenticated")
+                assertEquals(1, mockWebServer.requestCount, "called api 1x")
 
                 cancelAndIgnoreRemainingEvents()
             }
@@ -147,11 +151,13 @@ class MessageCacheRepositoryImplTest {
         }
 
     @Test
-    fun `refreshMessagesOfActiveUser defaults to NO_VALUE when unauthenticated`() =
+    fun `refreshMessagesOfActiveUser fetches user id of NO_VALUE from session adds nothing to cache`() =
         runTest(testDispatcher) {
+
             // Mock unauthenticated session
             coEvery { sessionManager.getSessionUserId() } returns SessionResult.NoValue
 
+            // 2. Enqueue MockWebServer response for targetUserId = 42
             mockWebServer.enqueue(
                 MockResponse()
                     .setResponseCode(200)
@@ -161,15 +167,34 @@ class MessageCacheRepositoryImplTest {
 
             var retryCount = 0
 
-            repository.refreshMessagesOfActiveUser(
-                onRetry = { attempt ->
-                    retryCount = attempt
-                }
-            )
+            // 3. Collect StateFlow stream via Turbine while executing refresh
+            repository.getMessagesByUser().test {
+                // Initial State before refresh is NetworkResult.Loading
+                assertEquals(NetworkResult.Loading, awaitItem())
 
-            // 6. Assert retry callbacks and HTTP request counts
-            assertEquals(0, retryCount, "no retries when user unauthenticated")
+                // Trigger refresh in backgroundScope or directly inside test
+                repository.refreshMessagesOfActiveUser(
+                    onRetry = { attempt ->
+                        retryCount = attempt
+                    }
+                )
 
+                // 4. Advance virtual time to drain all delay() calls inside retryIO
+                testScheduler.advanceUntilIdle()
+
+                // Assert StateFlow updates to Success with mapped domain model
+                val successItem = awaitItem()
+                assertIs<NetworkResult.Success<List<MessageDomainModel>>>(successItem)
+                assertEquals(0, successItem.data.size)
+
+                // 6. Assert retry callbacks and HTTP request counts
+                assertEquals(0, retryCount, "no retries when user unauthenticated")
+                assertEquals(1, mockWebServer.requestCount, "called api 1x")
+
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            // Verify request was sent to path matching user 42
             val recordedRequest = mockWebServer.takeRequest()
             assertEquals("/messages/userId/0", recordedRequest.path)
         }
@@ -204,6 +229,7 @@ class MessageCacheRepositoryImplTest {
 
                 // 6. Assert retry callbacks and HTTP request counts
                 assertEquals(0, retryCount, "no retries when messages not found")
+                assertEquals(1, mockWebServer.requestCount, "called api 1x")
 
                 cancelAndIgnoreRemainingEvents()
             }

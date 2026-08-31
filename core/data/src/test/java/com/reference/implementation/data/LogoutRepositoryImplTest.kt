@@ -9,12 +9,14 @@ import io.mockk.coVerifyOrder
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
+import io.mockk.unmockkStatic
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.runTest
+import org.junit.After
 import org.junit.Before
 import org.junit.Test
 
@@ -51,6 +53,12 @@ class LogoutRepositoryImplTest {
             authSessionManager = authSessionManager,
             roleManager = roleManager
         )
+    }
+
+    @After
+    fun tearDown() {
+        // clean up static mocks to prevent pollution across test files
+        unmockkStatic(Log::class)
     }
 
     @Test

@@ -80,7 +80,7 @@ class BulletinRepositoryImplTest {
     }
 
     @Test
-    fun `getBulletinCount emits Loading then retries 500 Error and recovers to add Success to the cache when API returns HTTP 200`() =
+    fun `getBulletinCount emits Loading then retries 500 Error and recovers to return Success when API returns HTTP 200`() =
         runTest(testDispatcher) {
 
             // Given the JSON response of bulletins
@@ -110,7 +110,6 @@ class BulletinRepositoryImplTest {
 
             repository.getBulletinCount(onRetry = { attempt ->
                 retryCount = attempt
-                Log.d("retry", "$attempt")
             }).test {
 
                 // Initial state of the cache flow
@@ -143,7 +142,7 @@ class BulletinRepositoryImplTest {
         }
 
     @Test
-    fun `getBulletinCount emits Loading then Error to the cache when API returns 3 HTTP 500`() =
+    fun `getBulletinCount emits Loading then returns Error when API returns HTTP 500 3x`() =
         runTest(testDispatcher) {
 
             // 1. Enqueue MockWebServer responses (e.g., 2 HTTP 500s then 1 HTTP 200)
@@ -202,7 +201,7 @@ class BulletinRepositoryImplTest {
                 ]
             """.trimIndent()
 
-            // 1. Enqueue MockWebServer responses (e.g., 2 HTTP 500s then 1 HTTP 200)
+            // 1. Enqueue MockWebServer responses (e.g., 2 HTTP IOExceptions  then 1 HTTP 200)
             mockWebServer.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
             mockWebServer.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
             mockWebServer.enqueue(
@@ -216,7 +215,6 @@ class BulletinRepositoryImplTest {
 
             repository.getBulletinCount(onRetry = { attempt ->
                 retryCount = attempt
-                Log.d("retry", "$attempt")
             }).test {
 
                 // Initial state of the cache flow
@@ -250,7 +248,7 @@ class BulletinRepositoryImplTest {
 
 
     @Test
-    fun `getBulletinCount emits Loading then retries IOException and returns IOException to the cache when API returns 3 IOExceptions`() =
+    fun `getBulletinCount emits Loading then retries IOException and returns Exception when API returns IOException 3x`() =
         runTest(testDispatcher) {
 
             // 1. Enqueue MockWebServer responses (e.g., 2 HTTP 500s then 1 HTTP 200)
@@ -262,7 +260,6 @@ class BulletinRepositoryImplTest {
 
             repository.getBulletinCount(onRetry = { attempt ->
                 retryCount = attempt
-                Log.d("retry", "$attempt")
             }).test {
 
                 // Initial state of the cache flow
