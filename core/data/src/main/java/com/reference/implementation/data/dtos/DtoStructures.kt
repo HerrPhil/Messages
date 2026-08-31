@@ -101,3 +101,4 @@ fun MessageDomainModel.toDto(): MessageDto =
         userId = this.userId,
         createdAt = this.createdAt
     )
+

@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.withContext
+import retrofit2.HttpException
 
 class PermissionRepositoryImpl(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
@@ -37,7 +38,11 @@ class PermissionRepositoryImpl(
             }
 
             val response = retryIO(times = 3, onRetry = onRetry) {
-                apiService.getPermissions(permissionIds)
+                val res = apiService.getPermissions(permissionIds)
+                if (res.code() >= 500 ) {
+                    throw HttpException(res) // Force retryIO's catch block to trigger!
+                }
+                res
             }
 
             val body = response.body()
