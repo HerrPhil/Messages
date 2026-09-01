@@ -27,7 +27,7 @@ class BulletinRepositoryImpl(
 
             val response = retryIO(times = 3, onRetry = onRetry) {
                 val res = apiService.getBulletins()
-                if (res.code() >= 500 ) {
+                if (res.code() >= 500) {
                     throw HttpException(res) // Force retryIO's catch block to trigger!
                 }
                 res
@@ -40,6 +40,7 @@ class BulletinRepositoryImpl(
                 emit(NetworkResult.Error(response.code(), response.message()))
             }
         }.catch { e ->
+            if (e is CancellationException) println("compose cancellation")
             if (e is CancellationException) throw e
             auditLog(e.message ?: "no messages")
             emit(NetworkResult.Exception(e))
