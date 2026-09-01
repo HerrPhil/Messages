@@ -736,7 +736,7 @@ class RefreshTokenRepositoryImplTest {
             .connectTimeout(100, TimeUnit.MILLISECONDS) // Strict connect timeout
             .readTimeout(100, TimeUnit.MILLISECONDS)    // Strict read timeout
             .writeTimeout(100, TimeUnit.MILLISECONDS)   // Strict write timeout
-            .build();
+            .build()
 
         apiService = Retrofit.Builder()
             .baseUrl(mockWebServer.url("/"))
