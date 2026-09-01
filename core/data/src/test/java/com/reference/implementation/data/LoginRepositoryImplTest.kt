@@ -51,7 +51,6 @@ class LoginRepositoryImplTest {
     private lateinit var repository: LoginRepositoryImpl
     private val json = Json { ignoreUnknownKeys = true }
 
-
     @Before
     fun setUp() {
 
@@ -97,14 +96,16 @@ class LoginRepositoryImplTest {
     }
 
     @Test
-    fun `login success saves tokens, updates session state, and detects Administrator role`() = runTest(testDispatcher) {
-        // 1. Enqueue Login Response
-        mockWebServer.enqueue(
-            MockResponse()
-                .setResponseCode(200)
-                .setHeader("Content-Type", "application/json")
-                .setBody(
-                    """
+    fun `login success saves tokens, updates session state, and detects Administrator role`() =
+        runTest(testDispatcher) {
+
+            // 1. Enqueue Login Response
+            mockWebServer.enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setHeader("Content-Type", "application/json")
+                    .setBody(
+                        """
                     {
                         "accessToken": "access_token_123",
                         "refreshToken": "refresh_token_abc",
@@ -116,16 +117,16 @@ class LoginRepositoryImplTest {
                         }
                     }
                     """.trimIndent()
-                )
-        )
+                    )
+            )
 
-        // 2. Enqueue getRoles Response (User is an Administrator)
-        mockWebServer.enqueue(
-            MockResponse()
-                .setResponseCode(200)
-                .setHeader("Content-Type", "application/json")
-                .setBody(
-                    """
+            // 2. Enqueue getRoles Response (User is an Administrator)
+            mockWebServer.enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setHeader("Content-Type", "application/json")
+                    .setBody(
+                        """
                     [
                         {
                             "id": 1,
@@ -143,35 +144,36 @@ class LoginRepositoryImplTest {
                         }
                     ]
                     """.trimIndent()
-                )
-        )
+                    )
+            )
 
-        // 3. Perform Login
-        val result = repository.login("admin@example.com", "password123", onRetry = {})
+            // 3. Perform Login
+            val result = repository.login("admin@example.com", "password123", onRetry = {})
 
-        // 4. Assert Success & Domain Model
-        assertIs<NetworkResult.Success<*>>(result)
+            // 4. Assert Success & Domain Model
+            assertIs<NetworkResult.Success<*>>(result)
 
-        // 5. Verify Token Operations & State Updates
-        coVerifyOrder {
-            roleManager.updateRole(UserRoleState.Loading)
-            accessTokenManager.saveToken("access_token_123")
-            refreshTokenManager.saveToken("refresh_token_abc")
-            roleManager.updateRole(UserRoleState.Administrator)
-            sessionManager.updateSession(any(), any())
-            authSessionManager.startSession()
+            // 5. Verify Token Operations & State Updates
+            coVerifyOrder {
+                roleManager.updateRole(UserRoleState.Loading)
+                accessTokenManager.saveToken("access_token_123")
+                refreshTokenManager.saveToken("refresh_token_abc")
+                roleManager.updateRole(UserRoleState.Administrator)
+                sessionManager.updateSession(any(), any())
+                authSessionManager.startSession()
+            }
+
+            assertEquals(2, mockWebServer.requestCount)
         }
 
-        assertEquals(2, mockWebServer.requestCount)
-    }
-
     @Test
-    fun `login success assigns RegularUser state when System Administrator role is absent`() = runTest(testDispatcher) {
-        mockWebServer.enqueue(
-            MockResponse()
-                .setResponseCode(200)
-                .setBody(
-                    """
+    fun `login success assigns RegularUser state when System Administrator role is absent`() =
+        runTest(testDispatcher) {
+            mockWebServer.enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setBody(
+                        """
                     {
                         "accessToken": "acc",
                         "refreshToken": "ref",
@@ -183,13 +185,13 @@ class LoginRepositoryImplTest {
                         }
                     }
                     """.trimIndent()
-                )
-        )
-        mockWebServer.enqueue(
-            MockResponse()
-                .setResponseCode(200)
-                .setBody(
-                    """
+                    )
+            )
+            mockWebServer.enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setBody(
+                        """
                     [
                         {
                             "id": 2,
@@ -200,26 +202,27 @@ class LoginRepositoryImplTest {
                         }
                     ]
                     """.trimIndent()
-                )
-        )
+                    )
+            )
 
-        val result = repository.login("user@test.com", "password123", onRetry = {})
+            val result = repository.login("user@test.com", "password123", onRetry = {})
 
-        assertIs<NetworkResult.Success<*>>(result)
+            assertIs<NetworkResult.Success<*>>(result)
 
-        // Verify RegularUser role mapping
-        coVerify { roleManager.updateRole(UserRoleState.RegularUser) }
-    }
+            // Verify RegularUser role mapping
+            coVerify { roleManager.updateRole(UserRoleState.RegularUser) }
+        }
 
     @Test
-    fun `login retries on 500 server error and succeeds on second attempt`() = runTest(testDispatcher) {
-        // Attempt 1 fails with 500, Attempt 2 succeeds
-        mockWebServer.enqueue(MockResponse().setResponseCode(500))
-        mockWebServer.enqueue(
-            MockResponse()
-                .setResponseCode(200)
-                .setBody(
-                    """
+    fun `login retries on 500 server error and succeeds on second attempt`() =
+        runTest(testDispatcher) {
+            // Attempt 1 fails with 500, Attempt 2 succeeds
+            mockWebServer.enqueue(MockResponse().setResponseCode(500))
+            mockWebServer.enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setBody(
+                        """
                     {
                         "accessToken": "acc",
                         "refreshToken": "ref",
@@ -231,13 +234,13 @@ class LoginRepositoryImplTest {
                         }
                     }
                     """.trimIndent()
-                )
-        )
-        mockWebServer.enqueue(
-            MockResponse()
-                .setResponseCode(200)
-                .setBody(
-                    """
+                    )
+            )
+            mockWebServer.enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setBody(
+                        """
                     [
                         {
                             "id": 2,
@@ -248,19 +251,19 @@ class LoginRepositoryImplTest {
                         }
                     ]
                     """.trimIndent()
-                )
-        )
+                    )
+            )
 
-        var retryAttempt = 0
+            var retryAttempt = 0
 
-        val result = repository.login("retry@test.com", "password123", onRetry = { attempt ->
-            retryAttempt = attempt
-        })
+            val result = repository.login("retry@test.com", "password123", onRetry = { attempt ->
+                retryAttempt = attempt
+            })
 
-        assertIs<NetworkResult.Success<*>>(result)
-        assertEquals(1, retryAttempt)
-        assertEquals(3, mockWebServer.requestCount) // 2 for login + 1 for roles
-    }
+            assertIs<NetworkResult.Success<*>>(result)
+            assertEquals(1, retryAttempt)
+            assertEquals(3, mockWebServer.requestCount) // 2 for login + 1 for roles
+        }
 
     @Test
     fun `login retries on IO error and succeeds on second attempt`() = runTest(testDispatcher) {
