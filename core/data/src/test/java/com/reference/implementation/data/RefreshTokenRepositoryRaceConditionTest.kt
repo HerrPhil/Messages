@@ -114,8 +114,8 @@ class RefreshTokenRepositoryRaceConditionTest {
 
             assertTrue(resultA is NetworkResult.Success)
             assertTrue(resultB is NetworkResult.Success)
-            assertEquals(newToken, (resultA as NetworkResult.Success).data.newAccessToken)
-            assertEquals(newToken, (resultB as NetworkResult.Success).data.newAccessToken)
+            assertEquals(newToken, resultA.data.newAccessToken)
+            assertEquals(newToken, resultB.data.newAccessToken)
 
             // FINAL VERIFICATION: Network was still called only once across both coroutines
             coVerify(exactly = 1) { mockApi.refreshAccessToken(any()) }
@@ -135,7 +135,7 @@ class RefreshTokenRepositoryRaceConditionTest {
 
             // Should exit early without calling API
             assertTrue(result is NetworkResult.Success)
-            assertEquals(newToken, (result as NetworkResult.Success).data.newAccessToken)
+            assertEquals(newToken, result.data.newAccessToken)
 
             coVerify(exactly = 0) { mockApi.refreshAccessToken(any()) }
         }
