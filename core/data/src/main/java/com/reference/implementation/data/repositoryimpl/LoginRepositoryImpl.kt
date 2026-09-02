@@ -14,6 +14,7 @@ import com.reference.implementation.data.sources.ApiService
 import com.reference.implementation.domain.model.LoginUserDomainModel
 import com.reference.implementation.domain.repository.LoginRepository
 import com.reference.implementation.domain.util.NetworkResult
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -80,6 +81,7 @@ class LoginRepositoryImpl(
                     NetworkResult.Error(response.code(), response.message())
                 }
             } catch (e: Throwable) {
+                if (e is CancellationException) throw e
                 auditLog(e.message ?: "no message")
                 NetworkResult.Exception(e)
             } finally {

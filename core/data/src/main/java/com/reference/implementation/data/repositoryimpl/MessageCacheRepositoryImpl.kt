@@ -12,6 +12,7 @@ import com.reference.implementation.domain.model.MessageDomainEvent
 import com.reference.implementation.domain.model.MessageDomainModel
 import com.reference.implementation.domain.repository.MessageCacheRepository
 import com.reference.implementation.domain.util.NetworkResult
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -83,6 +84,7 @@ class MessageCacheRepositoryImpl(
                         NetworkResult.Error(response.code(), response.message())
                 }
             } catch (e: Exception) { // 5xx errors
+                if (e is CancellationException) throw e
                 auditLog(e.message ?: "no message")
                 // Update the SSOT cache with the network result exception!
                 _messagesByUserCache.value = NetworkResult.Exception(e)

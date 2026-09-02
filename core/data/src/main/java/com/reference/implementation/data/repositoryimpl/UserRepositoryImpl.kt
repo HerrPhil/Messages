@@ -20,6 +20,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.withContext
+import retrofit2.HttpException
 
 class UserRepositoryImpl(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
@@ -86,13 +87,17 @@ class UserRepositoryImpl(
             emit(NetworkResult.Loading)
 
             val response = retryIO(times = 3, onRetry = onRetry) {
-                apiService.getUsers()
+                val res = apiService.getUsers()
+                if (res.code() >= 500 ) {
+                    throw HttpException(res) // Force retryIO's catch block to trigger!
+                }
+                res
             }
 
             val body = response.body()
-            if (response.isSuccessful && body != null) {
+            if (response.isSuccessful && body != null) { // 200 response
                 emit(NetworkResult.Success(body.size)) // number of bulletins
-            } else {
+            } else { // 4xx errors
                 emit(
                     NetworkResult.Error(
                         response.code(),
@@ -102,7 +107,7 @@ class UserRepositoryImpl(
             }
         }.catch { e ->
             if (e is CancellationException) throw e
-            auditLog(e.message ?: "no messages")
+            auditLog(e.message ?: "no messages") // 5xx errors
             emit(NetworkResult.Exception(e))
         }.onCompletion {
             withContext(NonCancellable) {
@@ -123,13 +128,17 @@ class UserRepositoryImpl(
         withContext(ioDispatcher) {
             try {
                 val response = retryIO(times = 3, onRetry = onRetry) {
-                    apiService.getUsers()
+                    val res = apiService.getUsers()
+                    if (res.code() >= 500) {
+                        throw HttpException(res) // Force retryIO's catch block to trigger!
+                    }
+                    res
                 }
                 val body = response.body()
-                if (response.isSuccessful && body != null) {
+                if (response.isSuccessful && body != null) { // 200 response
                     _allUsersCache.value =
                         NetworkResult.Success(data = body.map { it.toDomainModel() })
-                } else {
+                } else { // 4xx errors
                     // Transform unsuccessful Retrofit calls.
                     // Update the SSOT cache with the network result error!
                     _allUsersCache.value =
@@ -137,9 +146,10 @@ class UserRepositoryImpl(
                 }
 
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 auditLog(e.message ?: "no message")
                 // Update the SSOT cache with the network result exception!
-                _allUsersCache.value = NetworkResult.Exception(e)
+                _allUsersCache.value = NetworkResult.Exception(e) // 5xx errors
             } finally {
                 withContext(NonCancellable) {
                     auditLog("${auditLogTimestamp()} refresh messages by user ended")

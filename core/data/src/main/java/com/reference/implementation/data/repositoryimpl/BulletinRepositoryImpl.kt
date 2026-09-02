@@ -34,16 +34,15 @@ class BulletinRepositoryImpl(
             }
 
             val body = response.body()
-            if (response.isSuccessful && body != null) {
+            if (response.isSuccessful && body != null) { // 200 response
                 emit(NetworkResult.Success(body.size)) // number of bulletins
-            } else {
+            } else { // 4xx errors
                 emit(NetworkResult.Error(response.code(), response.message()))
             }
         }.catch { e ->
-            if (e is CancellationException) println("compose cancellation")
             if (e is CancellationException) throw e
             auditLog(e.message ?: "no messages")
-            emit(NetworkResult.Exception(e))
+            emit(NetworkResult.Exception(e)) // 5xx errors
         }.onCompletion {
             withContext(NonCancellable) {
                 auditLog("${auditLogTimestamp()} get messages ended")
