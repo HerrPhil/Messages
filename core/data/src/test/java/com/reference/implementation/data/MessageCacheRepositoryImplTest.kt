@@ -118,6 +118,7 @@ class MessageCacheRepositoryImplTest {
 
             // 3. Collect StateFlow stream via Turbine while executing refresh
             repository.getMessagesByUser().test {
+
                 // Initial State before refresh is NetworkResult.Loading
                 assertEquals(NetworkResult.Loading, awaitItem())
 
@@ -131,8 +132,9 @@ class MessageCacheRepositoryImplTest {
                 // 4. Advance virtual time to drain all delay() calls inside retryIO
                 testScheduler.advanceUntilIdle()
 
-                // Assert StateFlow updates to Success with mapped domain model
                 val successItem = awaitItem()
+
+                // Assert StateFlow updates to Success with mapped domain model
                 assertIs<NetworkResult.Success<List<MessageDomainModel>>>(successItem)
                 assertEquals(1, successItem.data.size)
                 assertEquals(101, successItem.data.first().id)
@@ -236,8 +238,9 @@ class MessageCacheRepositoryImplTest {
         }
 
     @Test
-    fun `refreshMessagesOfSelectedUser fails update cache when service is unavailable`() =
+    fun `refreshMessagesOfSelectedUser fails update cache when messages service is unavailable`() =
         runTest(testDispatcher) {
+
             // Enqueue 3 error responses so attempts 1, 2, and 3 get instant responses
             repeat(3) {
                 mockWebServer.enqueue(MockResponse().setResponseCode(503))

@@ -760,7 +760,7 @@ class RefreshTokenRepositoryImplTest {
             mockWebServer.enqueue(
                 MockResponse()
                     .setResponseCode(200)
-                    .setHeadersDelay(3, TimeUnit.SECONDS) // indicate cancellation (timeout)
+                    .setHeadersDelay(5, TimeUnit.SECONDS) // indicate cancellation (timeout)
                     .setBody("""{"accessToken":"token-1234"}""")
             )
 

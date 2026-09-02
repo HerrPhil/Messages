@@ -6,6 +6,7 @@ import com.reference.implementation.data.sources.ApiService
 import com.reference.implementation.domain.model.BulletinDomainModel
 import com.reference.implementation.domain.repository.BulletinCacheRepository
 import com.reference.implementation.domain.util.NetworkResult
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
@@ -49,19 +50,20 @@ class BulletinCacheRepositoryImpl(
                     }
                     res
                 }
-                if (response.isSuccessful && response.body() != null) {
+                if (response.isSuccessful && response.body() != null) { // 200 response
                     // DTO never leaves this layer - see the DTO extension function!
                     // Update the SSOT cache with fresh data!
                     _bulletinsCache.value = NetworkResult.Success(
                         data = response.body()!!.map { dto -> dto.toBulletinDomainModel() })
-                } else {
+                } else { // 4xx errors
                     // Transform unsuccessful Retrofit call (4xx errors)
                     _bulletinsCache.value =
                         NetworkResult.Error(response.code(), response.message())
                 }
             } catch (e: Exception) {
+                if (e is CancellationException) throw e
                 auditLog(e.message ?: "no message")
-                _bulletinsCache.value = NetworkResult.Exception(e)
+                _bulletinsCache.value = NetworkResult.Exception(e) // 5xx errors
             } finally {
                 withContext(NonCancellable) {
                     auditLog("${auditLogTimestamp()} refresh bulletins ended")

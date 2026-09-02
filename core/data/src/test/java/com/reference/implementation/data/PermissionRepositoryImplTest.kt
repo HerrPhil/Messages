@@ -605,48 +605,49 @@ class PermissionRepositoryImplTest {
         }
 
     @Test
-    fun `getPermissionInfoFlow fails fast when service is unavailable`() = runTest(testDispatcher) {
+    fun `getPermissionInfoFlow fails fast when service is unavailable`() =
+        runTest(testDispatcher) {
 
-        // 1. Mock session returns Authenticated user with ID = 42
-        coEvery { sessionManager.getSessionPermissionIds() } returns SessionResult.Authenticated(
-            listOf(101, 102, 103)
-        )
-
-        repeat(3) {
-            mockWebServer.enqueue(
-                MockResponse().setResponseCode(503).setBody("Message service is unavailable")
+            // 1. Mock session returns Authenticated user with ID = 42
+            coEvery { sessionManager.getSessionPermissionIds() } returns SessionResult.Authenticated(
+                listOf(101, 102, 103)
             )
+
+            repeat(3) {
+                mockWebServer.enqueue(
+                    MockResponse().setResponseCode(503).setBody("Message service is unavailable")
+                )
+            }
+
+            var retryCount = 0
+
+            repository.getPermissionInfoFlow(onRetry = { attempt ->
+                retryCount = attempt
+                Log.d("retry", "$attempt")
+            }).test {
+
+                // Initial state of the cache flow
+                assertEquals(NetworkResult.Loading, awaitItem())
+
+                // 4. Advance virtual time to drain all delay() calls inside retryIO
+                testScheduler.advanceUntilIdle()
+
+                // Assert fast failure
+                val errorItem = awaitItem()
+                assertIs<NetworkResult.Exception>(errorItem)
+                assertEquals("HTTP 503 Server Error", errorItem.e.message)
+
+                // Assert NO retries occurred (only 1 HTTP request made)
+                assertEquals(3, retryCount)
+                assertEquals(3, mockWebServer.requestCount)
+
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
+            assertEquals("GET", recordedRequest?.method)
+            assertEquals("/permissions?id=101&id=102&id=103", recordedRequest?.path)
         }
-
-        var retryCount = 0
-
-        repository.getPermissionInfoFlow(onRetry = { attempt ->
-            retryCount = attempt
-            Log.d("retry", "$attempt")
-        }).test {
-
-            // Initial state of the cache flow
-            assertEquals(NetworkResult.Loading, awaitItem())
-
-            // 4. Advance virtual time to drain all delay() calls inside retryIO
-            testScheduler.advanceUntilIdle()
-
-            // Assert fast failure
-            val errorItem = awaitItem()
-            assertIs<NetworkResult.Exception>(errorItem)
-            assertEquals("HTTP 503 Server Error", errorItem.e.message)
-
-            // Assert NO retries occurred (only 1 HTTP request made)
-            assertEquals(3, retryCount)
-            assertEquals(3, mockWebServer.requestCount)
-
-            cancelAndIgnoreRemainingEvents()
-        }
-
-        val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
-        assertEquals("GET", recordedRequest?.method)
-        assertEquals("/permissions?id=101&id=102&id=103", recordedRequest?.path)
-    }
 
     @Test
     fun `getPermissionInfoFlow cancels cleanly without emitting NetworkResult Exception`() =
@@ -682,7 +683,7 @@ class PermissionRepositoryImplTest {
         )
     }
 
-    // Fabricate the list of messages to get.
+    // Fabricate the list of permissions to get.
     // Notice by making the Json instance create the raw JSON string
     // that it relieves us from balancing array brackets, squiggly braces, and commas
     // of a traditional raw """[...]""" list.
