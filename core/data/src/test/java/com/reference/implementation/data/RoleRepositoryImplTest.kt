@@ -31,7 +31,6 @@ class RoleRepositoryImplTest {
     private lateinit var testDispatcher: TestDispatcher
     private val sessionManager: SessionManager = mockk(relaxed = true)
     private lateinit var repository: RoleRepositoryImpl
-    private val json = Json { ignoreUnknownKeys = true }
 
     @Before
     fun setUp() {
