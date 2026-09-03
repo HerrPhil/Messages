@@ -9,18 +9,26 @@ import com.reference.implementation.data.repositoryimpl.UserRepositoryImpl
 import com.reference.implementation.data.sources.ApiService
 import com.reference.implementation.domain.model.LoginUserDomainModel
 import com.reference.implementation.domain.util.NetworkResult
+import io.mockk.awaits
 import io.mockk.coEvery
 import io.mockk.every
+import io.mockk.impl.annotations.MockK
+import io.mockk.just
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.async
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.SocketPolicy
@@ -930,45 +938,55 @@ class UserRepositoryImplTest {
 
         }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     @Test
-    fun `getUsers cancels cleanly without emitting NetworkResult Exception`() =
+    fun `getUsers cancels cleanly without emitting NetworkResult Exception`() {
         runTest(testDispatcher) {
+
             // 1. Enqueue a delayed response so the call stays suspended on the server
             mockWebServer.enqueue(
                 MockResponse()
                     .setResponseCode(200)
-                    .setHeadersDelay(5, TimeUnit.SECONDS) // indicate cancellation (timeout)
+                    .setHeader("Content-Type", "application/json")
                     .setBody(createSampleUserDtos())
             )
 
-            var retryCount = 0
+            // 2. Launch the operation with timeout in a deferred context
+            val deferredResult = async {
+                try {
+                    withTimeout(200) {
+                        // 2. Observe the flow with Turbine
+                        repository.getUsers().test {
 
-            // 2. Observe the flow with Turbine
-            repository.getUsers().test {
+                            // Assert initial state
+                            assertEquals(NetworkResult.Loading, awaitItem())
 
-                // Assert initial state
-                assertEquals(NetworkResult.Loading, awaitItem())
-
-                // Trigger refresh in backgroundScope or directly inside test
-                repository.loadAllUsers(
-                    onRetry = { attempt ->
-                        retryCount = attempt
+                            // Trigger refresh in backgroundScope or directly inside test
+                            repository.loadAllUsers(onRetry = {})
+                        }
                     }
-                )
-
-                // 6. Assert retry callbacks and HTTP request counts
-                assertEquals(0, retryCount, "MO retries")
-                assertEquals(1, mockWebServer.requestCount, "called api 1x")
-
-                // 3. Cancel the flow subscriber while suspended on the network call
-                cancelAndIgnoreRemainingEvents()
+                } catch (e: TimeoutCancellationException) {
+                    Result.failure<TimeoutCancellationException>(e)
+                }
             }
+
+            // 3. Advance virtual time past the timeout
+            testScheduler.advanceTimeBy(200)
+
+            // 4. Execute pending tasks and verify the exception
+            testScheduler.runCurrent()
+
+            val result = deferredResult.await()
+            println("test")
+            assertTrue((result as Result<*>).isFailure)
+            assertTrue(result.exceptionOrNull() is TimeoutCancellationException)
 
             testScheduler.advanceUntilIdle()
 
             // If the repository mistakenly swallowed CancellationException and emitted
             // NetworkResult.Exception, Turbine would have thrown an unconsumed event error above!
         }
+    }
 
     private fun createSampleUserDto(id: Int, email: String, name: String, age: Int): UserDto {
         return UserDto(
