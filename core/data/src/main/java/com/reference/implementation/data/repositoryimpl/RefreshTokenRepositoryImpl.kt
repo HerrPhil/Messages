@@ -68,10 +68,10 @@ class RefreshTokenRepositoryImpl(
                         // Transform unsuccessful Retrofit calls.
                         return@withContext NetworkResult.Error(response.code(), response.message())
                     }
-                } catch (e: Throwable) { // 5xx errors
+                } catch (e: Throwable) {
                     if (e is CancellationException) throw e
                     auditLog(e.message ?: "no message")
-                    return@withContext NetworkResult.Exception(e)
+                    return@withContext NetworkResult.Exception(e) // 5xx errors
                 } finally {
                     withContext(NonCancellable) {
                         auditLog("${auditLogTimestamp()} refresh token call ended")

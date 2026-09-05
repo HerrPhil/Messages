@@ -10,11 +10,14 @@ import io.mockk.every
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.mockwebserver.MockResponse
@@ -720,4 +723,123 @@ class BulletinCacheRepositoryImplTest {
         }
     }
 
+    @Test
+    fun `getAllBulletins cancels cleanly without emitting NetworkResult Exception`() = runTest(testDispatcher) {
+
+        // Given the JSON response of bulletins
+        val jsonResponse = """
+                [
+                    {
+                        "id": 6,
+                        "userId": 1,
+                        "title": "Software Patch",
+                        "post": "Please take the time to apply the newest security patches. The recent news of cyber attacks means we all have to do our part. The Desktop Support team will be locking access on any account that  are not compliant by Friday end of business.",
+                        "timestamp": "2026-07-14T23:32:12.345Z"
+                    }
+                ]
+            """.trimIndent()
+
+        // 1. Enqueue MockWebServer responses (e.g., HTTP 200)
+        mockWebServer.enqueue(
+            MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setHeadersDelay(2, TimeUnit.SECONDS)
+                .setBody(jsonResponse)
+        )
+
+        // 2. Launch the operation with timeout in a deferred context
+        val deferredResult = async {
+            try {
+                withTimeout(200) {
+                    // 3. Observe the flow with Turbine
+                    repository.getAllBulletins().test {
+
+                        // Initial State before refresh is NetworkResult.Loading
+                        assertEquals(NetworkResult.Loading, awaitItem())
+
+                        // Trigger refresh in backgroundScope or directly inside test
+                        repository.refreshBulletins(onRetry = {})
+                    }
+                }
+            } catch (e: TimeoutCancellationException) {
+                Result.failure<TimeoutCancellationException>(e)
+            }
+        }
+
+        // 4. Advance virtual time past the timeout
+        testScheduler.advanceTimeBy(200)
+
+        // 5. Execute pending tasks and verify the exception
+        testScheduler.runCurrent()
+
+        val result = deferredResult.await()
+        assertTrue((result as Result<*>).isFailure)
+        assertTrue(result.exceptionOrNull() is TimeoutCancellationException)
+
+        testScheduler.advanceUntilIdle()
+
+        // If the repository mistakenly swallowed CancellationException and emitted
+        // NetworkResult.Exception, Turbine would have thrown an unconsumed event error above!
+
+    }
+
+    @Test
+    fun `getBulletin cancels cleanly without emitting NetworkResult Exception`() = runTest(testDispatcher) {
+
+        // Given the JSON response of bulletins
+        val jsonResponse = """
+                {
+                    "id": 6,
+                    "userId": 1,
+                    "title": "Software Patch",
+                    "post": "Please take the time to apply the newest security patches. The recent news of cyber attacks means we all have to do our part. The Desktop Support team will be locking access on any account that  are not compliant by Friday end of business.",
+                    "timestamp": "2026-07-14T23:32:12.345Z"
+                }
+            """.trimIndent()
+
+        // 1. Enqueue MockWebServer responses (e.g., HTTP 200)
+        mockWebServer.enqueue(
+            MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-Type", "application/json")
+                .setHeadersDelay(2, TimeUnit.SECONDS)
+                .setBody(jsonResponse)
+        )
+
+        // 2. Launch the operation with timeout in a deferred context
+        val deferredResult = async {
+            try {
+                withTimeout(200) {
+                    // 3. Observe the flow with Turbine
+                    repository.getBulletin().test {
+
+                        // Initial State before refresh is NetworkResult.Loading
+                        assertEquals(NetworkResult.Loading, awaitItem())
+
+                        // Trigger refresh in backgroundScope or directly inside test
+                        repository.refreshBulletin(bulletinId = 6, onRetry = {})
+                    }
+                }
+            } catch (e: TimeoutCancellationException) {
+                Result.failure<TimeoutCancellationException>(e)
+            }
+        }
+
+        // 4. Advance virtual time past the timeout
+        testScheduler.advanceTimeBy(200)
+
+        // 5. Execute pending tasks and verify the exception
+        testScheduler.runCurrent()
+
+        val result = deferredResult.await()
+        assertTrue((result as Result<*>).isFailure)
+        assertTrue(result.exceptionOrNull() is TimeoutCancellationException)
+
+        testScheduler.advanceUntilIdle()
+
+        // If the repository mistakenly swallowed CancellationException and emitted
+        // NetworkResult.Exception, Turbine would have thrown an unconsumed event error above!
+
+    }
 }

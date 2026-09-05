@@ -14,13 +14,16 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.async
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
 import okhttp3.mockwebserver.SocketPolicy
@@ -727,30 +730,9 @@ class RefreshTokenRepositoryImplTest {
 
         }
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     @Test
     fun `refreshToken cancels cleanly without emitting NetworkResult Exception`() {
-
-        val contentType = "application/json".toMediaType()
-
-        val client = OkHttpClient.Builder()
-            .connectTimeout(100, TimeUnit.MILLISECONDS) // Strict connect timeout
-            .readTimeout(100, TimeUnit.MILLISECONDS)    // Strict read timeout
-            .writeTimeout(100, TimeUnit.MILLISECONDS)   // Strict write timeout
-            .build()
-
-        apiService = Retrofit.Builder()
-            .baseUrl(mockWebServer.url("/"))
-            .client(client)
-            .addConverterFactory(json.asConverterFactory(contentType))
-            .build()
-            .create(ApiService::class.java)
-
-        repository = RefreshTokenRepositoryImpl(
-            ioDispatcher = testDispatcher,
-            apiService = apiService,
-            accessTokenManager = accessTokenManager,
-            refreshTokenManager = refreshTokenManager
-        )
 
         runTest(testDispatcher) {
 
@@ -760,15 +742,35 @@ class RefreshTokenRepositoryImplTest {
             mockWebServer.enqueue(
                 MockResponse()
                     .setResponseCode(200)
-                    .setHeadersDelay(5, TimeUnit.SECONDS) // indicate cancellation (timeout)
                     .setBody("""{"accessToken":"token-1234"}""")
             )
 
-            // 2. Perform Refresh Token
-            repository.refreshToken(
-                tokenUsedByRequest = tokenUsedByRequest,
-                onRetry = {}
-            )
+            // 2. Launch the operation with timeout in a deferred context
+            val deferredResult = async {
+                try {
+                    withTimeout(200) {
+                        // 2. Observe the flow with Turbine
+                        repository.refreshToken(
+                            tokenUsedByRequest = tokenUsedByRequest,
+                            onRetry = {}
+                        )
+                    }
+                } catch (e: TimeoutCancellationException) {
+                    Result.failure<TimeoutCancellationException>(e)
+                }
+            }
+
+            // 3. Advance virtual time past the timeout
+            testScheduler.advanceTimeBy(200)
+
+            // 4. Execute pending tasks and verify the exception
+            testScheduler.runCurrent()
+
+            val result = deferredResult.await()
+            assertTrue((result as Result<*>).isFailure)
+            assertTrue(result.exceptionOrNull() is TimeoutCancellationException)
+
+            testScheduler.advanceUntilIdle()
 
             // If the repository mistakenly swallowed CancellationException and emitted
             // NetworkResult.Exception, runTest would have thrown an unconsumed event error above!

@@ -83,8 +83,9 @@ class MessageCacheRepositoryImpl(
                     _messagesByUserCache.value =
                         NetworkResult.Error(response.code(), response.message())
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) { // 5xx errors
-                if (e is CancellationException) throw e
                 auditLog(e.message ?: "no message")
                 // Update the SSOT cache with the network result exception!
                 _messagesByUserCache.value = NetworkResult.Exception(e)

@@ -16,11 +16,14 @@ import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.TimeoutCancellationException
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.mockwebserver.MockResponse
@@ -31,8 +34,10 @@ import org.junit.Test
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.time.Instant
+import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class MessageCacheRepositoryImplTest {
@@ -88,8 +93,9 @@ class MessageCacheRepositoryImplTest {
     // =========================================================================
 
     @Test
-    fun `refreshMessagesOfActiveUser fetches user id from session and updates cache with Success`() =
+    fun `getMessagesByUser fetches user id from session and updates cache with Success`() =
         runTest(testDispatcher) {
+
             // 1. Mock session returns Authenticated user with ID = 42
             coEvery { sessionManager.getSessionUserId() } returns SessionResult.Authenticated(42)
 
@@ -153,7 +159,7 @@ class MessageCacheRepositoryImplTest {
         }
 
     @Test
-    fun `refreshMessagesOfActiveUser fetches user id of NO_VALUE from session adds nothing to cache`() =
+    fun `getMessagesByUser fetches user id of NO_VALUE from session adds nothing to cache`() =
         runTest(testDispatcher) {
 
             // Mock unauthenticated session
@@ -202,7 +208,7 @@ class MessageCacheRepositoryImplTest {
         }
 
     @Test
-    fun `refreshMessagesOfSelectedUser fails update cache when messages not found`() =
+    fun `getMessagesByUser fails update cache when messages not found`() =
         runTest(testDispatcher) {
             mockWebServer.enqueue(
                 MockResponse()
@@ -238,7 +244,7 @@ class MessageCacheRepositoryImplTest {
         }
 
     @Test
-    fun `refreshMessagesOfSelectedUser fails update cache when messages service is unavailable`() =
+    fun `getMessagesByUser fails update cache when messages service is unavailable`() =
         runTest(testDispatcher) {
 
             // Enqueue 3 error responses so attempts 1, 2, and 3 get instant responses
@@ -272,6 +278,133 @@ class MessageCacheRepositoryImplTest {
             }
         }
 
+    @Test
+    fun `getMessagesByUser of active user cancels cleanly without emitting NetworkResult Exception`() =
+        runTest(testDispatcher) {
+
+            // 1. Mock session returns Authenticated user with ID = 42
+            coEvery { sessionManager.getSessionUserId() } returns SessionResult.Authenticated(42)
+
+            // 2. Enqueue MockWebServer response for targetUserId = 42
+            mockWebServer.enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setHeader("Content-Type", "application/json")
+                    .setHeadersDelay(2, TimeUnit.SECONDS)
+                    .setBody(
+                        """
+                    [
+                        {
+                            "id": 101,
+                            "subject": "Welcome",
+                            "body": "Hello World",
+                            "read": false,
+                            "userId": 42,
+                            "createdAt": "2026-07-13T22:28:56.321Z"
+                        }
+                    ]
+                    """.trimIndent()
+                    )
+            )
+
+            // 3. Launch the operation with timeout in a deferred context
+            val deferredResult = async {
+                try {
+                    withTimeout(200) {
+                        // 4. Observe the flow with Turbine
+                        repository.getMessagesByUser().test {
+
+                            // Initial State before refresh is NetworkResult.Loading
+                            assertEquals(NetworkResult.Loading, awaitItem())
+
+                            // Trigger refresh in backgroundScope or directly inside test
+                            repository.refreshMessagesOfActiveUser(onRetry = {})
+                        }
+                    }
+                } catch (e: TimeoutCancellationException) {
+                    Result.failure<TimeoutCancellationException>(e)
+                }
+            }
+
+            // 5. Advance virtual time past the timeout
+            testScheduler.advanceTimeBy(200)
+
+            // 6. Execute pending tasks and verify the exception
+            testScheduler.runCurrent()
+
+            val result = deferredResult.await()
+            assertTrue((result as Result<*>).isFailure)
+            assertTrue(result.exceptionOrNull() is TimeoutCancellationException)
+
+            testScheduler.advanceUntilIdle()
+
+            // If the repository mistakenly swallowed CancellationException and emitted
+            // NetworkResult.Exception, Turbine would have thrown an unconsumed event error above!
+        }
+
+    @Test
+    fun `getMessagesByUser of selected user cancels cleanly without emitting NetworkResult Exception`() =
+        runTest(testDispatcher) {
+
+            // 1. Enqueue MockWebServer response for targetUserId = 42
+            mockWebServer.enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setHeader("Content-Type", "application/json")
+                    .setHeadersDelay(2, TimeUnit.SECONDS)
+                    .setBody(
+                        """
+                    [
+                        {
+                            "id": 101,
+                            "subject": "Welcome",
+                            "body": "Hello World",
+                            "read": false,
+                            "userId": 42,
+                            "createdAt": "2026-07-13T22:28:56.321Z"
+                        }
+                    ]
+                    """.trimIndent()
+                    )
+            )
+
+            // 2. Launch the operation with timeout in a deferred context
+            val deferredResult = async {
+                try {
+                    withTimeout(200) {
+                        // 3. Observe the flow with Turbine
+                        repository.getMessagesByUser().test {
+
+                            // Initial State before refresh is NetworkResult.Loading
+                            assertEquals(NetworkResult.Loading, awaitItem())
+
+                            // Trigger refresh in backgroundScope or directly inside test
+                            repository.refreshMessagesOfSelectedUser(
+                                userId = 42,
+                                onRetry = {}
+                            )
+                        }
+                    }
+                } catch (e: TimeoutCancellationException) {
+                    Result.failure<TimeoutCancellationException>(e)
+                }
+            }
+
+            // 4. Advance virtual time past the timeout
+            testScheduler.advanceTimeBy(200)
+
+            // 5. Execute pending tasks and verify the exception
+            testScheduler.runCurrent()
+
+            val result = deferredResult.await()
+            assertTrue((result as Result<*>).isFailure)
+            assertTrue(result.exceptionOrNull() is TimeoutCancellationException)
+
+            testScheduler.advanceUntilIdle()
+
+            // If the repository mistakenly swallowed CancellationException and emitted
+            // NetworkResult.Exception, Turbine would have thrown an unconsumed event error above!
+        }
 
     // =========================================================================
     // Function 2 & 3: markMessageAsRead and markMessageAsUnread
@@ -467,48 +600,49 @@ class MessageCacheRepositoryImplTest {
         }
 
     @Test
-    fun `markMessageAsRead emits failure event when service unavailable`() = runTest(testDispatcher) {
-        // 1. Seed initial unread state
-        seedCacheWithMessages(
-            listOf(
-                createSampleDomainMessage(id = 101, read = false)
-            )
-        )
-
-        // 2. Enqueue 500 error from server
-        // Enqueue 3 error responses so attempts 1, 2, and 3 get instant responses
-        repeat(3) {
-            mockWebServer.enqueue(MockResponse().setResponseCode(503))
-        }
-
-        var retryCount = 0
-
-        // 3. Test UI event channel emissions using Turbine
-        repository.uiEvents.test {
-            repository.markMessageAsRead(
-                messageId = 101,
-                onRetry = { attempt ->
-                    retryCount = attempt
-                }
+    fun `markMessageAsRead emits failure event when service unavailable`() =
+        runTest(testDispatcher) {
+            // 1. Seed initial unread state
+            seedCacheWithMessages(
+                listOf(
+                    createSampleDomainMessage(id = 101, read = false)
+                )
             )
 
-            // 4. Advance virtual time to drain all delay() calls inside retryIO
-            testScheduler.advanceUntilIdle()
+            // 2. Enqueue 500 error from server
+            // Enqueue 3 error responses so attempts 1, 2, and 3 get instant responses
+            repeat(3) {
+                mockWebServer.enqueue(MockResponse().setResponseCode(503))
+            }
 
-            val event = awaitItem()
-            assertEquals(MessageDomainEvent.MessageMarkReadFailureFeedback, event)
+            var retryCount = 0
 
-            // 6. Assert retry callbacks and HTTP request counts
-            assertEquals(3, retryCount, "3 retries when 503 error response")
+            // 3. Test UI event channel emissions using Turbine
+            repository.uiEvents.test {
+                repository.markMessageAsRead(
+                    messageId = 101,
+                    onRetry = { attempt ->
+                        retryCount = attempt
+                    }
+                )
 
-            cancelAndIgnoreRemainingEvents()
+                // 4. Advance virtual time to drain all delay() calls inside retryIO
+                testScheduler.advanceUntilIdle()
+
+                val event = awaitItem()
+                assertEquals(MessageDomainEvent.MessageMarkReadFailureFeedback, event)
+
+                // 6. Assert retry callbacks and HTTP request counts
+                assertEquals(3, retryCount, "3 retries when 503 error response")
+
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            // Ensure cache state remained unchanged (still unread)
+            val cacheState = repository.getMessagesByUser().first()
+            assertIs<NetworkResult.Success<List<MessageDomainModel>>>(cacheState)
+            assertEquals(false, cacheState.data.first().read)
         }
-
-        // Ensure cache state remained unchanged (still unread)
-        val cacheState = repository.getMessagesByUser().first()
-        assertIs<NetworkResult.Success<List<MessageDomainModel>>>(cacheState)
-        assertEquals(false, cacheState.data.first().read)
-    }
 
     @Test
     fun `markMessageAsUnread emits failure event when service unavailable`() =
