@@ -652,16 +652,23 @@ class PermissionRepositoryImplTest {
     @Test
     fun `getPermissionInfoFlow cancels cleanly without emitting NetworkResult Exception`() =
         runTest(testDispatcher) {
+
+            // 1. Mock session returns Authenticated user with ID = 42
+            coEvery { sessionManager.getSessionPermissionIds() } returns SessionResult.Authenticated(
+                listOf(101, 102, 103)
+            )
+
             // 1. Enqueue a delayed response so the call stays suspended on the server
             mockWebServer.enqueue(
                 MockResponse()
                     .setResponseCode(200)
                     .setHeadersDelay(5, TimeUnit.SECONDS) // indicate cancellation (timeout)
-                    .setBody("""[{"id":"1"}]""")
+                    .setBody(createSamplePermissionDtos())
             )
 
             // 2. Observe the flow with Turbine
             repository.getPermissionInfoFlow(onRetry = {}).test {
+
                 // Assert initial state
                 assertEquals(NetworkResult.Loading, awaitItem())
 

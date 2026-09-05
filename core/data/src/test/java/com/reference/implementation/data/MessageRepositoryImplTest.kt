@@ -780,21 +780,26 @@ class MessageRepositoryImplTest {
     @Test
     fun `getMessagesByUserFlow cancels cleanly without emitting NetworkResult Exception`() =
         runTest(testDispatcher) {
-            // 1. Enqueue a delayed response so the call stays suspended on the server
+
+            // 1. Mock session returns Authenticated user with ID = 42
+            coEvery { sessionManager.getSessionUserId() } returns SessionResult.Authenticated(42)
+
+            // 2. Enqueue a delayed response so the call stays suspended on the server
             mockWebServer.enqueue(
                 MockResponse()
                     .setResponseCode(200)
+                    .setHeader("Content-Type", "application/json")
                     .setHeadersDelay(5, TimeUnit.SECONDS) // indicate cancellation (timeout)
-                    .setBody("""[{"id":"1"}]""")
+                    .setBody(createSampleDomainMessages())
             )
 
-            // 2. Observe the flow with Turbine
+            // 3. Observe the flow with Turbine
             repository.getMessagesByUserFlow(onRetry = {}).test {
 
                 // Assert initial state
                 assertEquals(NetworkResult.Loading, awaitItem())
 
-                // 3. Cancel the flow subscriber while suspended on the network call
+                // 4. Cancel the flow subscriber while suspended on the network call
                 cancelAndIgnoreRemainingEvents()
             }
 

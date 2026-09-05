@@ -60,8 +60,9 @@ class BulletinCacheRepositoryImpl(
                     _bulletinsCache.value =
                         NetworkResult.Error(response.code(), response.message())
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
-                if (e is CancellationException) throw e
                 auditLog(e.message ?: "no message")
                 _bulletinsCache.value = NetworkResult.Exception(e) // 5xx errors
             } finally {
@@ -99,6 +100,8 @@ class BulletinCacheRepositoryImpl(
                     _bulletinCache.value =
                         NetworkResult.Error(response.code(), response.message())
                 }
+            } catch (e: CancellationException) {
+                throw e
             } catch (e: Exception) {
                 auditLog(e.message ?: "no message")
                 _bulletinCache.value = NetworkResult.Exception(e)

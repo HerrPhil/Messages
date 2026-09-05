@@ -936,7 +936,7 @@ class UserRepositoryImplTest {
 
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
-    fun `getUsers cancels cleanly without emitting NetworkResult Exception`() {
+    fun `getUsers cancels cleanly without emitting NetworkResult Exception`() =
         runTest(testDispatcher) {
 
             // 1. Enqueue a delayed response so the call stays suspended on the server
@@ -973,7 +973,6 @@ class UserRepositoryImplTest {
             testScheduler.runCurrent()
 
             val result = deferredResult.await()
-            println("test")
             assertTrue((result as Result<*>).isFailure)
             assertTrue(result.exceptionOrNull() is TimeoutCancellationException)
 
@@ -982,7 +981,7 @@ class UserRepositoryImplTest {
             // If the repository mistakenly swallowed CancellationException and emitted
             // NetworkResult.Exception, Turbine would have thrown an unconsumed event error above!
         }
-    }
+
 
     private fun createSampleUserDto(id: Int, email: String, name: String, age: Int): UserDto {
         return UserDto(
