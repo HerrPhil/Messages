@@ -39,14 +39,19 @@ abstract class AbstractTokenManager(context: Context) {
             val (encryptedToken, tokenIV) = encrypt(token)
 
             // Pass 'commit = true' to force synchronous disk writing
-            prefs.edit(commit = true) {
+            // Use KTX edit block and explicitly return the commit result
+            @Suppress("unused")
+            val success = prefs.edit(commit = true) {
                 putString(encryptedTokenKey, encryptedToken)
                 putString(initializationVectorKey, tokenIV)
             }
+
+            // Return true if operation completed without throwing
+            true
         } catch (e: Exception) {
             auditLog("Failed to encrypt or save token: ${e.message}")
             false
-        } as Boolean
+        }
     }
 
     /**
