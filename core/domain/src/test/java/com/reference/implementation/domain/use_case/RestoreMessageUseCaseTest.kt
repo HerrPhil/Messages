@@ -23,14 +23,14 @@ class RestoreMessageUseCaseTest {
     fun `mock restoreMessage calls repository with exact message domain model`() = runTest {
         // Arrange
         val deletedMessage = mockk<MessageDomainModel>()
-        coEvery { messageCacheRepository.restoreMessage(deletedMessage) } returns Unit
+        coEvery { messageCacheRepository.restoreMessage(deletedMessage, any()) } returns Unit
 
         // Act
         useCase.invoke(deletedMessage = deletedMessage)
 
         // Assert parameter delivery
         coVerify(exactly = 1) {
-            messageCacheRepository.restoreMessage(eq(deletedMessage))
+            messageCacheRepository.restoreMessage(eq(deletedMessage), any())
         }
     }
 }

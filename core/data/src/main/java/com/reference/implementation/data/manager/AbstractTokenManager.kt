@@ -5,6 +5,7 @@ import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import android.util.Base64
 import androidx.core.content.edit
+import com.reference.implementation.data.audit.auditLog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.security.KeyStore
@@ -24,24 +25,48 @@ abstract class AbstractTokenManager(context: Context) {
     private val prefs = context.getSharedPreferences("secure_prefs", Context.MODE_PRIVATE)
 
     // --- Public API ---
-    suspend fun saveToken(token: String) = withContext(Dispatchers.IO) {
 
-        val (encryptedToken, tokenIV) = encrypt(token)
+    /**
+     * Synchronous token persistence for OkHttp Interceptors, Authenticators, and Repositories.
+     * Uses .commit() to guarantee synchronous disk flushing before subsequent HTTP retries execute.
+     * Wrapping the method body in synchronized(this) guarantees that two threads attempting
+     * to save tokens simultaneously won't corrupt key state.
+     */
+    fun saveToken(token: String): Boolean = synchronized(this) {
+        return try {
+            // Cipher / KeyStore operations are not guaranteed to be thread-safe
+            // across concurrent calls on the same class instance.
+            val (encryptedToken, tokenIV) = encrypt(token)
 
-        // Store both the encrypted data and the IV
-        // The "apply()" is embedded in the edit {} body
-        prefs.edit {
-            putString(encryptedTokenKey, encryptedToken)
-            putString(initializationVectorKey, tokenIV)
-        }
+            // Pass 'commit = true' to force synchronous disk writing
+            prefs.edit(commit = true) {
+                putString(encryptedTokenKey, encryptedToken)
+                putString(initializationVectorKey, tokenIV)
+            }
+        } catch (e: Exception) {
+            auditLog("Failed to encrypt or save token: ${e.message}")
+            false
+        } as Boolean
     }
 
-    suspend fun getToken(): String? = withContext(Dispatchers.IO) {
+    /**
+     * Wrapping the method body in synchronized(this) guarantees that two threads attempting
+     * to get tokens simultaneously won't corrupt key state.
+     */
+    fun getToken(): String? = synchronized(this) {
 
-        val encryptedToken = prefs.getString(encryptedTokenKey, null) ?: return@withContext null
-        val iv = prefs.getString(initializationVectorKey, null) ?: return@withContext null
+        val encryptedToken = prefs.getString(encryptedTokenKey, null) ?: return null
+        val iv = prefs.getString(initializationVectorKey, null) ?: return null
 
-        decrypt(encryptedToken, iv)
+        return try {
+            // Cipher / KeyStore operations are not guaranteed to be thread-safe
+            // across concurrent calls on the same class instance.
+            decrypt(encryptedToken, iv)
+        } catch (e: Exception) {
+            // Handle potential Keystore / Decryption errors gracefully
+            auditLog("Decryption failed in getTokenSync: ${e.message}")
+            null
+        }
     }
 
     suspend fun logout() = withContext(Dispatchers.IO) {

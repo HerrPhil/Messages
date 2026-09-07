@@ -22,14 +22,14 @@ class MarkMessageAsReadUseCaseTest {
     fun `markAsRead calls repository with exact message ID`() = runTest {
         // Arrange
         val targetMessageId = 456
-        coEvery { messageCacheRepository.markMessageAsRead(targetMessageId) } returns Unit
+        coEvery { messageCacheRepository.markMessageAsRead(targetMessageId, any()) } returns Unit
 
         // Act
         useCase.invoke(messageId = targetMessageId)
 
         // Assert parameter delivery
         coVerify(exactly = 1) {
-            messageCacheRepository.markMessageAsRead(eq(targetMessageId))
+            messageCacheRepository.markMessageAsRead(eq(targetMessageId), any())
         }
     }
 }

@@ -74,9 +74,12 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     // DataStore (user preferences)
     implementation(libs.androidx.datastore.preferences)
+    // retrofit scalar converter for Token Authenticator test
+    implementation(libs.converter.scalars)
 
     // All testing dependencies
     testImplementation(libs.junit)
+    testImplementation(kotlin("test"))
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
@@ -88,4 +91,7 @@ dependencies {
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
     testImplementation(libs.kotlinx.coroutines.test)
+
+    // MockWebServer for Retrofit/OkHttp Network Contract & HTTP 401 Testing
+    testImplementation(libs.okhttp.mockwebserver)
 }

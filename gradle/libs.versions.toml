@@ -1,5 +1,6 @@
 [versions]
 agp = "9.0.1"
+converterScalars = "2.9.0"
 coreKtx = "1.17.0"
 datastorePreferences = "1.2.1"
 junit = "4.13.2"
@@ -33,6 +34,7 @@ androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = 
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleRuntimeKtx" }
 androidx-navigation-compose = { module = "androidx.navigation:navigation-compose", version.ref = "navigationCompose" }
+converter-scalars = { module = "com.squareup.retrofit2:converter-scalars", version.ref = "converterScalars" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }

@@ -1034,12 +1034,10 @@ class MessageCacheRepositoryImplTest {
             assertEquals(102, cacheState.data.first().id)
         }
 
-
 // *********************************************************************************************
 // *********************************************************************************************
 // *********************************************************************************************
 // *********************************************************************************************
-
 
     private fun seedCacheWithMessages(messages: List<MessageDomainModel>) {
         // We can pre-populate cache by calling refresh against mock endpoint or

@@ -22,14 +22,14 @@ class MarkMessageAsUnreadUseCaseTest {
     fun `markAsUnread calls repository with exact message ID`() = runTest {
         // Arrange
         val targetMessageId = 456
-        coEvery { messageCacheRepository.markMessageAsUnread(targetMessageId) } returns Unit
+        coEvery { messageCacheRepository.markMessageAsUnread(targetMessageId, any()) } returns Unit
 
         // Act
         useCase.invoke(messageId = targetMessageId)
 
         // Assert parameter delivery
         coVerify(exactly = 1) {
-            messageCacheRepository.markMessageAsUnread(eq(targetMessageId))
+            messageCacheRepository.markMessageAsUnread(eq(targetMessageId), any())
         }
     }
 }

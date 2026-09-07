@@ -22,14 +22,14 @@ class DeleteMessageUseCaseTest {
     fun `mock DeleteMessage calls repository with exact message ID`() = runTest {
         // Arrange
         val targetMessageId = 987
-        coEvery { messageCacheRepository.deleteMessage(targetMessageId) } returns Unit
+        coEvery { messageCacheRepository.deleteMessage(targetMessageId, any()) } returns Unit
 
         // Act
         useCase.invoke(messageId = targetMessageId)
 
         // Assert parameter delivery
         coVerify(exactly = 1) {
-            messageCacheRepository.deleteMessage(eq(targetMessageId))
+            messageCacheRepository.deleteMessage(eq(targetMessageId), any())
         }
     }
 }

@@ -32,7 +32,7 @@ class RefreshTokenUseCaseTest {
             newAccessToken = "new-secret-access-token-0987"
         )
 
-        coEvery { refreshTokenRepository.refreshToken(tokenUsedByRequest) } returns NetworkResult.Success(
+        coEvery { refreshTokenRepository.refreshToken(tokenUsedByRequest, any()) } returns NetworkResult.Success(
             data = refreshToken
         )
 
@@ -41,7 +41,7 @@ class RefreshTokenUseCaseTest {
 
         // Assert
         coVerify(exactly = 1) {
-            refreshTokenRepository.refreshToken(eq(tokenUsedByRequest))
+            refreshTokenRepository.refreshToken(eq(tokenUsedByRequest), any())
         }
         assertTrue(resourceResult is Resource.Success)
         val newRefreshToken = (resourceResult as Resource.Success).data
@@ -57,7 +57,7 @@ class RefreshTokenUseCaseTest {
         val forbiddenCode = 403
         val forbiddenMessage = "Token has expired"
 
-        coEvery { refreshTokenRepository.refreshToken(tokenUsedByRequest) } returns NetworkResult.Error(
+        coEvery { refreshTokenRepository.refreshToken(tokenUsedByRequest, any()) } returns NetworkResult.Error(
             forbiddenCode,
             forbiddenMessage
         )
@@ -67,7 +67,7 @@ class RefreshTokenUseCaseTest {
 
         // Assert
         coVerify(exactly = 1) {
-            refreshTokenRepository.refreshToken(eq(tokenUsedByRequest))
+            refreshTokenRepository.refreshToken(eq(tokenUsedByRequest), any())
         }
         assertTrue(resourceResult is Resource.Error)
         val resourceErrorMessage = (resourceResult as Resource.Error).message
@@ -84,7 +84,7 @@ class RefreshTokenUseCaseTest {
             val unauthorizedCode = 401
             val unauthorizedMessage = "not authorized"
 
-            coEvery { refreshTokenRepository.refreshToken(tokenUsedByRequest) } returns NetworkResult.Error(
+            coEvery { refreshTokenRepository.refreshToken(tokenUsedByRequest ,any()) } returns NetworkResult.Error(
                 unauthorizedCode,
                 unauthorizedMessage
             )
@@ -94,7 +94,7 @@ class RefreshTokenUseCaseTest {
 
             // Assert
             coVerify(exactly = 1) {
-                refreshTokenRepository.refreshToken(eq(tokenUsedByRequest))
+                refreshTokenRepository.refreshToken(eq(tokenUsedByRequest), any())
             }
             assertTrue(resourceResult is Resource.Error)
             val resourceErrorMessage = (resourceResult as Resource.Error).message
@@ -109,7 +109,7 @@ class RefreshTokenUseCaseTest {
         val message = "Network down"
         val networkDown = IOException(message)
 
-        coEvery { refreshTokenRepository.refreshToken(tokenUsedByRequest) } returns NetworkResult.Exception(
+        coEvery { refreshTokenRepository.refreshToken(tokenUsedByRequest, any()) } returns NetworkResult.Exception(
             networkDown
         )
 
@@ -118,7 +118,7 @@ class RefreshTokenUseCaseTest {
 
         // Assert
         coVerify(exactly = 1) {
-            refreshTokenRepository.refreshToken(eq(tokenUsedByRequest))
+            refreshTokenRepository.refreshToken(eq(tokenUsedByRequest), any())
         }
         assertTrue(resourceResult is Resource.Error)
         val resourceErrorMessage = (resourceResult as Resource.Error).message
@@ -132,7 +132,7 @@ class RefreshTokenUseCaseTest {
 
         val httpException = mockk<HttpException>()
 
-        coEvery { refreshTokenRepository.refreshToken(tokenUsedByRequest) } returns NetworkResult.Exception(
+        coEvery { refreshTokenRepository.refreshToken(tokenUsedByRequest, any()) } returns NetworkResult.Exception(
             httpException
         )
         coEvery { httpException.code() } returns 400
@@ -142,7 +142,7 @@ class RefreshTokenUseCaseTest {
 
         // Assert
         coVerify(exactly = 1) {
-            refreshTokenRepository.refreshToken(eq(tokenUsedByRequest))
+            refreshTokenRepository.refreshToken(eq(tokenUsedByRequest), any())
         }
         assertTrue(resourceResult is Resource.Error)
         val resourceErrorMessage = (resourceResult as Resource.Error).message
@@ -155,7 +155,7 @@ class RefreshTokenUseCaseTest {
 
         val illegalAccessException = mockk<IllegalAccessException>()
 
-        coEvery { refreshTokenRepository.refreshToken(tokenUsedByRequest) } returns NetworkResult.Exception(
+        coEvery { refreshTokenRepository.refreshToken(tokenUsedByRequest, any()) } returns NetworkResult.Exception(
             illegalAccessException
         )
 
@@ -164,7 +164,7 @@ class RefreshTokenUseCaseTest {
 
         // Assert
         coVerify(exactly = 1) {
-            refreshTokenRepository.refreshToken(eq(tokenUsedByRequest))
+            refreshTokenRepository.refreshToken(eq(tokenUsedByRequest), any())
         }
         assertTrue(resourceResult is Resource.Error)
         val resourceErrorMessage = (resourceResult as Resource.Error).message

@@ -1,7 +1,6 @@
 package com.reference.implementation.messages.di
 
 import com.reference.implementation.data.manager.AccessTokenManager
-import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.Response
 
@@ -21,15 +20,17 @@ class AuthInterceptor(private val accessTokenManager: AccessTokenManager) : Inte
         // Retrieve the token dynamically at request time, every time
         // Expensive? No, runs in milliseconds!
         // The math done by the TEE (AES-GCM decryption) is incredibly fast — measured in milliseconds.
-        val token = runBlocking {
-            accessTokenManager.getToken()
+        val token = accessTokenManager.getToken()
+
+        if (token.isNullOrEmpty()) {
+            return chain.proceed(originalRequest)
         }
 
-        val requestBuilder = originalRequest.newBuilder()
-        if (token != null) {
-            requestBuilder.addHeader("Authorization", "Bearer $token")
-        }
+        val authenticatedRequest = originalRequest.newBuilder()
+            .header("Authorization", "Bearer $token")
+            .build()
 
-        return chain.proceed(requestBuilder.build())
+        return chain.proceed(authenticatedRequest)
+
     }
 }
