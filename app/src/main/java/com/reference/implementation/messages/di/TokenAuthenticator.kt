@@ -13,11 +13,13 @@ import okhttp3.Response
 import okhttp3.Route
 
 class TokenAuthenticator(
+    private val externalScope: CoroutineScope,
     private val refreshTokenUseCaseProvider: () -> RefreshTokenUseCase,
     private val forceLogoutUseCaseProvider: () -> ForceLogoutUseCase
 ) : Authenticator {
 
     override fun authenticate(route: Route?, response: Response): Request? {
+
         // 1. Prevent infinite loops: If the refresh attempt itself failed, stop!
         if (response.priorResponse != null) {
             return null
@@ -44,16 +46,13 @@ class TokenAuthenticator(
                         val newAccessToken = resourceToken.data.newAccessToken
 
                         response.request.newBuilder()
-                            .addHeader("Authorization", "Bearer $newAccessToken")
-                            // Stamp it as a retry so AuthInterceptor leaves it alone
-                            .tag(RetryTag::class.java, RetryTag())
+                            .header("Authorization", "Bearer $newAccessToken")
                             .build()
                     }
 
                     is Resource.Error -> {
                         // Force logout - we are here most likely due to a refresh 403
-                        val logoutScope = CoroutineScope(Dispatchers.Default)
-                        logoutScope.launch {
+                        externalScope.launch {
 
                             // Resolve the UseCase ON DEMAND only when a 403 error hits
                             val forceLogoutUseCase = forceLogoutUseCaseProvider()
@@ -61,6 +60,7 @@ class TokenAuthenticator(
                             // execute the logout call
                             forceLogoutUseCase()
                         }
+
                         null
                     }
 
