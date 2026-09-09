@@ -33,6 +33,7 @@ import com.reference.implementation.domain.repository.RoleRepository
 import com.reference.implementation.domain.repository.UserPreferencesRepository
 import com.reference.implementation.domain.repository.UserRepository
 import com.reference.implementation.domain.use_case.DeleteMessageUseCase
+import com.reference.implementation.domain.use_case.FetchNewUserProfileUseCase
 import com.reference.implementation.domain.use_case.ForceLogoutUseCase
 import com.reference.implementation.domain.use_case.GetAdminDashboardUseCase
 import com.reference.implementation.domain.use_case.GetAdminUserInformationUseCase
@@ -78,6 +79,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
 
 interface AppContainer {
     val loginUseCase: LoginUseCase
+    val fetchNewUserProfileUseCase: FetchNewUserProfileUseCase
     val logoutUseCase: LogoutUseCase
     val forceLogoutUseCase: ForceLogoutUseCase
     val getUserDashboardUseCase: GetUserDashboardUseCase
@@ -177,8 +179,10 @@ class AppMessageContainer(context: Context) : AppContainer {
 
     private val baseOkHttpClient by lazy {
         OkHttpClient.Builder()
-            .connectTimeout(15, TimeUnit.SECONDS)
-            .readTimeout(15, TimeUnit.SECONDS)
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+//            .connectTimeout(15, TimeUnit.SECONDS)
+//            .readTimeout(15, TimeUnit.SECONDS)
             .addInterceptor(SecurityAuditInterceptor())
             .addInterceptor(logging)
             .build()
@@ -243,9 +247,7 @@ class AppMessageContainer(context: Context) : AppContainer {
             apiService = authApiService, // Uses bare client!!!! (VERY IMPORTANT)
             accessTokenManager = accessTokenManager,
             refreshTokenManager = refreshTokenManager,
-            authSessionManager = authSessionManager,
-            roleManager = roleManager,
-            sessionManager = sessionManager
+            authSessionManager = authSessionManager
         )
     }
 
@@ -370,6 +372,8 @@ class AppMessageContainer(context: Context) : AppContainer {
 
     private val roleRepository: RoleRepository by lazy {
         RoleRepositoryImpl(
+            apiService = apiService,
+            roleManager = roleManager,
             sessionManager = sessionManager
         )
     }
@@ -407,6 +411,10 @@ class AppMessageContainer(context: Context) : AppContainer {
     override val loginUseCase: LoginUseCase by lazy {
         // The container provides ("injects") the repository to the use case.
         LoginUseCase(loginRepository)
+    }
+
+    override val fetchNewUserProfileUseCase: FetchNewUserProfileUseCase by lazy {
+        FetchNewUserProfileUseCase(roleRepository)
     }
 
     override val logoutUseCase: LogoutUseCase by lazy {

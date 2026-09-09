@@ -2,12 +2,11 @@ package com.reference.implementation.data
 
 
 import android.util.Log
+import com.reference.implementation.data.dtos.LoginDto
+import com.reference.implementation.data.dtos.UserDto
 import com.reference.implementation.data.manager.AccessTokenManager
 import com.reference.implementation.data.manager.AuthSessionManager
 import com.reference.implementation.data.manager.RefreshTokenManager
-import com.reference.implementation.data.manager.RoleManager
-import com.reference.implementation.data.manager.SessionManager
-import com.reference.implementation.data.manager.UserRoleState
 import com.reference.implementation.data.repositoryimpl.LoginRepositoryImpl
 import com.reference.implementation.data.sources.ApiService
 import com.reference.implementation.domain.util.NetworkResult
@@ -42,13 +41,10 @@ class LoginRepositoryImplTest {
     private lateinit var testDispatcher: TestDispatcher
     private lateinit var mockWebServer: MockWebServer
     private lateinit var apiService: ApiService
-
+    private lateinit var repository: LoginRepositoryImpl
     private val accessTokenManager: AccessTokenManager = mockk(relaxed = true)
     private val refreshTokenManager: RefreshTokenManager = mockk(relaxed = true)
     private val authSessionManager: AuthSessionManager = mockk(relaxed = true)
-    private val roleManager: RoleManager = mockk(relaxed = true)
-    private val sessionManager: SessionManager = mockk(relaxed = true)
-    private lateinit var repository: LoginRepositoryImpl
     private val json = Json { ignoreUnknownKeys = true }
 
     @Before
@@ -82,9 +78,7 @@ class LoginRepositoryImplTest {
             apiService = apiService,
             accessTokenManager = accessTokenManager,
             refreshTokenManager = refreshTokenManager,
-            authSessionManager = authSessionManager,
-            roleManager = roleManager,
-            sessionManager = sessionManager
+            authSessionManager = authSessionManager
         )
     }
 
@@ -104,113 +98,27 @@ class LoginRepositoryImplTest {
                 MockResponse()
                     .setResponseCode(200)
                     .setHeader("Content-Type", "application/json")
-                    .setBody(
-                        """
-                    {
-                        "accessToken": "access_token_123",
-                        "refreshToken": "refresh_token_abc",
-                        "user": {
-                            "id": 1,
-                            "email": "admin@example.com",
-                            "name": "Admin User",
-                            "age": 56
-                        }
-                    }
-                    """.trimIndent()
-                    )
-            )
-
-            // 2. Enqueue getRoles Response (User is an Administrator)
-            mockWebServer.enqueue(
-                MockResponse()
-                    .setResponseCode(200)
-                    .setHeader("Content-Type", "application/json")
-                    .setBody(
-                        """
-                    [
-                        {
-                            "id": 1,
-                            "name": "System Administrator",
-                            "targetUserId": 1,
-                            "permissions": [],
-                            "userId": 1
-                        },
-                        {
-                            "id": 2,
-                            "name": "Average User",
-                            "targetUserId": 3,
-                            "permissions": [],
-                            "userId": 1
-                        }
-                    ]
-                    """.trimIndent()
-                    )
+                    .setBody(createSampleLoginJson())
             )
 
             // 3. Perform Login
-            val result = repository.login("admin@example.com", "password123", onRetry = {})
+            val result = repository.login(
+                "admin@example.com",
+                "password123",
+                onRetry = {}
+            )
 
             // 4. Assert Success & Domain Model
             assertIs<NetworkResult.Success<*>>(result)
 
             // 5. Verify Token Operations & State Updates
             coVerifyOrder {
-                roleManager.updateRole(UserRoleState.Loading)
                 accessTokenManager.saveToken("access_token_123")
                 refreshTokenManager.saveToken("refresh_token_abc")
-                roleManager.updateRole(UserRoleState.Administrator)
-                sessionManager.updateSession(any(), any())
                 authSessionManager.startSession()
             }
 
-            assertEquals(2, mockWebServer.requestCount)
-        }
-
-    @Test
-    fun `login success assigns RegularUser state when System Administrator role is absent`() =
-        runTest(testDispatcher) {
-            mockWebServer.enqueue(
-                MockResponse()
-                    .setResponseCode(200)
-                    .setBody(
-                        """
-                    {
-                        "accessToken": "acc",
-                        "refreshToken": "ref",
-                        "user": {
-                            "id": 3,
-                            "email": "user@test.com",
-                            "name": "Standard User",
-                            "age": 56
-                        }
-                    }
-                    """.trimIndent()
-                    )
-            )
-            mockWebServer.enqueue(
-                MockResponse()
-                    .setResponseCode(200)
-                    .setBody(
-                        """
-                    [
-                        {
-                            "id": 2,
-                            "name": "Standard User",
-                            "targetUserId": 3,
-                            "permissions": [],
-                            "userId": 1
-                        }
-                    ]
-                    """.trimIndent()
-                    )
-            )
-
-            val result = repository.login("user@test.com", "password123", onRetry = {})
-
-            assertIs<NetworkResult.Success<*>>(result)
-
-            // Verify RegularUser role mapping
-            coVerify { roleManager.updateRole(UserRoleState.RegularUser) }
+            assertEquals(1, mockWebServer.requestCount)
         }
 
     @Test
@@ -221,118 +129,88 @@ class LoginRepositoryImplTest {
             mockWebServer.enqueue(
                 MockResponse()
                     .setResponseCode(200)
-                    .setBody(
-                        """
-                    {
-                        "accessToken": "acc",
-                        "refreshToken": "ref",
-                        "user": {
-                            "id": 3,
-                            "email": "retry@test.com",
-                            "name": "Retry User",
-                            "age": 56
-                        }
-                    }
-                    """.trimIndent()
-                    )
-            )
-            mockWebServer.enqueue(
-                MockResponse()
-                    .setResponseCode(200)
-                    .setBody(
-                        """
-                    [
-                        {
-                            "id": 2,
-                            "name": "User",
-                            "targetUserId": 3,
-                            "permissions": [],
-                            "userId": 1
-                        }
-                    ]
-                    """.trimIndent()
-                    )
+                    .setBody(createSampleLoginJson())
             )
 
             var retryAttempt = 0
 
-            val result = repository.login("retry@test.com", "password123", onRetry = { attempt ->
-                retryAttempt = attempt
-            })
+            val result = repository.login(
+                "test.user@learn.com",
+                "password123",
+                onRetry = { attempt -> retryAttempt = attempt }
+            )
 
             assertIs<NetworkResult.Success<*>>(result)
             assertEquals(1, retryAttempt)
-            assertEquals(3, mockWebServer.requestCount) // 2 for login + 1 for roles
+            assertEquals(2, mockWebServer.requestCount) // 2 for login
         }
 
     @Test
-    fun `login retries on IO error and succeeds on second attempt`() = runTest(testDispatcher) {
-        // Attempt 1 fails with 500, Attempt 2 succeeds
-        mockWebServer.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
-        mockWebServer.enqueue(
-            MockResponse()
-                .setResponseCode(200)
-                .setBody(
-                    """
-                    {
-                        "accessToken": "acc",
-                        "refreshToken": "ref",
-                        "user": {
-                            "id": 3,
-                            "email": "retry@test.com",
-                            "name": "Retry User",
-                            "age": 56
-                        }
-                    }
-                    """.trimIndent()
-                )
-        )
-        mockWebServer.enqueue(
-            MockResponse()
-                .setResponseCode(200)
-                .setBody(
-                    """
-                    [
-                        {
-                            "id": 2,
-                            "name": "User",
-                            "targetUserId": 3,
-                            "permissions": [],
-                            "userId": 1
-                        }
-                    ]
-                    """.trimIndent()
-                )
-        )
+    fun `login retries on IO error and succeeds on second attempt`() =
+        runTest(testDispatcher) {
 
-        var retryAttempt = 0
+            // Attempt 1 fails with 500, Attempt 2 succeeds
+            mockWebServer.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
+            mockWebServer.enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setBody(createSampleLoginJson())
+            )
 
-        val result = repository.login("retry@test.com", "password123", onRetry = { attempt ->
-            retryAttempt = attempt
-        })
+            var retryAttempt = 0
 
-        assertIs<NetworkResult.Success<*>>(result)
-        assertEquals(1, retryAttempt)
-        assertEquals(3, mockWebServer.requestCount) // 2 for login + 1 for roles
-    }
+            val result = repository.login(
+                "test.user@learn.com",
+                "password123",
+                onRetry = { attempt -> retryAttempt = attempt }
+            )
+
+            assertIs<NetworkResult.Success<*>>(result)
+            assertEquals(1, retryAttempt)
+            assertEquals(2, mockWebServer.requestCount) // 2 for login
+        }
 
     @Test
-    fun `login fast fails on 401 Unauthorized without retrying`() = runTest(testDispatcher) {
-        mockWebServer.enqueue(MockResponse().setResponseCode(401).setBody("Unauthorized"))
+    fun `login fast fails on 401 Unauthorized without retrying`() =
+        runTest(testDispatcher) {
+            mockWebServer.enqueue(MockResponse().setResponseCode(401).setBody("Unauthorized"))
 
-        var retryAttempt = 0
+            var retryAttempt = 0
 
-        val result = repository.login("wrong@test.com", "badpassword", onRetry = { attempt ->
-            retryAttempt = attempt
-        })
+            val result = repository.login(
+                "wrong@test.com",
+                "badpassword",
+                onRetry = { attempt -> retryAttempt = attempt }
+            )
 
-        assertIs<NetworkResult.Error>(result)
-        assertEquals(401, result.code)
-        assertEquals(0, retryAttempt)
-        assertEquals(1, mockWebServer.requestCount)
+            assertIs<NetworkResult.Error>(result)
+            assertEquals(401, result.code)
+            assertEquals(0, retryAttempt)
+            assertEquals(1, mockWebServer.requestCount)
 
-        // Assert token managers were NEVER called on error
-        coVerify(exactly = 0) { accessTokenManager.saveToken(any()) }
-        coVerify(exactly = 0) { authSessionManager.startSession() }
-    }
+            // Assert token managers were NEVER called on error
+            coVerify(exactly = 0) { accessTokenManager.saveToken(any()) }
+            coVerify(exactly = 0) { authSessionManager.startSession() }
+        }
+
+// #############################################################################################
+// #############################################################################################
+// #############################################################################################
+// #############################################################################################
+
+    private fun createSampleLoginDto(): LoginDto =
+        LoginDto(
+            accessToken = "access_token_123",
+            refreshToken = "refresh_token_abc",
+            userDto = UserDto(
+                id = 1,
+                name = "test user",
+                email = "test.user@learn.com",
+                age = 42
+            )
+        )
+
+    private fun createSampleLoginJson(): String =
+        json.encodeToString(createSampleLoginDto())
+
 }

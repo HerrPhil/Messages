@@ -15,7 +15,7 @@ class RootViewModel(
 ) : ViewModel() {
     // Expose the application-layer authentication state directly to the NavHost composition
     val authState = authSessionManager.authState
-    val userRoleState = roleManager.roleState
+    val userRoleState = roleManager.roleState // StateFlow
 
     fun logRoleStateTransition(state: UserRoleState) {
         viewModelScope.launch(Dispatchers.IO) {

@@ -81,7 +81,12 @@ class GetUserDashboardUseCaseTest {
         runTest {
 
             // Arrange
-            val user1 = LoginUserDomainModel("test_user@test.com", "test user", 1234)
+            val user1 = LoginUserDomainModel(
+                id = 1234,
+                name = "test user",
+                email = "test_user@test.com",
+                age = 56
+            )
             val userFlow = MutableStateFlow<NetworkResult<LoginUserDomainModel>>(
                 NetworkResult.Success(user1)
             )
@@ -263,7 +268,12 @@ class GetUserDashboardUseCaseTest {
         runTest {
 
             // Arrange
-            val user1 = LoginUserDomainModel("test_user@test.com", "test user", 1234)
+            val user1 = LoginUserDomainModel(
+                id = 1234,
+                name = "test user",
+                email = "test_user@test.com",
+                age = 56
+            )
             val userFlow = MutableStateFlow<NetworkResult<LoginUserDomainModel>>(
                 NetworkResult.Success(user1)
             )
@@ -334,7 +344,12 @@ class GetUserDashboardUseCaseTest {
         runTest {
 
             // Arrange
-            val user1 = LoginUserDomainModel("test_user@test.com", "test user", 1234)
+            val user1 = LoginUserDomainModel(
+                id = 1234,
+                name = "test user",
+                email = "test_user@test.com",
+                age = 56
+            )
             val userFlow = MutableStateFlow<NetworkResult<LoginUserDomainModel>>(
                 NetworkResult.Success(user1)
             )
@@ -419,7 +434,12 @@ class GetUserDashboardUseCaseTest {
         runTest {
 
             // Arrange
-            val user1 = LoginUserDomainModel("test_user@test.com", "test user", 1234)
+            val user1 = LoginUserDomainModel(
+                id = 1234,
+                name = "test user",
+                email = "test_user@test.com",
+                age = 56
+            )
             val userFlow = MutableStateFlow<NetworkResult<LoginUserDomainModel>>(
                 NetworkResult.Success(user1)
             )

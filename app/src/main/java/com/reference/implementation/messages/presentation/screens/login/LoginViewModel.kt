@@ -5,6 +5,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.reference.implementation.domain.model.LoginUserDomainModel
+import com.reference.implementation.domain.use_case.FetchNewUserProfileUseCase
 import com.reference.implementation.domain.use_case.LoginUseCase
 import com.reference.implementation.domain.use_case.Resource
 import kotlinx.coroutines.Job
@@ -18,7 +20,10 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-class LoginViewModel(private val loginUseCase: LoginUseCase) : ViewModel() {
+class LoginViewModel(
+    private val loginUseCase: LoginUseCase,
+    private val fetchNewUserProfileUseCase: FetchNewUserProfileUseCase,
+) : ViewModel() {
 
     var uiState by mutableStateOf<LoginUiState>(LoginUiState.Idle)
         private set
@@ -65,20 +70,27 @@ class LoginViewModel(private val loginUseCase: LoginUseCase) : ViewModel() {
             val minimumLoadingVisibility = async { delay(300) }
             minimumLoadingVisibility.await()
 
+            // Step 1: Authenticate and persist tokens via authApiService
+            val onRetry: suspend (Int) -> Unit  = { attempt -> uiState = LoginUiState.Retrying(attempt) }
             val resource = loginUseCase(
                 email,
                 password,
-                onRetry = { attempt -> uiState = LoginUiState.Retrying(attempt) }
+                onRetry = onRetry
             ) // User Domain Model
 
-            uiState = when (resource) {
-                is Resource.Success -> LoginUiState.Success(
-                    name = resource.data.name,
-                    email = resource.data.email
-                )
+            when (resource) {
+                is Resource.Success -> {
+                    // Step 2: Tokens are persisted; fetch user profile/roles via apiService
+                    loadUserProfile(resource.data, onRetry)
+                }
 
-                is Resource.Error -> LoginUiState.Error(resource.message)
-                else -> LoginUiState.Error("Something went wrong")
+                is Resource.Error -> {
+                    uiState = LoginUiState.Error(resource.message)
+                }
+
+                else -> {
+                    uiState = LoginUiState.Error("Something went wrong")
+                }
             }
         }
     }
@@ -86,5 +98,31 @@ class LoginViewModel(private val loginUseCase: LoginUseCase) : ViewModel() {
     fun cancel() {
         loginJob?.cancel() // This triggers the CancellationException in the loop.
         uiState = LoginUiState.Idle
+    }
+
+    private suspend fun loadUserProfile(
+        loginUser: LoginUserDomainModel,
+        onRetry: suspend (Int) -> Unit
+    ) {
+        when (val profileResult = fetchNewUserProfileUseCase(
+            loginUser,
+            onRetry = onRetry
+        )) {
+            is Resource.Success -> {
+                // Profile & roles loaded; proceed to the main app navigation
+                uiState = LoginUiState.Success(
+                    name = loginUser.name,
+                    email = loginUser.email
+                )
+            }
+
+            is Resource.Error -> {
+                uiState = LoginUiState.Error(profileResult.message)
+            }
+
+            else -> {
+                uiState = LoginUiState.Error("Something went wrong")
+            }
+        }
     }
 }

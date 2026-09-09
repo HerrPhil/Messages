@@ -64,9 +64,10 @@ class UserRepositoryImpl(
 
             // Step 2: Contain the user info in a Domain Model
             val userDomainModel = LoginUserDomainModel(
+                id = userId,
                 name = userName,
                 email = userEmail,
-                id = userId
+                age = 0 // don't care
             )
 
             // Step 3: Emit the Domain Model

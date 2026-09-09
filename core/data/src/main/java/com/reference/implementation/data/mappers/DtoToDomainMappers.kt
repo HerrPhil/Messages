@@ -6,13 +6,25 @@ import com.reference.implementation.data.dtos.MessageRequestDto
 import com.reference.implementation.data.dtos.RefreshTokenDto
 import com.reference.implementation.data.dtos.UserDto
 import com.reference.implementation.domain.model.BulletinDomainModel
-import com.reference.implementation.domain.model.MessageDomainModel
 import com.reference.implementation.domain.model.LoginUserDomainModel
+import com.reference.implementation.domain.model.MessageDomainModel
 import com.reference.implementation.domain.model.RefreshTokenDomainModel
 import java.time.Instant
 
-fun UserDto.toDomainModel(): LoginUserDomainModel = LoginUserDomainModel(this.email, this.name, this.id)
+fun UserDto.toDomainModel(): LoginUserDomainModel = LoginUserDomainModel(
+    id = this.id,
+    name = this.name,
+    email = this.email,
+    age = this.age
+)
 
+fun LoginUserDomainModel.toUserDto(): UserDto =
+    UserDto(
+        id = this.id,
+        name = this.name,
+        email = this.email,
+        age = this.age
+    )
 fun MessageDto.toMessageDomainModel(): MessageDomainModel =
     MessageDomainModel(
         this.id,
