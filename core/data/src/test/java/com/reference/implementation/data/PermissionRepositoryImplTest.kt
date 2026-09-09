@@ -110,9 +110,9 @@ class PermissionRepositoryImplTest {
 
             var retryCount = 0
 
-            repository.getPermissionInfoFlow(onRetry = { attempt ->
-                retryCount = attempt
-            }).test {
+            repository.getPermissionInfoFlow(
+                onRetry = { attempt -> retryCount = attempt }
+            ).test {
 
                 // Initial state of the cache flow
                 assertEquals(NetworkResult.Loading, awaitItem())

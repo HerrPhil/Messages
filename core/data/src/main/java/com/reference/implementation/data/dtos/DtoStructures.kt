@@ -62,8 +62,8 @@ data class RefreshTokenDto(
 @Serializable
 data class UserDto(
     val id: Int,
-    val email: String,
     val name: String,
+    val email: String,
     val age: Int
 )
 

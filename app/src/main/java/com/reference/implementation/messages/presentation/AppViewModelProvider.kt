@@ -39,7 +39,10 @@ object AppViewModelProvider {
 
         // The login view model initializer.
         initializer {
-            LoginViewModel(messageApplication().container.loginUseCase)
+            LoginViewModel(
+                messageApplication().container.loginUseCase,
+                messageApplication().container.fetchNewUserProfileUseCase
+            )
         }
 
         // The home view model initializer.

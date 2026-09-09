@@ -35,7 +35,8 @@ class LoginUseCaseTest {
         val loginUser = LoginUserDomainModel(
             email = email,
             name = name,
-            id = id
+            id = id,
+            age = 56
         )
 
         coEvery { loginRepository.login(any(), any(), any()) } returns NetworkResult.Success(

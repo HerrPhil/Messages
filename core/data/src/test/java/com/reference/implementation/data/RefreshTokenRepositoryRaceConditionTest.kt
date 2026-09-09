@@ -77,6 +77,7 @@ class RefreshTokenRepositoryRaceConditionTest {
             }
             coEvery { mockAccessTokenManager.saveToken(any()) } answers {
                 storedToken = firstArg()
+                true
             }
 
             // 2. Use CompletableDeferred to freeze the API response mid-flight
