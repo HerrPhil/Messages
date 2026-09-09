@@ -2,13 +2,9 @@ package com.reference.implementation.data.repositoryimpl
 
 import com.reference.implementation.data.audit.auditLog
 import com.reference.implementation.data.dtos.LoginRequestDto
-import com.reference.implementation.data.dtos.RoleDto
 import com.reference.implementation.data.manager.AccessTokenManager
 import com.reference.implementation.data.manager.AuthSessionManager
 import com.reference.implementation.data.manager.RefreshTokenManager
-import com.reference.implementation.data.manager.RoleManager
-import com.reference.implementation.data.manager.SessionManager
-import com.reference.implementation.data.manager.UserRoleState
 import com.reference.implementation.data.mappers.toDomainModel
 import com.reference.implementation.data.sources.ApiService
 import com.reference.implementation.domain.model.LoginUserDomainModel
@@ -18,7 +14,6 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 import retrofit2.HttpException
 

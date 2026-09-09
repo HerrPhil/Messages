@@ -3,13 +3,10 @@ package com.reference.implementation.data
 
 import android.util.Log
 import com.reference.implementation.data.dtos.LoginDto
-import com.reference.implementation.data.dtos.RoleDto
 import com.reference.implementation.data.dtos.UserDto
 import com.reference.implementation.data.manager.AccessTokenManager
 import com.reference.implementation.data.manager.AuthSessionManager
 import com.reference.implementation.data.manager.RefreshTokenManager
-import com.reference.implementation.data.manager.RoleManager
-import com.reference.implementation.data.manager.UserRoleState
 import com.reference.implementation.data.repositoryimpl.LoginRepositoryImpl
 import com.reference.implementation.data.sources.ApiService
 import com.reference.implementation.domain.util.NetworkResult

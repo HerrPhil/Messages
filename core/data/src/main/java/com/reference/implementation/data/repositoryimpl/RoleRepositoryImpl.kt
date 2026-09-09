@@ -9,7 +9,6 @@ import com.reference.implementation.data.manager.UserRoleState
 import com.reference.implementation.data.mappers.toUserDto
 import com.reference.implementation.data.sources.ApiService
 import com.reference.implementation.domain.model.LoginUserDomainModel
-import com.reference.implementation.domain.model.MessageDomainModel
 import com.reference.implementation.domain.model.UserRoleDomainModel
 import com.reference.implementation.domain.repository.RoleRepository
 import com.reference.implementation.domain.util.NetworkResult
@@ -18,14 +17,12 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.withContext
 import retrofit2.HttpException
-import kotlin.math.log
 
 class RoleRepositoryImpl(
     private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
