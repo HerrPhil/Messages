@@ -39,6 +39,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
 
 class UserRepositoryImplTest {
 
@@ -949,7 +950,7 @@ class UserRepositoryImplTest {
             // 2. Launch the operation with timeout in a deferred context
             val deferredResult = async {
                 try {
-                    withTimeout(200) {
+                    withTimeout(200.milliseconds) {
                         // 2. Observe the flow with Turbine
                         repository.getUsers().test {
 
@@ -982,6 +983,7 @@ class UserRepositoryImplTest {
         }
 
 
+    @Suppress("UNUSED_VARIABLE")
     private fun createSampleUserDto(id: Int, email: String, name: String, age: Int): UserDto {
         return UserDto(
             id = id,
