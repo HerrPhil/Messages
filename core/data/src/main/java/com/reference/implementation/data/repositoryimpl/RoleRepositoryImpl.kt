@@ -1,6 +1,8 @@
 package com.reference.implementation.data.repositoryimpl
 
 import com.reference.implementation.data.audit.auditLog
+import com.reference.implementation.data.di.AuthNetwork
+import com.reference.implementation.data.di.IoDispatcher
 import com.reference.implementation.data.dtos.RoleDto
 import com.reference.implementation.data.manager.RoleManager
 import com.reference.implementation.data.manager.SessionManager
@@ -23,10 +25,13 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.withContext
 import retrofit2.HttpException
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class RoleRepositoryImpl(
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
-    private val apiService: ApiService,
+@Singleton
+class RoleRepositoryImpl @Inject constructor(
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher, // Hilt provides it
+    @AuthNetwork private val apiService: ApiService,
     private val roleManager: RoleManager, // Global state source (Application Layer)
     private val sessionManager: SessionManager
 ) : RoleRepository {

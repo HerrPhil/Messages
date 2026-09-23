@@ -1,4 +1,4 @@
-package com.reference.implementation.messages.di
+package com.reference.implementation.data.di
 
 import com.reference.implementation.data.manager.AccessTokenManager
 import okhttp3.Interceptor

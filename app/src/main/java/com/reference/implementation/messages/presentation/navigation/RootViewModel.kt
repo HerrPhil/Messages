@@ -6,10 +6,13 @@ import com.reference.implementation.data.manager.AuthSessionManager
 import com.reference.implementation.data.manager.RoleManager
 import com.reference.implementation.data.manager.UserRoleState
 import com.reference.implementation.data.audit.auditLog
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class RootViewModel(
+@HiltViewModel
+class RootViewModel @Inject constructor(
     authSessionManager: AuthSessionManager,
     roleManager: RoleManager
 ) : ViewModel() {

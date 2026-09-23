@@ -9,6 +9,7 @@ import com.reference.implementation.domain.use_case.LoadAllBulletinsUseCase
 import com.reference.implementation.domain.use_case.MarkBulletinAsBookmarkUseCase
 import com.reference.implementation.domain.use_case.MarkBulletinAsNotBookmarkUseCase
 import com.reference.implementation.domain.use_case.Resource
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -18,9 +19,11 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
+@HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
-class BulletinViewModel(
+class BulletinViewModel @Inject constructor(
     private val loadAllBulletinsUseCase: LoadAllBulletinsUseCase,
     getAllBulletinsUseCase: GetAllBulletinsUseCase,
     private val markBulletinAsBookmarkUseCase: MarkBulletinAsBookmarkUseCase,

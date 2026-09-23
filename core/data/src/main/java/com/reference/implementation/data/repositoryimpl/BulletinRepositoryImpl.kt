@@ -1,6 +1,8 @@
 package com.reference.implementation.data.repositoryimpl
 
 import com.reference.implementation.data.audit.auditLog
+import com.reference.implementation.data.di.AuthNetwork
+import com.reference.implementation.data.di.IoDispatcher
 import com.reference.implementation.data.sources.ApiService
 import com.reference.implementation.domain.repository.BulletinRepository
 import com.reference.implementation.domain.util.NetworkResult
@@ -15,10 +17,13 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.withContext
 import retrofit2.HttpException
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class BulletinRepositoryImpl(
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
-    private val apiService: ApiService
+@Singleton
+class BulletinRepositoryImpl @Inject constructor(
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher, // Hilt provides it
+    @AuthNetwork private val apiService: ApiService
 ) : BulletinRepository {
     override fun getBulletinCount(onRetry: suspend (Int) -> Unit): Flow<NetworkResult<Int>> =
         flow {

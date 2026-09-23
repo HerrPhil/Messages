@@ -11,8 +11,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.onStart
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class GetUserDashboardUseCase(
+@Singleton
+class GetUserDashboardUseCase @Inject constructor(
     private val userRepository: UserRepository,
     private val messageRepository: MessageRepository,
     private val roleRepository: RoleRepository,

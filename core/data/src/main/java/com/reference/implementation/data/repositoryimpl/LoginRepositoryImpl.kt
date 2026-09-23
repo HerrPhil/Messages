@@ -1,6 +1,8 @@
 package com.reference.implementation.data.repositoryimpl
 
 import com.reference.implementation.data.audit.auditLog
+import com.reference.implementation.data.di.BareNetwork
+import com.reference.implementation.data.di.IoDispatcher
 import com.reference.implementation.data.dtos.LoginRequestDto
 import com.reference.implementation.data.manager.AccessTokenManager
 import com.reference.implementation.data.manager.AuthSessionManager
@@ -16,10 +18,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import retrofit2.HttpException
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class LoginRepositoryImpl(
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
-    private val apiService: ApiService,
+@Singleton
+class LoginRepositoryImpl @Inject constructor(
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher, // Hilt provides it
+    @BareNetwork private val apiService: ApiService, // Hilt guarantees the Bare client is injected here!
     private val accessTokenManager: AccessTokenManager, // an application scope
     private val refreshTokenManager: RefreshTokenManager, // an application scope
     private val authSessionManager: AuthSessionManager, // Global state source (Application Layer)

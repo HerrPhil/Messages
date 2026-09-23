@@ -8,8 +8,11 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.onStart
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class GetCachedMessagesUseCase(
+@Singleton
+class GetCachedMessagesUseCase @Inject constructor(
     private val messageCacheRepository: MessageCacheRepository,
     private val userPreferencesRepository: UserPreferencesRepository
 ) {

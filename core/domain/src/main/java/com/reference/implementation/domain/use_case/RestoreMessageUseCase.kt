@@ -2,8 +2,13 @@ package com.reference.implementation.domain.use_case
 
 import com.reference.implementation.domain.model.MessageDomainModel
 import com.reference.implementation.domain.repository.MessageCacheRepository
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class RestoreMessageUseCase(private val repo: MessageCacheRepository) {
+@Singleton
+class RestoreMessageUseCase @Inject constructor(
+    private val repo: MessageCacheRepository
+) {
     suspend operator fun invoke(
         deletedMessage: MessageDomainModel
     ) {

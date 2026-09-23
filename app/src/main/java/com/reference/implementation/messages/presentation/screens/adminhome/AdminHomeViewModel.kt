@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.reference.implementation.data.audit.auditLog
 import com.reference.implementation.domain.use_case.GetAdminDashboardUseCase
 import com.reference.implementation.domain.use_case.Resource
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -12,8 +13,10 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
+import javax.inject.Inject
 
-class AdminHomeViewModel(
+@HiltViewModel
+class AdminHomeViewModel @Inject constructor(
     getAdminDashboardUseCase: GetAdminDashboardUseCase
 ) : ViewModel() {
 

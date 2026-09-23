@@ -5,6 +5,10 @@ plugins {
     // IMPORTANT FOR KOTLINX SERIALIZATION!
     // ADD THIS LINE (without the version)
     id("org.jetbrains.kotlin.plugin.serialization")
+
+    // Hilt plugins
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt)
 }
 
 android {
@@ -76,6 +80,14 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     // retrofit scalar converter for Token Authenticator test
     implementation(libs.converter.scalars)
+
+    // Pure Kotlin Coroutines (No Android SDK required!)
+    implementation(libs.kotlinx.coroutines.core)
+
+    // Hilt Core + Compose Navigation Bridge
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+    implementation(libs.hilt.navigation.compose)
 
     // All testing dependencies
     testImplementation(libs.junit)
