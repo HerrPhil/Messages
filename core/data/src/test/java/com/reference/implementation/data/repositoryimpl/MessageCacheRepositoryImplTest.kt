@@ -1065,7 +1065,7 @@ class MessageCacheRepositoryImplTest {
         )
     }
 
-    @Suppress("UNUSED_VARIABLE")
+    @Suppress("SameParameterValue")
     private fun createSampleMessageJson(id: Int, read: Boolean): String {
         return """
     {
