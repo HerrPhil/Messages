@@ -983,7 +983,7 @@ class UserRepositoryImplTest {
         }
 
 
-    @Suppress("UNUSED_VARIABLE")
+    @Suppress("SameParameterValue")
     private fun createSampleUserDto(id: Int, email: String, name: String, age: Int): UserDto {
         return UserDto(
             id = id,
