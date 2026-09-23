@@ -4,8 +4,13 @@ import com.reference.implementation.domain.model.BulletinDomainModel
 import com.reference.implementation.domain.repository.BulletinCacheRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class GetBulletinUseCase(private val repo: BulletinCacheRepository) {
+@Singleton
+class GetBulletinUseCase @Inject constructor(
+    private val repo: BulletinCacheRepository
+) {
     operator fun invoke(): Flow<Resource<BulletinDomainModel>> {
         // 1. Grab the raw stream from the repository
         return repo.getBulletin()

@@ -8,6 +8,7 @@ import com.reference.implementation.domain.use_case.GetBulletinUseCase
 import com.reference.implementation.domain.use_case.LoadBulletinUseCase
 import com.reference.implementation.domain.use_case.Resource
 import com.reference.implementation.messages.presentation.navigation.Route
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -16,9 +17,11 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
+@HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
-class BulletinDetailViewModel(
+class BulletinDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val loadBulletinUseCase: LoadBulletinUseCase,
     getBulletinUseCase: GetBulletinUseCase
@@ -34,7 +37,7 @@ class BulletinDetailViewModel(
         .flatMapLatest { attempt -> // needs Opt-in
             // Simply map the database/resource cache stream
             getBulletinUseCase().map { resourceResult ->
-                when(resourceResult) {
+                when (resourceResult) {
                     is Resource.Loading -> {
                         if (attempt > 0) {
                             BulletinDetailUiState.Retrying(attempt)
@@ -42,6 +45,7 @@ class BulletinDetailViewModel(
                             BulletinDetailUiState.Loading
                         }
                     }
+
                     is Resource.Error -> BulletinDetailUiState.Error(resourceResult.message)
                     is Resource.Success -> {
                         val uiBulletinDetail = resourceResult.data.toBulletinUiDetail()

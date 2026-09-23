@@ -4,8 +4,11 @@ import com.reference.implementation.data.dtos.RoleDto
 import com.reference.implementation.data.dtos.UserDto
 import com.reference.implementation.data.audit.auditLog
 import kotlinx.coroutines.flow.MutableStateFlow
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class SessionManager(
+@Singleton
+class SessionManager @Inject constructor(
     private val accessTokenManager: AccessTokenManager,
     private val refreshTokenManager: RefreshTokenManager
 ) {

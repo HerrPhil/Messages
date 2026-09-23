@@ -36,14 +36,13 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.reference.implementation.data.audit.auditLog
-import com.reference.implementation.messages.presentation.AppViewModelProvider
 
 @Composable
 fun LoginScreen(
-    viewModel: LoginViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    viewModel: LoginViewModel = hiltViewModel()
 ) {
 
     Scaffold(modifier = Modifier.padding(all = 24.dp)) { innerPadding ->

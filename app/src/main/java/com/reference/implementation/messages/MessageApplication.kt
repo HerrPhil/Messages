@@ -1,30 +1,11 @@
 package com.reference.implementation.messages
 
 import android.app.Application
-import android.util.Log
-import com.reference.implementation.messages.di.AppContainer
-import com.reference.implementation.messages.di.AppMessageContainer
+import dagger.hilt.android.HiltAndroidApp
 
+
+// Hilt requires a custom Application class to serve
+// as the root node for its compile-time code generation.
+@HiltAndroidApp
 class MessageApplication : Application() {
-
-    // I am going to re-factor this so that implementation of an app container has the logic
-    // provide data from repository instances.
-    // The implementation of repository interfaces have constructors that take an api service.
-    // The app container will return use cases.
-    // The use cases have constructors that take a repository.
-    // See the AppViewModelProvider for the integration of view model and use case
-
-    /**
-     * AppContainer instance used  by the rest of the classes to obtain dependencies
-     */
-    lateinit var container: AppContainer
-
-    /**
-     * The application shall create the AppContainer when the app is created
-     */
-    override fun onCreate() {
-        super.onCreate()
-        Log.d("MessageApplication", "construct app message container implementation")
-        container = AppMessageContainer(this)
-    }
 }

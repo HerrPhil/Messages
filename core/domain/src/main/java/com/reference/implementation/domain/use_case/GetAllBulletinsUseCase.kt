@@ -5,8 +5,11 @@ import com.reference.implementation.domain.repository.BulletinCacheRepository
 import com.reference.implementation.domain.repository.UserPreferencesRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class GetAllBulletinsUseCase(
+@Singleton
+class GetAllBulletinsUseCase @Inject constructor(
     private val bulletinCacheRepository: BulletinCacheRepository,
     private val userPreferencesRepository: UserPreferencesRepository
 ) {

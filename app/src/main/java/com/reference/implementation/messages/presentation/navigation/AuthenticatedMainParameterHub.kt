@@ -28,8 +28,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -40,7 +40,6 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.navigation
 import androidx.navigation.compose.rememberNavController
 import com.reference.implementation.domain.model.MessageDomainModel
-import com.reference.implementation.messages.presentation.AppViewModelProvider
 import com.reference.implementation.messages.presentation.components.detailComposable
 import com.reference.implementation.messages.presentation.screens.adminhome.AdminHomeScreen
 import com.reference.implementation.messages.presentation.screens.adminhome.AdminHomeViewModel
@@ -227,15 +226,16 @@ fun AuthenticatedMainParameterHub(
         ) {
 
             composable<Route.AdminHome> {
-                val viewModel: AdminHomeViewModel =
-                    viewModel(factory = AppViewModelProvider.Factory)
+                // New hiltViewModel - automatically fetches and scopes correctly
+                val viewModel: AdminHomeViewModel = hiltViewModel()
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
                 AdminHomeScreen(uiState = uiState)
             }
 
             composable<Route.Home> {
-                val viewModel: HomeViewModel = viewModel(factory = AppViewModelProvider.Factory)
+                // New hiltViewModel - automatically fetches and scopes correctly
+                val viewModel: HomeViewModel = hiltViewModel()
                 val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                 HomeScreen(uiState)
             }
@@ -244,8 +244,8 @@ fun AuthenticatedMainParameterHub(
             navigation<Route.MessagesGraph>(startDestination = Route.Messages) {
 
                 composable<Route.Messages> {
-                    val viewModel: MessageViewModel =
-                        viewModel(factory = AppViewModelProvider.Factory)
+                    // New hiltViewModel - automatically fetches and scopes correctly
+                    val viewModel: MessageViewModel = hiltViewModel()
                     val key: Any = MyKeyObject
                     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                     val isRefreshing = (uiState as? MessageUiState.Success)?.isRefreshing == true
@@ -339,8 +339,8 @@ fun AuthenticatedMainParameterHub(
             navigation<Route.AdminMessageGraph>(startDestination = Route.AdminMessages) {
 
                 composable<Route.AdminMessages> {
-                    val viewModel: AdminMessageViewModel =
-                        viewModel(factory = AppViewModelProvider.Factory)
+                    // New hiltViewModel - automatically fetches and scopes correctly
+                    val viewModel: AdminMessageViewModel = hiltViewModel()
                     val key: Any = MyKeyObject
                     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                     val isRefreshing =
@@ -488,8 +488,8 @@ fun AuthenticatedMainParameterHub(
             navigation<Route.BulletinsGraph>(startDestination = Route.Bulletins) {
 
                 composable<Route.Bulletins> {
-                    val viewModel: BulletinViewModel =
-                        viewModel(factory = AppViewModelProvider.Factory)
+                    // New hiltViewModel - automatically fetches and scopes correctly
+                    val viewModel: BulletinViewModel = hiltViewModel()
                     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
                     val isRefreshing = (uiState as? BulletinUiState.Success)?.isRefreshing == true
                     val onRefresh: () -> Unit = remember {
@@ -529,8 +529,8 @@ fun AuthenticatedMainParameterHub(
 
                 detailComposable<Route.BulletinDetail> {
                     // ViewModel is automatically constructed with the correct ID inside the SavedStateHandle!
-                    val viewModel: BulletinDetailViewModel =
-                        viewModel(factory = AppViewModelProvider.Factory)
+                    // New hiltViewModel - automatically fetches and scopes correctly
+                    val viewModel: BulletinDetailViewModel = hiltViewModel()
                     // Grab the data stream from the ViewModel
                     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -546,12 +546,11 @@ fun AuthenticatedMainParameterHub(
     }
 }
 
-
 @Composable
 fun SetUpMessageDetailScreenDestination(childNavController: NavHostController) {
     // ViewModel is automatically constructed with the correct ID inside the SavedStateHandle!
-    val viewModel: MessageDetailViewModel =
-        viewModel(factory = AppViewModelProvider.Factory)
+    // New hiltViewModel - automatically fetches and scopes correctly
+    val viewModel: MessageDetailViewModel = hiltViewModel()
     // Grab the data stream from the ViewModel
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val onDeleteMessage: (Int) -> Unit = { messageId ->
@@ -574,7 +573,8 @@ fun SetUpMessageDetailScreenDestination(childNavController: NavHostController) {
 @Composable
 fun SetUpMonitorMessageDetailScreenDestination(childNavController: NavHostController) {
     // ViewModel is automatically constructed with the correct ID inside the SavedStateHandle!
-    val viewModel: MessageDetailViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    // New hiltViewModel - automatically fetches and scopes correctly
+    val viewModel: MessageDetailViewModel = hiltViewModel()
     // Grab the data stream from the ViewModel
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val onDeleteMessage: (Int) -> Unit = { _ -> } // do nothing - only monitor

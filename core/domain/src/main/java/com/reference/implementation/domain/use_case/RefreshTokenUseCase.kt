@@ -3,8 +3,13 @@ package com.reference.implementation.domain.use_case
 import com.reference.implementation.domain.model.RefreshTokenDomainModel
 import com.reference.implementation.domain.repository.RefreshTokenRepository
 import com.reference.implementation.domain.util.NetworkResult
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class RefreshTokenUseCase(private val repo: RefreshTokenRepository) {
+@Singleton
+class RefreshTokenUseCase @Inject constructor(
+    private val repo: RefreshTokenRepository
+) {
     suspend operator fun invoke(
         tokenUsedByRequest: String
     ): Resource<RefreshTokenDomainModel> {

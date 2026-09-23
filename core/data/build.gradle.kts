@@ -1,6 +1,10 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.serialization)
+
+    // Hilt plugins to process annotations like @Module, @Provides, @Binds
+    alias(libs.plugins.ksp)    // Applies KSP plugin
+    alias(libs.plugins.hilt)   // Applies Hilt plugin
 }
 
 android {
@@ -38,6 +42,10 @@ android {
         }
     }
 
+    buildFeatures {
+        buildConfig = true // Added this to force generation of BuildConfig, for this library module
+    }
+
 }
 
 dependencies {
@@ -61,6 +69,10 @@ dependencies {
     // 5. Asynchronous Concurrency
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.kotlinx.coroutines.android)
+
+    // 6. Hilt processing
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
 
     // -------------------------------------------------------------------------
     // Unit Test Dependencies (:core:data)

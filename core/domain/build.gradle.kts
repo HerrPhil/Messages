@@ -17,11 +17,17 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     implementation(libs.retrofit)
 
+    // Hilt dependencies
+    // The domain logic remains agnostic to Android
+    // javax.inject required  for compiler-safe constructor decoration
+    implementation(libs.javax.inject)
+
     // Module testing dependencies
     testImplementation(libs.junit)
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.okio)
+
 
 }

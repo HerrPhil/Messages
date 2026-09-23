@@ -1,4 +1,4 @@
-package com.reference.implementation.messages.di
+package com.reference.implementation.data.di
 
 import android.util.Log
 import com.reference.implementation.data.dtos.toDto
@@ -101,7 +101,7 @@ class TokenAuthenticatorTest {
         val refreshTokenUseCase = RefreshTokenUseCase(repository)
 
         // 3. Instantiate Authenticator with provider lambdas
-        val tokenAuthenticator = TokenAuthenticator(
+        val tokenAuthenticator = HiltTokenAuthenticator(
             externalScope = testScope,
             refreshTokenUseCaseProvider = { refreshTokenUseCase },
             forceLogoutUseCaseProvider = { mockForceLogoutUseCase }

@@ -1,10 +1,9 @@
-package com.reference.implementation.data
+package com.reference.implementation.data.repositoryimpl
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
 import app.cash.turbine.test
-import com.reference.implementation.data.repositoryimpl.UserPreferencesRepositoryImpl
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher

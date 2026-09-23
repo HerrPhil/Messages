@@ -3,8 +3,11 @@ package com.reference.implementation.data.manager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class AuthSessionManager {
+@Singleton
+class AuthSessionManager @Inject constructor() {
     private val _authState = MutableStateFlow<AuthState>(AuthState.Unauthenticated(UnauthReason.MANUAL))
     val authState: StateFlow<AuthState> = _authState.asStateFlow()
 

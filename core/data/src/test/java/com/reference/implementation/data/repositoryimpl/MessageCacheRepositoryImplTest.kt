@@ -1,11 +1,10 @@
-package com.reference.implementation.data
+package com.reference.implementation.data.repositoryimpl
 
 import android.util.Log
 import app.cash.turbine.test
 import com.reference.implementation.data.dtos.toDto
 import com.reference.implementation.data.manager.SessionManager
 import com.reference.implementation.data.manager.SessionResult
-import com.reference.implementation.data.repositoryimpl.MessageCacheRepositoryImpl
 import com.reference.implementation.data.sources.ApiService
 import com.reference.implementation.domain.model.MessageDomainEvent
 import com.reference.implementation.domain.model.MessageDomainModel
@@ -38,6 +37,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class MessageCacheRepositoryImplTest {
@@ -310,7 +310,7 @@ class MessageCacheRepositoryImplTest {
             // 3. Launch the operation with timeout in a deferred context
             val deferredResult = async {
                 try {
-                    withTimeout(200) {
+                    withTimeout(200.milliseconds) {
                         // 4. Observe the flow with Turbine
                         repository.getMessagesByUser().test {
 
@@ -371,7 +371,7 @@ class MessageCacheRepositoryImplTest {
             // 2. Launch the operation with timeout in a deferred context
             val deferredResult = async {
                 try {
-                    withTimeout(200) {
+                    withTimeout(200.milliseconds) {
                         // 3. Observe the flow with Turbine
                         repository.getMessagesByUser().test {
 
@@ -1065,6 +1065,7 @@ class MessageCacheRepositoryImplTest {
         )
     }
 
+    @Suppress("SameParameterValue")
     private fun createSampleMessageJson(id: Int, read: Boolean): String {
         return """
     {

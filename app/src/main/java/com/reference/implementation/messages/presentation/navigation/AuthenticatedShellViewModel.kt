@@ -3,10 +3,13 @@ package com.reference.implementation.messages.presentation.navigation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.reference.implementation.domain.use_case.LogoutUseCase
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import javax.inject.Inject
 
-class AuthenticatedShellViewModel(
+@HiltViewModel
+class AuthenticatedShellViewModel @Inject constructor(
     private val logoutUseCase: LogoutUseCase
 ) : ViewModel() {
 

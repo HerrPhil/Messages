@@ -26,8 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.reference.implementation.messages.presentation.AppViewModelProvider
+import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -35,7 +34,7 @@ import kotlinx.coroutines.launch
 fun AuthenticatedShell(
     isTopBarVisible: Boolean,
     title: String,
-    viewModel: AuthenticatedShellViewModel = viewModel(factory = AppViewModelProvider.Factory),
+    viewModel: AuthenticatedShellViewModel = hiltViewModel(),
     bottomBar: @Composable () -> Unit, // Injected bottom bar, managed by AuthenticatedMainHub
     content: @Composable (PaddingValues) -> Unit
 ) {

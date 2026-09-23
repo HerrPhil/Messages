@@ -1,11 +1,10 @@
-package com.reference.implementation.data
+package com.reference.implementation.data.repositoryimpl
 
 import android.util.Log
 import app.cash.turbine.test
 import com.reference.implementation.data.dtos.UserDto
 import com.reference.implementation.data.manager.SessionManager
 import com.reference.implementation.data.manager.SessionResult
-import com.reference.implementation.data.repositoryimpl.UserRepositoryImpl
 import com.reference.implementation.data.sources.ApiService
 import com.reference.implementation.domain.model.LoginUserDomainModel
 import com.reference.implementation.domain.util.NetworkResult
@@ -40,6 +39,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
 
 class UserRepositoryImplTest {
 
@@ -950,7 +950,7 @@ class UserRepositoryImplTest {
             // 2. Launch the operation with timeout in a deferred context
             val deferredResult = async {
                 try {
-                    withTimeout(200) {
+                    withTimeout(200.milliseconds) {
                         // 2. Observe the flow with Turbine
                         repository.getUsers().test {
 
@@ -983,6 +983,7 @@ class UserRepositoryImplTest {
         }
 
 
+    @Suppress("SameParameterValue")
     private fun createSampleUserDto(id: Int, email: String, name: String, age: Int): UserDto {
         return UserDto(
             id = id,

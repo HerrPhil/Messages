@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.reference.implementation.data.audit.auditLog
 import com.reference.implementation.domain.use_case.GetUserDashboardUseCase
 import com.reference.implementation.domain.use_case.Resource
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -13,9 +14,11 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
+import javax.inject.Inject
 
+@HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
-class HomeViewModel(
+class HomeViewModel @Inject constructor(
     getUserDashboardUseCase: GetUserDashboardUseCase,
 ) : ViewModel() {
 

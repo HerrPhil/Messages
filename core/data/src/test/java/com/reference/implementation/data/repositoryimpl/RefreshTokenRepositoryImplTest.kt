@@ -1,10 +1,9 @@
-package com.reference.implementation.data
+package com.reference.implementation.data.repositoryimpl
 
 import android.util.Log
 import com.reference.implementation.data.dtos.RefreshTokenDto
 import com.reference.implementation.data.manager.AccessTokenManager
 import com.reference.implementation.data.manager.RefreshTokenManager
-import com.reference.implementation.data.repositoryimpl.RefreshTokenRepositoryImpl
 import com.reference.implementation.data.sources.ApiService
 import com.reference.implementation.domain.model.RefreshTokenDomainModel
 import com.reference.implementation.domain.util.NetworkResult
@@ -38,6 +37,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
 
 class RefreshTokenRepositoryImplTest {
 
@@ -748,7 +748,7 @@ class RefreshTokenRepositoryImplTest {
             // 2. Launch the operation with timeout in a deferred context
             val deferredResult = async {
                 try {
-                    withTimeout(200) {
+                    withTimeout(200.milliseconds) {
                         // 2. Observe the flow with Turbine
                         repository.refreshToken(
                             tokenUsedByRequest = tokenUsedByRequest,
@@ -788,6 +788,7 @@ class RefreshTokenRepositoryImplTest {
     // Notice by making the Json instance create the raw JSON string
     // that it relieves us from balancing array brackets, squiggly braces, and commas
     // of a traditional raw """[...]""" list.
+    @Suppress("SameParameterValue")
     private fun createSampleRefreshTokenResponse(tokenUnderTest: String): String =
         json.encodeToString(
             createSampleRefreshTokenDto(

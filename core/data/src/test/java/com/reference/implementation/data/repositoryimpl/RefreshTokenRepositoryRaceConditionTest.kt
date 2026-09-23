@@ -1,10 +1,9 @@
-package com.reference.implementation.data
+package com.reference.implementation.data.repositoryimpl
 
 import android.util.Log
 import com.reference.implementation.data.dtos.RefreshTokenDto
 import com.reference.implementation.data.manager.AccessTokenManager
 import com.reference.implementation.data.manager.RefreshTokenManager
-import com.reference.implementation.data.repositoryimpl.RefreshTokenRepositoryImpl
 import com.reference.implementation.data.sources.ApiService
 import com.reference.implementation.domain.util.NetworkResult
 import io.mockk.coEvery

@@ -9,6 +9,7 @@ import com.reference.implementation.domain.model.LoginUserDomainModel
 import com.reference.implementation.domain.use_case.FetchNewUserProfileUseCase
 import com.reference.implementation.domain.use_case.LoginUseCase
 import com.reference.implementation.domain.use_case.Resource
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.delay
@@ -19,8 +20,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
-class LoginViewModel(
+@HiltViewModel
+class LoginViewModel @Inject constructor(
     private val loginUseCase: LoginUseCase,
     private val fetchNewUserProfileUseCase: FetchNewUserProfileUseCase,
 ) : ViewModel() {
@@ -67,7 +71,7 @@ class LoginViewModel(
 
             // My "server" is local and blazingly fast.
             // Without this, loading state is flickering.
-            val minimumLoadingVisibility = async { delay(300) }
+            val minimumLoadingVisibility = async { delay(300.milliseconds) }
             minimumLoadingVisibility.await()
 
             // Step 1: Authenticate and persist tokens via authApiService

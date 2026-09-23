@@ -6,18 +6,17 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hasRoute
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.reference.implementation.data.audit.auditLog
 import com.reference.implementation.data.manager.AuthState
 import com.reference.implementation.data.manager.UnauthReason
 import com.reference.implementation.data.manager.UserRoleState
-import com.reference.implementation.data.audit.auditLog
-import com.reference.implementation.messages.presentation.AppViewModelProvider
 import com.reference.implementation.messages.presentation.screens.login.LoginScreen
 import kotlinx.serialization.Serializable
 
@@ -32,7 +31,7 @@ object MainHub
 @Composable
 fun RootAppNavigation(
     rootNavController: NavHostController = rememberNavController(),
-    viewModel: RootViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    viewModel: RootViewModel = hiltViewModel()
 ) {
 
     val context = LocalContext.current

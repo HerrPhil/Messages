@@ -1,4 +1,4 @@
-package com.reference.implementation.messages.di
+package com.reference.implementation.data.di
 
 import okhttp3.Interceptor
 import okhttp3.Response

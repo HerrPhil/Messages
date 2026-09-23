@@ -29,6 +29,12 @@ appcompat = "1.6.1"
 material = "1.10.0"
 truth = "1.4.5"
 
+# versions for HILT migration
+ksp = "2.3.10" # Simplified standalone version for Kotlin 2.4.x chain.
+hilt = "2.60.1"
+hiltNavigationCompose = "1.2.0"
+javaxInject = "1"
+
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
@@ -81,6 +87,17 @@ kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 
+# Libraries for Hilt Core
+hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt"}
+hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt"}
+
+# Library for Hilt Compose Navigation Integration
+hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose"}
+
+# Library for Standard injection for Pure Kotlin modules (like :core:domain)
+javax-inject = { group = "javax.inject", name = "javax.inject", version.ref = "javaxInject"}
+
+
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -97,4 +114,8 @@ jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "jetbrai
 
 # Kotlin Serialization Compiler Plugin
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+
+# Hilt Plugins
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp"}
+hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt"}
 

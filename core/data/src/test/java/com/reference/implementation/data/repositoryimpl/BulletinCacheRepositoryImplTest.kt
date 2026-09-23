@@ -1,8 +1,7 @@
-package com.reference.implementation.data
+package com.reference.implementation.data.repositoryimpl
 
 import android.util.Log
 import app.cash.turbine.test
-import com.reference.implementation.data.repositoryimpl.BulletinCacheRepositoryImpl
 import com.reference.implementation.data.sources.ApiService
 import com.reference.implementation.domain.model.BulletinDomainModel
 import com.reference.implementation.domain.util.NetworkResult
@@ -33,6 +32,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.milliseconds
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class BulletinCacheRepositoryImplTest {
@@ -751,7 +751,7 @@ class BulletinCacheRepositoryImplTest {
         // 2. Launch the operation with timeout in a deferred context
         val deferredResult = async {
             try {
-                withTimeout(200) {
+                withTimeout(200.milliseconds) {
                     // 3. Observe the flow with Turbine
                     repository.getAllBulletins().test {
 
@@ -810,7 +810,7 @@ class BulletinCacheRepositoryImplTest {
         // 2. Launch the operation with timeout in a deferred context
         val deferredResult = async {
             try {
-                withTimeout(200) {
+                withTimeout(200.milliseconds) {
                     // 3. Observe the flow with Turbine
                     repository.getBulletin().test {
 

@@ -1,6 +1,8 @@
 package com.reference.implementation.data.repositoryimpl
 
 import com.reference.implementation.data.audit.auditLog
+import com.reference.implementation.data.di.AuthNetwork
+import com.reference.implementation.data.di.IoDispatcher
 import com.reference.implementation.data.mappers.toBulletinDomainModel
 import com.reference.implementation.data.sources.ApiService
 import com.reference.implementation.domain.model.BulletinDomainModel
@@ -8,17 +10,19 @@ import com.reference.implementation.domain.repository.BulletinCacheRepository
 import com.reference.implementation.domain.util.NetworkResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 import retrofit2.HttpException
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class BulletinCacheRepositoryImpl(
-    private val ioDispatcher: CoroutineDispatcher = Dispatchers.IO,
-    private val apiService: ApiService
+@Singleton
+class BulletinCacheRepositoryImpl @Inject constructor(
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher, // Hilt provides it
+    @AuthNetwork private val apiService: ApiService
 ) : BulletinCacheRepository {
 
     // The Local Memory Cache of a list of bulletins (The Single Source of Truth)

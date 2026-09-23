@@ -1,8 +1,9 @@
-package com.reference.implementation.messages.di
+package com.reference.implementation.data.di
 
 import com.reference.implementation.domain.use_case.ForceLogoutUseCase
 import com.reference.implementation.domain.use_case.RefreshTokenUseCase
 import com.reference.implementation.domain.use_case.Resource
+import dagger.Lazy // CRITICAL: Explicitly import Dagger's Lazy wrapper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -11,13 +12,16 @@ import okhttp3.Authenticator
 import okhttp3.Request
 import okhttp3.Response
 import okhttp3.Route
+import javax.inject.Inject
+import javax.inject.Singleton
 
-class TokenAuthenticator(
-    private val externalScope: CoroutineScope,
-    private val refreshTokenUseCaseProvider: () -> RefreshTokenUseCase,
-    private val forceLogoutUseCaseProvider: () -> ForceLogoutUseCase
+@Singleton
+class HiltTokenAuthenticator @Inject constructor(
+    @ApplicationScope private val externalScope: CoroutineScope,
+    // Dagger's Lazy acts exactly like the old custom lambdas
+    private val refreshTokenUseCaseProvider: Lazy<RefreshTokenUseCase>,
+    private val forceLogoutUseCaseProvider: Lazy<ForceLogoutUseCase>
 ) : Authenticator {
-
     override fun authenticate(route: Route?, response: Response): Request? {
 
         // 1. Prevent infinite loops: If the refresh attempt itself failed, stop!
@@ -34,7 +38,7 @@ class TokenAuthenticator(
             val resourceToken = runBlocking(Dispatchers.Default) {
 
                 // Resolve the UseCase ON DEMAND only when a 401 error hits
-                val refreshTokenUseCase = refreshTokenUseCaseProvider()
+                val refreshTokenUseCase = refreshTokenUseCaseProvider.get()
 
                 // execute the refresh call ON DEMAND
                 refreshTokenUseCase(tokenUsedByThisRequest)
@@ -55,7 +59,7 @@ class TokenAuthenticator(
                         externalScope.launch {
 
                             // Resolve the UseCase ON DEMAND only when a 403 error hits
-                            val forceLogoutUseCase = forceLogoutUseCaseProvider()
+                            val forceLogoutUseCase = forceLogoutUseCaseProvider.get()
 
                             // execute the logout call
                             forceLogoutUseCase()
