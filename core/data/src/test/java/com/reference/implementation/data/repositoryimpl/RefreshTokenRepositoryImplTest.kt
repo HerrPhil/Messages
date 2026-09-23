@@ -788,6 +788,7 @@ class RefreshTokenRepositoryImplTest {
     // Notice by making the Json instance create the raw JSON string
     // that it relieves us from balancing array brackets, squiggly braces, and commas
     // of a traditional raw """[...]""" list.
+    @Suppress("SameParameterValue")
     private fun createSampleRefreshTokenResponse(tokenUnderTest: String): String =
         json.encodeToString(
             createSampleRefreshTokenDto(
