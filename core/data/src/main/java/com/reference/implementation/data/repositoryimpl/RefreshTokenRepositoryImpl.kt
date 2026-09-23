@@ -13,7 +13,6 @@ import com.reference.implementation.domain.repository.RefreshTokenRepository
 import com.reference.implementation.domain.util.NetworkResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock

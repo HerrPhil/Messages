@@ -1,11 +1,10 @@
-package com.reference.implementation.data
+package com.reference.implementation.data.repositoryimpl
 
 import android.util.Log
 import app.cash.turbine.test
 import com.reference.implementation.data.dtos.PermissionDto
 import com.reference.implementation.data.manager.SessionManager
 import com.reference.implementation.data.manager.SessionResult
-import com.reference.implementation.data.repositoryimpl.PermissionRepositoryImpl
 import com.reference.implementation.data.sources.ApiService
 import com.reference.implementation.domain.model.UserPermissionDomainModel
 import com.reference.implementation.domain.util.NetworkResult

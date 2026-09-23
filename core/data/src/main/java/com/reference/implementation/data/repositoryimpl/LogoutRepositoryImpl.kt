@@ -8,7 +8,6 @@ import com.reference.implementation.data.manager.SessionManager
 import com.reference.implementation.domain.repository.LogoutRepository
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 import javax.inject.Singleton

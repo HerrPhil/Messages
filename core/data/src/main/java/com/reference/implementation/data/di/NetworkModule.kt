@@ -3,9 +3,7 @@ package com.reference.implementation.data.di
 import android.content.Context
 import com.reference.implementation.data.BuildConfig
 import com.reference.implementation.data.manager.AccessTokenManager
-import com.reference.implementation.data.manager.AuthSessionManager
 import com.reference.implementation.data.manager.RefreshTokenManager
-import com.reference.implementation.data.manager.RoleManager
 import com.reference.implementation.data.sources.ApiService
 import dagger.Module
 import dagger.Provides

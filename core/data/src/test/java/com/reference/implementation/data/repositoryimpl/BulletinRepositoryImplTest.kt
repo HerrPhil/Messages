@@ -1,8 +1,7 @@
-package com.reference.implementation.data
+package com.reference.implementation.data.repositoryimpl
 
 import android.util.Log
 import app.cash.turbine.test
-import com.reference.implementation.data.repositoryimpl.BulletinRepositoryImpl
 import com.reference.implementation.data.sources.ApiService
 import com.reference.implementation.domain.util.NetworkResult
 import io.mockk.every

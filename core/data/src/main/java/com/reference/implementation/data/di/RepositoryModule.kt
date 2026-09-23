@@ -30,6 +30,7 @@ import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
+@Suppress("unused")  // This tells Lint: "I know this looks unused, do not warn me."
 abstract class RepositoryModule {
 
     @Binds

@@ -1,10 +1,9 @@
-package com.reference.implementation.data
+package com.reference.implementation.data.repositoryimpl
 
 import android.util.Log
 import com.reference.implementation.data.manager.AuthSessionManager
 import com.reference.implementation.data.manager.RoleManager
 import com.reference.implementation.data.manager.SessionManager
-import com.reference.implementation.data.repositoryimpl.LogoutRepositoryImpl
 import io.mockk.coVerifyOrder
 import io.mockk.every
 import io.mockk.mockk

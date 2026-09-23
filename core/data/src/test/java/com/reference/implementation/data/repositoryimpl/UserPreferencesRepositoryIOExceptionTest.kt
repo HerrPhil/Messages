@@ -1,9 +1,8 @@
-package com.reference.implementation.data
+package com.reference.implementation.data.repositoryimpl
 
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import app.cash.turbine.test
-import com.reference.implementation.data.repositoryimpl.UserPreferencesRepositoryImpl
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.flow

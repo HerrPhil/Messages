@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
@@ -70,7 +71,7 @@ class LoginViewModel @Inject constructor(
 
             // My "server" is local and blazingly fast.
             // Without this, loading state is flickering.
-            val minimumLoadingVisibility = async { delay(300) }
+            val minimumLoadingVisibility = async { delay(300.milliseconds) }
             minimumLoadingVisibility.await()
 
             // Step 1: Authenticate and persist tokens via authApiService
