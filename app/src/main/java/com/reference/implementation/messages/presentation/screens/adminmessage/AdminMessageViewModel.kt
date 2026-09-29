@@ -96,10 +96,9 @@ class AdminMessageViewModel @Inject constructor(
         searchQuery,
         _isImportantOnly,
         userOptionQuery,
-        selectedUserId,
         isAdminSelected
-    ) { search, important, userOption, userId, isAdminSelected ->
-        UserFilterPreferences(search, important, userOption, userId, isAdminSelected)
+    ) { search, important, userOption, isAdminSelected ->
+        UserFilterPreferences(search, important, userOption,  isAdminSelected)
     }
 
     val uiState: StateFlow<AdminMessageUiState> = combine(
@@ -120,7 +119,6 @@ class AdminMessageViewModel @Inject constructor(
             filterPreferences.searchQuery,
             filterPreferences.userOptionQuery,
             filterPreferences.isImportantOnly,
-            filterPreferences.selectedUserId,
             filterPreferences.isAdminSelected
         )
     }.scan<MessageInput, AdminMessageUiState>(
@@ -137,7 +135,6 @@ class AdminMessageViewModel @Inject constructor(
             query,
             userOptionQuery,
             isImportantOnly,
-            selectedUserId,
             isAdminSelected
         ) = input
 
@@ -276,10 +273,6 @@ class AdminMessageViewModel @Inject constructor(
     }
 
     fun onRefresh() {
-
-        // TODO refresh with selected user ID or default active (admin) user ID
-        // TODO test this on my device at home - emulator cannot pull-to-refresh
-
         viewModelScope.launch {
             _isRefreshing.value = true // turn ON refreshing
             try {
@@ -355,7 +348,6 @@ private data class MessageInput(
     val query: String,
     val userOptionQuery: String,
     val isImportantOnly: Boolean,
-    val selectedUserId: Int?,
     val isAdminSelected: Boolean
 )
 
@@ -363,6 +355,5 @@ data class UserFilterPreferences(
     val searchQuery: String,
     val isImportantOnly: Boolean,
     val userOptionQuery: String,
-    val selectedUserId: Int?,
     val isAdminSelected: Boolean
 )

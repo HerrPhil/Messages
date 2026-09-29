@@ -5,10 +5,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class LoadSelectedMessagesUseCase @Inject constructor(
+open class LoadSelectedMessagesUseCase @Inject constructor(
     private val repo: MessageCacheRepository
 ) {
-    suspend operator fun invoke(
+    open suspend operator fun invoke(
         userId: Int,
         onRetry: suspend (Int) -> Unit
     ) {

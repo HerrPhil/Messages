@@ -41,17 +41,14 @@ class AdminHomeViewModel @Inject constructor(
     }.onStart {
         // Fires EVERY TIME collectAsStateWithLifecycle() connects!
         auditLog("AdminHomeViewModel UI subscribed: HomeUiState flow collection started")
-//        Audit.createInstance().writeLog("AdminHomeViewModel UI subscribed: HomeUiState flow collection started")
     }.onCompletion {
         // Fires when the UI unsubscribes (or after WhileSubscribed timeout)
         auditLog("AdminHomeViewModel unsubscribed: HomeUiState flow collection ended")
-//        Audit.createInstance().writeLog("AdminHomeViewModel unsubscribed: HomeUiState flow collection ended")
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = AdminHomeUiState.Loading
     ).also {
         auditLog("AdminHomeViewModel declaration of uiState completed.")
-//        Audit.createInstance().writeLog("AdminHomeViewModel declaration of uiState completed.")
     }
 }

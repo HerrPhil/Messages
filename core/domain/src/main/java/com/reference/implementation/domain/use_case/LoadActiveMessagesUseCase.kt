@@ -5,10 +5,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class LoadActiveMessagesUseCase @Inject constructor(
+open class LoadActiveMessagesUseCase @Inject constructor(
     private val repo: MessageCacheRepository
 ) {
-    suspend operator fun invoke(
+    open suspend operator fun invoke(
         onRetry: suspend (Int) -> Unit
     ) {
         repo.refreshMessagesOfActiveUser(onRetry)
