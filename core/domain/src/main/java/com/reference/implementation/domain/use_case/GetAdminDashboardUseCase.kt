@@ -13,13 +13,14 @@ import kotlinx.coroutines.flow.onStart
 import javax.inject.Inject
 import javax.inject.Singleton
 
+// TODO remove 'open' reserved words after retryIO() code smell is fixed
 @Singleton
-class GetAdminDashboardUseCase @Inject constructor(
+open class GetAdminDashboardUseCase @Inject constructor(
     private val userRepository: UserRepository,
     private val messageRepository: MessageRepository,
     private val bulletinRepository: BulletinRepository
 ) {
-    operator fun invoke(
+    open operator fun invoke(
         onRetry: suspend (Int) -> Unit = {}
     ): Flow<Resource<AdminDashboardDomainModel>> {
         return combine(

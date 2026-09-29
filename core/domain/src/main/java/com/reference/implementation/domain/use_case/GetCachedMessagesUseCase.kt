@@ -11,12 +11,13 @@ import kotlinx.coroutines.flow.onStart
 import javax.inject.Inject
 import javax.inject.Singleton
 
+// TODO remove 'open' reserved words after retryIO() code smell is fixed
 @Singleton
-class GetCachedMessagesUseCase @Inject constructor(
+open class GetCachedMessagesUseCase @Inject constructor(
     private val messageCacheRepository: MessageCacheRepository,
     private val userPreferencesRepository: UserPreferencesRepository
 ) {
-    operator fun invoke(): Flow<Resource<List<MessageDomainModel>>> {
+    open operator fun invoke(): Flow<Resource<List<MessageDomainModel>>> {
         // 1. Grab the raw streams from the repositories
         return combine(
             messageCacheRepository.getMessagesByUser(),

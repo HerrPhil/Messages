@@ -97,8 +97,6 @@ hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-com
 # Library for Standard injection for Pure Kotlin modules (like :core:domain)
 javax-inject = { group = "javax.inject", name = "javax.inject", version.ref = "javaxInject"}
 
-
-
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }

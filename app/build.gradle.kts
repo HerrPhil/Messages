@@ -46,6 +46,14 @@ android {
         compose = true
         buildConfig = true // Enables BuildConfig generation
     }
+
+    testOptions {
+        unitTests {
+            // Allows Android framework stubs like BaseBundle to return safe
+            // fallback defaults on the local JVM instead of crashing!
+            isReturnDefaultValues = true
+        }
+    }
 }
 
 dependencies {
