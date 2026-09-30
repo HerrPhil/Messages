@@ -6,10 +6,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class FetchNewUserProfileUseCase @Inject constructor(
+open class FetchNewUserProfileUseCase @Inject constructor(
     private val roleRepo: RoleRepository
 ) {
-    suspend operator fun invoke(
+    open suspend operator fun invoke(
         loginUser: LoginUserDomainModel,
         onRetry: suspend (Int) -> Unit
     ): Resource<Unit> = roleRepo.configureUserProfile(loginUser, onRetry)

@@ -15,7 +15,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class GetUserDashboardUseCase @Inject constructor(
+open class GetUserDashboardUseCase @Inject constructor(
     private val userRepository: UserRepository,
     private val messageRepository: MessageRepository,
     private val roleRepository: RoleRepository,
@@ -25,7 +25,7 @@ class GetUserDashboardUseCase @Inject constructor(
     /**
      * Here is the Flow-based solution to get user dashboard information
      */
-    operator fun invoke(
+    open operator fun invoke(
         onRetry: suspend (Int) -> Unit = {}
     ): Flow<Resource<UserDashboardDomainModel>> {
         return combine(

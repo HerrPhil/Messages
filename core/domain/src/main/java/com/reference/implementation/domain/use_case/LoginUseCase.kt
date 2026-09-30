@@ -6,10 +6,10 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class LoginUseCase @Inject constructor(
+open class LoginUseCase @Inject constructor(
     private val repo: LoginRepository
 ) {
-    suspend operator fun invoke(
+    open suspend operator fun invoke(
         email: String,
         password: String,
         onRetry: suspend (Int) -> Unit

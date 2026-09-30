@@ -41,13 +41,14 @@ class LoginViewModel @Inject constructor(
     val password: StateFlow<String> = _password.asStateFlow()
 
     // 3. Derived state using the private backing login properties
-    val isSubmitEnabled: StateFlow<Boolean> = combine(_email, _password) { email, pass ->
-        email.isNotBlank() && pass.isNotBlank()
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = false
-    )
+    val isSubmitEnabled: StateFlow<Boolean> =
+        combine(_email, _password) { email, pass ->
+            email.isNotBlank() && pass.isNotBlank()
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = false
+        )
 
     private var loginJob: Job? = null // Reference to the active work
 
@@ -75,7 +76,8 @@ class LoginViewModel @Inject constructor(
             minimumLoadingVisibility.await()
 
             // Step 1: Authenticate and persist tokens via authApiService
-            val onRetry: suspend (Int) -> Unit  = { attempt -> uiState = LoginUiState.Retrying(attempt) }
+            val onRetry: suspend (Int) -> Unit =
+                { attempt -> uiState = LoginUiState.Retrying(attempt) }
             val resource = loginUseCase(
                 email,
                 password,
