@@ -14,7 +14,6 @@ import com.reference.implementation.domain.use_case.LoadBulletinUseCase
 import com.reference.implementation.domain.use_case.LoadSelectedMessagesUseCase
 import com.reference.implementation.domain.use_case.LoginUseCase
 import com.reference.implementation.domain.use_case.Resource
-import com.reference.implementation.messages.presentation.navigation.Login
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi

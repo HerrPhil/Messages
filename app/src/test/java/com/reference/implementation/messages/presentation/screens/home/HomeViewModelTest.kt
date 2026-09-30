@@ -69,8 +69,6 @@ class HomeViewModelTest {
         runTest {
 
             // Arrange
-            val mockDashboard = createDashboardInformation()
-
             val mockRepositoryStream = MutableStateFlow<Resource<UserDashboardDomainModel>>(
                 Resource.Loading
             )
@@ -130,8 +128,6 @@ class HomeViewModelTest {
         runTest {
 
             // Arrange
-            val mockDashboard = createDashboardInformation()
-
             val mockRepositoryStream = MutableStateFlow<Resource<UserDashboardDomainModel>>(
                 Resource.Error("Network dropped")
             )
