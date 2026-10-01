@@ -42,6 +42,7 @@ class MessageDetailViewModel @Inject constructor(
 
                 is Resource.Error -> MessageDetailUiState.Error(resourceResult.message)
                 is Resource.Success -> {
+                    Log.d("ViewModel", "messageId is $messageId")
                     val message = resourceResult.data.find { it.id == messageId }
                     if (message != null) {
                         MessageDetailUiState.Success(data = message.toMessageUiDetail())
