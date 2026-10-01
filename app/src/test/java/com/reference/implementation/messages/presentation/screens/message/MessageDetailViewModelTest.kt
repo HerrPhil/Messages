@@ -38,7 +38,6 @@ class MessageDetailViewModelTest {
     private val markMessageAsUnreadUseCase: MarkMessageAsUnreadUseCase = mockk(relaxed = true)
     private val deleteMessageUseCase: DeleteMessageUseCase = mockk(relaxed = true)
     private val regularUserId = 567234
-    private val regularUserName = "user"
 
     private lateinit var messageDetailViewModel: MessageDetailViewModel
 
