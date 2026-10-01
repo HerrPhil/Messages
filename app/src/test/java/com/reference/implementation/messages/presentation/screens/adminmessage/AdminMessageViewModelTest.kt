@@ -1338,7 +1338,6 @@ class AdminMessageViewModelTest {
 
         }
 
-
     private fun createActiveMessages(): List<MessageDomainModel> =
         listOf(
             MessageDomainModel(
