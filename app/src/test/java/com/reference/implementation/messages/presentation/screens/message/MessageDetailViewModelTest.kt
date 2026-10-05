@@ -9,7 +9,7 @@ import com.reference.implementation.domain.use_case.MarkMessageAsReadUseCase
 import com.reference.implementation.domain.use_case.MarkMessageAsUnreadUseCase
 import com.reference.implementation.domain.use_case.Resource
 import com.reference.implementation.messages.presentation.navigation.Route
-import com.reference.implementation.messages.presentation.screens.bulletin.MainDispatcherRule
+import com.reference.implementation.messages.presentation.screens.util.MainDispatcherRule
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk

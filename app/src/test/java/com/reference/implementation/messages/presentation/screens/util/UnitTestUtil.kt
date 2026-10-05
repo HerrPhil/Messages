@@ -1,4 +1,4 @@
-package com.reference.implementation.messages.presentation.screens.bulletin
+package com.reference.implementation.messages.presentation.screens.util
 
 import com.reference.implementation.domain.use_case.LoadActiveMessagesUseCase
 import com.reference.implementation.domain.use_case.LoadAllBulletinsUseCase
@@ -82,4 +82,3 @@ class FakeLoadSelectedMessagesUseCase : LoadSelectedMessagesUseCase(repo = mockk
         delay(1000.milliseconds)
     }
 }
-

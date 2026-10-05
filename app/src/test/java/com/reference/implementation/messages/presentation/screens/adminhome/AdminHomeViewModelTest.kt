@@ -3,7 +3,7 @@ package com.reference.implementation.messages.presentation.screens.adminhome
 import com.reference.implementation.domain.model.AdminDashboardDomainModel
 import com.reference.implementation.domain.use_case.GetAdminDashboardUseCase
 import com.reference.implementation.domain.use_case.Resource
-import com.reference.implementation.messages.presentation.screens.bulletin.MainDispatcherRule
+import com.reference.implementation.messages.presentation.screens.util.MainDispatcherRule
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.slot
