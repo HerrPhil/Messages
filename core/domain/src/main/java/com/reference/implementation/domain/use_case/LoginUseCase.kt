@@ -12,7 +12,7 @@ open class LoginUseCase @Inject constructor(
     open suspend operator fun invoke(
         email: String,
         password: String,
-        onRetry: suspend (Int) -> Unit
+        onRetry: (Int) -> Unit
     ): Resource<LoginUserDomainModel> {
         return repo.login(email, password, onRetry)
             .toResource("Login") { loginUser ->

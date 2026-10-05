@@ -34,7 +34,7 @@ class RefreshTokenRepositoryImpl @Inject constructor(
 
     override suspend fun refreshToken(
         tokenUsedByRequest: String,
-        onRetry: suspend (Int) -> Unit
+        onRetry: (Int) -> Unit
     ): NetworkResult<RefreshTokenDomainModel> {
         return withContext(ioDispatcher) {
             refreshMutex.withLock {

@@ -11,7 +11,7 @@ open class LoadBulletinUseCase @Inject constructor(
 ) {
     open suspend operator fun invoke(
         bulletinId: Int,
-        onRetry: suspend (Int) -> Unit
+        onRetry: (Int) -> Unit
     ) {
         repo.refreshBulletin(bulletinId, onRetry)
     }

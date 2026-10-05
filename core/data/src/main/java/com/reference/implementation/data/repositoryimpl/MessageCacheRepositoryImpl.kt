@@ -49,7 +49,7 @@ class MessageCacheRepositoryImpl @Inject constructor(
 
     override val uiEvents = _uiEventChannel.receiveAsFlow()
 
-    override suspend fun refreshMessagesOfActiveUser(onRetry: suspend (Int) -> Unit) {
+    override suspend fun refreshMessagesOfActiveUser(onRetry: (Int) -> Unit) {
         val userId = when (val userIdResult = sessionManager.getSessionUserId()) {
             is SessionResult.Authenticated -> userIdResult.data
             else -> 0
@@ -59,7 +59,7 @@ class MessageCacheRepositoryImpl @Inject constructor(
 
     override suspend fun refreshMessagesOfSelectedUser(
         userId: Int,
-        onRetry: suspend (Int) -> Unit
+        onRetry: (Int) -> Unit
     ) {
 
         // Force the cache to show "Loading" if it is a manual retry/refresh action
@@ -101,7 +101,7 @@ class MessageCacheRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun markMessageAsRead(messageId: Int, onRetry: suspend (Int) -> Unit) {
+    override suspend fun markMessageAsRead(messageId: Int, onRetry: (Int) -> Unit) {
         val response = withContext(ioDispatcher) {
             try {
                 val response = retryIO(times = 3, onRetry = onRetry) {
@@ -139,7 +139,7 @@ class MessageCacheRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun markMessageAsUnread(messageId: Int, onRetry: suspend (Int) -> Unit) {
+    override suspend fun markMessageAsUnread(messageId: Int, onRetry: (Int) -> Unit) {
         val response = withContext(ioDispatcher) {
             try {
                 val response = retryIO(times = 3, onRetry = onRetry) {
@@ -194,7 +194,7 @@ class MessageCacheRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun deleteMessage(messageId: Int, onRetry: suspend (Int) -> Unit) {
+    override suspend fun deleteMessage(messageId: Int, onRetry: (Int) -> Unit) {
         // 1. Capture the safety net snapshot of the current state
         val originalState = _messagesByUserCache.value
 
@@ -256,7 +256,7 @@ class MessageCacheRepositoryImpl @Inject constructor(
 
     override suspend fun restoreMessage(
         deletedMessage: MessageDomainModel,
-        onRetry: suspend (Int) -> Unit
+        onRetry: (Int) -> Unit
     ) {
         // 1. Snapshot the current state in case the network restore network call fails
         val backupState = _messagesByUserCache.value

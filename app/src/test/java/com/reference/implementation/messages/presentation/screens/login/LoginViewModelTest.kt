@@ -4,11 +4,10 @@ import com.reference.implementation.domain.model.LoginUserDomainModel
 import com.reference.implementation.domain.use_case.FetchNewUserProfileUseCase
 import com.reference.implementation.domain.use_case.LoginUseCase
 import com.reference.implementation.domain.use_case.Resource
-import com.reference.implementation.messages.presentation.screens.bulletin.FakeFetchNewUserProfileUseCase
-import com.reference.implementation.messages.presentation.screens.bulletin.FakeLoginUseCase
 import com.reference.implementation.messages.presentation.screens.bulletin.MainDispatcherRule
 import io.mockk.coEvery
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -353,7 +352,16 @@ class LoginViewModelTest {
     fun `init login io response is retrying credentials and immediately returns ui retrying`() =
         runTest {
             // Arrange
-            val fakeLoginUseCase = FakeLoginUseCase()
+            val loginResource = Resource.Loading
+            // THE TRICK: Define a slot to capture your production onRetry lambda function
+            val retryLambdaSlot = slot<(Int) -> Unit>()
+            coEvery {
+                loginUseCase(
+                    any(),
+                    any(),
+                    capture(retryLambdaSlot)
+                )
+            } returns loginResource
             coEvery {
                 fetchNewUserProfileUseCase(
                     any(),
@@ -363,7 +371,7 @@ class LoginViewModelTest {
 
             // Act
             loginViewModel = LoginViewModel(
-                fakeLoginUseCase,
+                loginUseCase,
                 fetchNewUserProfileUseCase
             )
 
@@ -374,8 +382,7 @@ class LoginViewModelTest {
 
             // 5. Act Part 2: Manually fire your captured retry callback through the fake!
             // This executes: _loadTrigger.value = 1, forcing flatMapLatest to transition streams!
-            val targetRetryCallback = checkNotNull(fakeLoginUseCase.capturedOnRetry)
-            targetRetryCallback.invoke(1)
+            retryLambdaSlot.captured.invoke(1)
 
             // Assert
             val expectedState = LoginUiState.Retrying(1)
@@ -386,20 +393,27 @@ class LoginViewModelTest {
         }
 
 
-
     @Test
     fun `init login io response is retrying load user profile and immediately returns ui retrying`() =
         runTest {
             // Arrange
             val loginResults = createLoginResults()
             val loginResource = Resource.Success(data = loginResults)
-            coEvery { loginUseCase(any(), any(), any()) } returns loginResource
-            val fakeFetchNewUserProfileUseCase = FakeFetchNewUserProfileUseCase()
+            coEvery {
+                loginUseCase(any(), any(), any())
+            } returns loginResource
+            val retryLambdaSlot = slot<(Int) -> Unit>()
+            coEvery {
+                fetchNewUserProfileUseCase(
+                    any(),
+                    capture(retryLambdaSlot)
+                )
+            } returns Resource.Success(data = Unit)
 
             // Act
             loginViewModel = LoginViewModel(
                 loginUseCase,
-                fakeFetchNewUserProfileUseCase
+                fetchNewUserProfileUseCase
             )
 
             // there is 300ms delay in the loginUseCase to fix a UI flicker
@@ -409,8 +423,7 @@ class LoginViewModelTest {
 
             // 5. Act Part 2: Manually fire your captured retry callback through the fake!
             // This executes: _loadTrigger.value = 1, forcing flatMapLatest to transition streams!
-            val targetRetryCallback = checkNotNull(fakeFetchNewUserProfileUseCase.capturedOnRetry)
-            targetRetryCallback.invoke(1)
+            retryLambdaSlot.captured.invoke(1)
 
             // Assert
             val expectedState = LoginUiState.Retrying(1)
@@ -419,10 +432,6 @@ class LoginViewModelTest {
                 actual = loginViewModel.uiState
             )
         }
-
-
-
-
 
 
     @Test

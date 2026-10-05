@@ -32,7 +32,7 @@ class LoginRepositoryImpl @Inject constructor(
     override suspend fun login(
         email: String,
         password: String,
-        onRetry: suspend (Int) -> Unit
+        onRetry: (Int) -> Unit
     ): NetworkResult<LoginUserDomainModel> {
 
         return withContext(ioDispatcher) {

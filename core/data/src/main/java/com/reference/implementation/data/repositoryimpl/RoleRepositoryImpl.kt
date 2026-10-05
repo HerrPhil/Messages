@@ -59,7 +59,7 @@ class RoleRepositoryImpl @Inject constructor(
 
     override suspend fun configureUserProfile(
         loginUser: LoginUserDomainModel,
-        onRetry: suspend (Int) -> Unit
+        onRetry: (Int) -> Unit
     ): NetworkResult<Unit> = withContext(ioDispatcher) {
 
         roleManager.updateRole(UserRoleState.Loading) // from Idle to Loading

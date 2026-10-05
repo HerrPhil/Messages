@@ -79,6 +79,8 @@ class BulletinViewModelTest {
             )
 
             assertEquals(expectedState, bulletinViewModel.uiState.value)
+
+            coVerify(exactly = 1) { loadAllBulletinsUseCase(any()) }
         }
 
     @Test
@@ -127,6 +129,8 @@ class BulletinViewModelTest {
             )
 
             assertEquals(expectedState, bulletinViewModel.uiState.value)
+
+            coVerify(exactly = 1) { loadAllBulletinsUseCase(any()) }
         }
 
     @Test
@@ -139,7 +143,7 @@ class BulletinViewModelTest {
             )
             every { getAllBulletinsUseCase() } returns mockRepositoryStream
 
-            // Instantiate your hand-written fake contract
+            // Instantiate your handwritten fake contract
             val fakeLoadAllBulletinsUseCase = FakeLoadAllBulletinsUseCase()
 
             // Prevent isRefreshing flapping
@@ -184,6 +188,9 @@ class BulletinViewModelTest {
             )
 
             assertEquals(expectedState, bulletinViewModel.uiState.value)
+
+            // one for init(), one for onRefresh()
+            assertEquals(2, fakeLoadAllBulletinsUseCase.invocationCount)
         }
 
     @Test
@@ -236,6 +243,9 @@ class BulletinViewModelTest {
             val expectedState = BulletinUiState.Retrying(attempt = 1)
 
             assertEquals(expectedState, bulletinViewModel.uiState.value)
+
+            // one for init(), one for onRefresh()
+            assertEquals(2, fakeLoadAllBulletinsUseCase.invocationCount)
         }
 
     @Test
@@ -266,6 +276,8 @@ class BulletinViewModelTest {
                 expected = BulletinUiState.Loading,
                 actual = bulletinViewModel.uiState.value
             )
+
+            // nothing to verify - loadAllBulletinsUseCase is a pure mockk value
         }
 
 
@@ -279,7 +291,7 @@ class BulletinViewModelTest {
             )
             every { getAllBulletinsUseCase() } returns mockRepositoryStream
 
-            // Instantiate your hand-written fake contract
+            // Instantiate your handwritten fake contract
             val fakeLoadAllBulletinsUseCase = FakeLoadAllBulletinsUseCase()
 
             // Prevent isRefreshing flapping
@@ -324,6 +336,9 @@ class BulletinViewModelTest {
             )
 
             assertEquals(expectedState, bulletinViewModel.uiState.value)
+
+            // one for init(), one for onRefresh()
+            assertEquals(2, fakeLoadAllBulletinsUseCase.invocationCount)
         }
 
     @Test
@@ -354,6 +369,8 @@ class BulletinViewModelTest {
                 expected = BulletinUiState.Error("Cache Fail"),
                 actual = bulletinViewModel.uiState.value
             )
+
+            coVerify(exactly = 1) { loadAllBulletinsUseCase(any()) }
         }
 
     @Test

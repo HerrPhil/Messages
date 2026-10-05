@@ -6,6 +6,6 @@ import com.reference.implementation.domain.model.RefreshTokenDomainModel
 interface RefreshTokenRepository {
     suspend fun refreshToken(
         tokenUsedByRequest: String,
-        onRetry: suspend (Int) -> Unit
+        onRetry: (Int) -> Unit
     ): NetworkResult<RefreshTokenDomainModel>
 }

@@ -16,7 +16,6 @@ import com.reference.implementation.domain.use_case.MarkMessageAsReadUseCase
 import com.reference.implementation.domain.use_case.MarkMessageAsUnreadUseCase
 import com.reference.implementation.domain.use_case.Resource
 import com.reference.implementation.domain.use_case.RestoreMessageUseCase
-import com.reference.implementation.messages.presentation.screens.bulletin.FakeGetCachedMessagesUseCase
 import com.reference.implementation.messages.presentation.screens.bulletin.FakeLoadActiveMessagesUseCase
 import com.reference.implementation.messages.presentation.screens.bulletin.FakeLoadSelectedMessagesUseCase
 import com.reference.implementation.messages.presentation.screens.bulletin.MainDispatcherRule
@@ -128,6 +127,9 @@ class AdminMessageViewModelTest {
                 expected = expectedState,
                 actual = adminMessageViewModel.uiState.value
             )
+
+            coVerify(exactly = 1) { loadActiveMessagesUseCase(any())}
+            coVerify(exactly = 1) { loadAllUsersUseCase(any()) }
         }
 
     @Test
@@ -203,6 +205,8 @@ class AdminMessageViewModelTest {
                 expected = expectedState,
                 actual = adminMessageViewModel.uiState.value
             )
+
+            coVerify(exactly = 1) { loadSelectedMessagesUseCase(eq(adminUserId), any())}
         }
 
     @Test
@@ -212,14 +216,10 @@ class AdminMessageViewModelTest {
             // Arrange
             val mockActiveMessages = createActiveMessages()
             val mockSelectedMessages = createSelectedMessages()
-
-            // instantiate the clean fake use case
-            val fakeGetCachedMessagesUseCase = FakeGetCachedMessagesUseCase()
-
-            // Seed it initially with the admin data
-            fakeGetCachedMessagesUseCase.mockStream.value =
+            val mockMessageRepositoryStream = MutableStateFlow<Resource<List<MessageDomainModel>>>(
                 Resource.Success(data = mockActiveMessages)
-
+            )
+            every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
             val mockUserInformation = createAllUsers()
             val mockUserRepositoryStream = MutableStateFlow<Resource<List<UserOptionDomainModel>>>(
                 Resource.Success(data = mockUserInformation)
@@ -236,7 +236,7 @@ class AdminMessageViewModelTest {
                 savedStateHandle = savedStateHandle,
                 loadActiveMessagesUseCase = loadActiveMessagesUseCase,
                 loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
-                getCachedMessagesUseCase = fakeGetCachedMessagesUseCase,
+                getCachedMessagesUseCase = getCachedMessagesUseCase,
                 loadAllUsersUseCase = loadAllUsersUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
@@ -260,8 +260,7 @@ class AdminMessageViewModelTest {
             adminMessageViewModel.onUserOptionQueryChanged("user")
 
             // SWAP THE STREAM DATA: Push the new regular user payload down to the hot fake!
-            fakeGetCachedMessagesUseCase.mockStream.value =
-                Resource.Success(data = mockSelectedMessages)
+            mockMessageRepositoryStream.value = Resource.Success(data = mockSelectedMessages)
 
             adminMessageViewModel.loadSelectedMessageData()
             runCurrent() // Flush the combine/scan pipeline
@@ -300,7 +299,6 @@ class AdminMessageViewModelTest {
                 Resource.Success(data = mockActiveMessages)
             )
             every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
-
             val mockUserInformation = createAllUsers()
             val mockUserRepositoryStream = MutableStateFlow<Resource<List<UserOptionDomainModel>>>(
                 Resource.Success(data = mockUserInformation)
@@ -364,14 +362,10 @@ class AdminMessageViewModelTest {
             // Arrange
             val mockActiveMessages = createActiveMessages()
             val mockSelectedMessages = createSelectedMessages()
-
-            // instantiate the clean fake use case
-            val fakeGetCachedMessagesUseCase = FakeGetCachedMessagesUseCase()
-
-            // Seed it initially with the admin data
-            fakeGetCachedMessagesUseCase.mockStream.value =
+            val mockMessageRepositoryStream = MutableStateFlow<Resource<List<MessageDomainModel>>>(
                 Resource.Success(data = mockActiveMessages)
-
+            )
+            every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
             val mockUserInformation = createAllUsers()
             val mockUserRepositoryStream = MutableStateFlow<Resource<List<UserOptionDomainModel>>>(
                 Resource.Success(data = mockUserInformation)
@@ -388,7 +382,7 @@ class AdminMessageViewModelTest {
                 savedStateHandle = savedStateHandle,
                 loadActiveMessagesUseCase = loadActiveMessagesUseCase,
                 loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
-                getCachedMessagesUseCase = fakeGetCachedMessagesUseCase,
+                getCachedMessagesUseCase = getCachedMessagesUseCase,
                 loadAllUsersUseCase = loadAllUsersUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
@@ -413,8 +407,7 @@ class AdminMessageViewModelTest {
             adminMessageViewModel.onImportantOnlyToggled(true)
 
             // SWAP THE STREAM DATA: Push the new regular user payload down to the hot fake!
-            fakeGetCachedMessagesUseCase.mockStream.value =
-                Resource.Success(data = mockSelectedMessages)
+            mockMessageRepositoryStream.value = Resource.Success(data = mockSelectedMessages)
 
             adminMessageViewModel.loadSelectedMessageData()
             runCurrent() // Flush the combine/scan pipeline
@@ -519,13 +512,10 @@ class AdminMessageViewModelTest {
             // Arrange
             val mockActiveMessages = createActiveMessages()
             val mockSelectedMessages = createSelectedMessages()
-
-            // instantiate the clean fake use case
-            val fakeGetCachedMessagesUseCase = FakeGetCachedMessagesUseCase()
-
-            // Seed it initially with the admin data
-            fakeGetCachedMessagesUseCase.mockStream.value =
+            val mockMessageRepositoryStream = MutableStateFlow<Resource<List<MessageDomainModel>>>(
                 Resource.Success(data = mockActiveMessages)
+            )
+            every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
 
             val mockUserInformation = createAllUsers()
             val mockUserRepositoryStream = MutableStateFlow<Resource<List<UserOptionDomainModel>>>(
@@ -543,7 +533,7 @@ class AdminMessageViewModelTest {
                 savedStateHandle = savedStateHandle,
                 loadActiveMessagesUseCase = loadActiveMessagesUseCase,
                 loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
-                getCachedMessagesUseCase = fakeGetCachedMessagesUseCase,
+                getCachedMessagesUseCase = getCachedMessagesUseCase,
                 loadAllUsersUseCase = loadAllUsersUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
@@ -568,8 +558,7 @@ class AdminMessageViewModelTest {
             adminMessageViewModel.onSearchChanged("meeting")
 
             // SWAP THE STREAM DATA: Push the new regular user payload down to the hot fake!
-            fakeGetCachedMessagesUseCase.mockStream.value =
-                Resource.Success(data = mockSelectedMessages)
+            mockMessageRepositoryStream.value = Resource.Success(data = mockSelectedMessages)
 
             adminMessageViewModel.loadSelectedMessageData()
             runCurrent() // Flush the combine/scan pipeline

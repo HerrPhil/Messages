@@ -5,6 +5,6 @@ import com.reference.implementation.domain.model.MessageDomainModel
 import kotlinx.coroutines.flow.Flow
 
 interface MessageRepository {
-    fun getSummaryMessages(onRetry: suspend (Int) -> Unit): Flow<NetworkResult<String>>
-    fun getMessagesByUserFlow( onRetry: suspend (Int) -> Unit): Flow<NetworkResult<List<MessageDomainModel>>>
+    fun getSummaryMessages(onRetry: (Int) -> Unit): Flow<NetworkResult<String>>
+    fun getMessagesByUserFlow( onRetry: (Int) -> Unit): Flow<NetworkResult<List<MessageDomainModel>>>
 }

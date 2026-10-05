@@ -26,7 +26,7 @@ open class GetUserDashboardUseCase @Inject constructor(
      * Here is the Flow-based solution to get user dashboard information
      */
     open operator fun invoke(
-        onRetry: suspend (Int) -> Unit = {}
+        onRetry: (Int) -> Unit = {}
     ): Flow<Resource<UserDashboardDomainModel>> {
         return combine(
             userRepository.getUserInfoFlow(),

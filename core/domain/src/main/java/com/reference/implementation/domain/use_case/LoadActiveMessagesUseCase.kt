@@ -9,7 +9,7 @@ open class LoadActiveMessagesUseCase @Inject constructor(
     private val repo: MessageCacheRepository
 ) {
     open suspend operator fun invoke(
-        onRetry: suspend (Int) -> Unit
+        onRetry: (Int) -> Unit
     ) {
         repo.refreshMessagesOfActiveUser(onRetry)
     }

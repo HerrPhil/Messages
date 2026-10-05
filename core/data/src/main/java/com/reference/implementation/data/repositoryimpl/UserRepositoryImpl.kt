@@ -86,7 +86,7 @@ class UserRepositoryImpl @Inject constructor(
             }
         }.flowOn(ioDispatcher)
 
-    override fun getUserCount(onRetry: suspend (Int) -> Unit): Flow<NetworkResult<Int>> =
+    override fun getUserCount(onRetry: (Int) -> Unit): Flow<NetworkResult<Int>> =
         flow {
 
             emit(NetworkResult.Loading)
@@ -124,7 +124,7 @@ class UserRepositoryImpl @Inject constructor(
         _allUsersCache.asStateFlow()
 
     // The following has no return value - stores result in cached Flow
-    override suspend fun loadAllUsers(onRetry: suspend (Int) -> Unit) {
+    override suspend fun loadAllUsers(onRetry: (Int) -> Unit) {
 
         // Force the cache to show "Loading" if it is a manual retry/refresh action
         _allUsersCache.value = NetworkResult.Loading
