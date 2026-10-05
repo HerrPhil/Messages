@@ -8,6 +8,7 @@ import retrofit2.HttpException
 import java.io.IOException
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
+import kotlin.time.Duration.Companion.milliseconds
 
 internal suspend fun <T> retryIO(
     times: Int = 3,
@@ -59,7 +60,7 @@ internal suspend fun <T> retryIO(
         // Note: delay() is cancellation-aware.
         // If the coroutine cancelled during this sleep,
         // then it throws a CancellationException immediately
-        delay(currentDelay)
+        delay(currentDelay.milliseconds)
 
         // Calculate the next exponential backoff value.
         currentDelay = (currentDelay * factor).toLong().coerceAtMost(maxDelay)
