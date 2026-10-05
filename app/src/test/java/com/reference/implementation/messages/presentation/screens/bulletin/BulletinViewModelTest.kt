@@ -6,6 +6,8 @@ import com.reference.implementation.domain.use_case.LoadAllBulletinsUseCase
 import com.reference.implementation.domain.use_case.MarkBulletinAsBookmarkUseCase
 import com.reference.implementation.domain.use_case.MarkBulletinAsNotBookmarkUseCase
 import com.reference.implementation.domain.use_case.Resource
+import com.reference.implementation.messages.presentation.screens.util.FakeLoadAllBulletinsUseCase
+import com.reference.implementation.messages.presentation.screens.util.MainDispatcherRule
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk

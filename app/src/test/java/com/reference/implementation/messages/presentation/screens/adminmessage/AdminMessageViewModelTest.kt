@@ -16,9 +16,9 @@ import com.reference.implementation.domain.use_case.MarkMessageAsReadUseCase
 import com.reference.implementation.domain.use_case.MarkMessageAsUnreadUseCase
 import com.reference.implementation.domain.use_case.Resource
 import com.reference.implementation.domain.use_case.RestoreMessageUseCase
-import com.reference.implementation.messages.presentation.screens.bulletin.FakeLoadActiveMessagesUseCase
-import com.reference.implementation.messages.presentation.screens.bulletin.FakeLoadSelectedMessagesUseCase
-import com.reference.implementation.messages.presentation.screens.bulletin.MainDispatcherRule
+import com.reference.implementation.messages.presentation.screens.util.FakeLoadActiveMessagesUseCase
+import com.reference.implementation.messages.presentation.screens.util.FakeLoadSelectedMessagesUseCase
+import com.reference.implementation.messages.presentation.screens.util.MainDispatcherRule
 import com.reference.implementation.messages.presentation.screens.message.toMessageUiDetail
 import io.mockk.coVerify
 import io.mockk.every
