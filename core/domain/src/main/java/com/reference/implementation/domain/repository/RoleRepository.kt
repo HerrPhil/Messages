@@ -7,5 +7,5 @@ import kotlinx.coroutines.flow.Flow
 
 interface RoleRepository {
     fun getRoleInfoFlow(): Flow<NetworkResult<UserRoleDomainModel>>
-    suspend fun configureUserProfile(loginUser: LoginUserDomainModel, onRetry: suspend (Int) -> Unit): NetworkResult<Unit>
+    suspend fun configureUserProfile(loginUser: LoginUserDomainModel, onRetry: (Int) -> Unit): NetworkResult<Unit>
 }

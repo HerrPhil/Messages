@@ -24,7 +24,7 @@ class BulletinRepositoryImpl @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher, // Hilt provides it
     @AuthNetwork private val apiService: ApiService
 ) : BulletinRepository {
-    override fun getBulletinCount(onRetry: suspend (Int) -> Unit): Flow<NetworkResult<Int>> =
+    override fun getBulletinCount(onRetry: (Int) -> Unit): Flow<NetworkResult<Int>> =
         flow {
 
             emit(NetworkResult.Loading)

@@ -32,7 +32,7 @@ class PermissionRepositoryImpl @Inject constructor(
     /**
      * Fetches user permissions based on session IDs and emits a domain model.
      */
-    override fun getPermissionInfoFlow(onRetry: suspend (Int) -> Unit): Flow<NetworkResult<UserPermissionDomainModel>> =
+    override fun getPermissionInfoFlow(onRetry: (Int) -> Unit): Flow<NetworkResult<UserPermissionDomainModel>> =
         flow {
             emit(NetworkResult.Loading)
 

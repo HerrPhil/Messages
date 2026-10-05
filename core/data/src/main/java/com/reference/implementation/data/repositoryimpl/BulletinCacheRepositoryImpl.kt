@@ -41,7 +41,7 @@ class BulletinCacheRepositoryImpl @Inject constructor(
     override fun getBulletin(): Flow<NetworkResult<BulletinDomainModel>> =
         _bulletinCache.asStateFlow()
 
-    override suspend fun refreshBulletins(onRetry: suspend (Int) -> Unit) {
+    override suspend fun refreshBulletins(onRetry: (Int) -> Unit) {
         // Force the cache to show "Loading" if it is a manual refresh/retry action
         _bulletinsCache.value = NetworkResult.Loading
 
@@ -79,7 +79,7 @@ class BulletinCacheRepositoryImpl @Inject constructor(
 
     override suspend fun refreshBulletin(
         bulletinId: Int,
-        onRetry: suspend (Int) -> Unit
+        onRetry: (Int) -> Unit
     ) {
         // Force the cache to show "Loading" if it is a manual refresh/retry action
         _bulletinCache.value = NetworkResult.Loading

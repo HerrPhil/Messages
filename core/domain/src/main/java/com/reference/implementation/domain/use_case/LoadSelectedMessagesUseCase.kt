@@ -10,7 +10,7 @@ open class LoadSelectedMessagesUseCase @Inject constructor(
 ) {
     open suspend operator fun invoke(
         userId: Int,
-        onRetry: suspend (Int) -> Unit
+        onRetry: (Int) -> Unit
     ) {
         repo.refreshMessagesOfSelectedUser(userId, onRetry)
     }

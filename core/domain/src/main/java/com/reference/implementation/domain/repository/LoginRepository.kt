@@ -7,6 +7,6 @@ interface LoginRepository {
     suspend fun login(
         email: String,
         password: String,
-        onRetry: suspend (Int) -> Unit
+        onRetry: (Int) -> Unit
     ): NetworkResult<LoginUserDomainModel>
 }

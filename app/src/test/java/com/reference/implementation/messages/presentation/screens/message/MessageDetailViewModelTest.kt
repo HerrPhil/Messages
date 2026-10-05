@@ -59,7 +59,6 @@ class MessageDetailViewModelTest {
             val mockRoute = Route.MessageDetail(id = testId)
             every { savedStateHandle.toRoute<Route.MessageDetail>() } returns mockRoute
 
-
             // Act
             messageDetailViewModel = MessageDetailViewModel(
                 savedStateHandle = savedStateHandle,
@@ -86,7 +85,7 @@ class MessageDetailViewModelTest {
             )
 
             // Business rule: when a user views a message then it is marked as read
-            coVerify(exactly = 1) {markMessageAsReadUseCase(eq(testId))}
+            coVerify(exactly = 1) { markMessageAsReadUseCase(eq(testId)) }
         }
 
     @Test
@@ -129,6 +128,8 @@ class MessageDetailViewModelTest {
                 actual = messageDetailViewModel.uiState.value,
                 "Loading state matched"
             )
+
+            coVerify(exactly = 1) { markMessageAsReadUseCase(eq(testId)) }
         }
 
 
@@ -148,7 +149,6 @@ class MessageDetailViewModelTest {
             // Explicitly force toRoute<Route.MessageDetail>() to return your mock route object!
             val mockRoute = Route.MessageDetail(id = testId)
             every { savedStateHandle.toRoute<Route.MessageDetail>() } returns mockRoute
-
 
             // Act
             messageDetailViewModel = MessageDetailViewModel(
@@ -171,6 +171,8 @@ class MessageDetailViewModelTest {
                 actual = messageDetailViewModel.uiState.value,
                 "Error state matched"
             )
+
+            coVerify(exactly = 1) { markMessageAsReadUseCase(eq(testId)) }
         }
 
     @Test
@@ -190,7 +192,6 @@ class MessageDetailViewModelTest {
             // Explicitly force toRoute<Route.MessageDetail>() to return your mock route object!
             val mockRoute = Route.MessageDetail(id = testId)
             every { savedStateHandle.toRoute<Route.MessageDetail>() } returns mockRoute
-
 
             // Act
             messageDetailViewModel = MessageDetailViewModel(
@@ -213,6 +214,8 @@ class MessageDetailViewModelTest {
                 actual = messageDetailViewModel.uiState.value,
                 "Error state matched"
             )
+
+            coVerify(exactly = 1) { markMessageAsReadUseCase(eq(testId)) }
         }
 
     @Test
@@ -231,7 +234,6 @@ class MessageDetailViewModelTest {
             // Explicitly force toRoute<Route.MessageDetail>() to return your mock route object!
             val mockRoute = Route.MessageDetail(id = testId)
             every { savedStateHandle.toRoute<Route.MessageDetail>() } returns mockRoute
-
 
             // Act
             messageDetailViewModel = MessageDetailViewModel(

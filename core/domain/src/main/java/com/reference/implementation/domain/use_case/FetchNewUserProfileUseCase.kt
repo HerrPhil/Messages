@@ -11,7 +11,7 @@ open class FetchNewUserProfileUseCase @Inject constructor(
 ) {
     open suspend operator fun invoke(
         loginUser: LoginUserDomainModel,
-        onRetry: suspend (Int) -> Unit
+        onRetry: (Int) -> Unit
     ): Resource<Unit> = roleRepo.configureUserProfile(loginUser, onRetry)
         .toResource(
             "user profile"

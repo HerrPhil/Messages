@@ -10,7 +10,7 @@ open class LoadAllBulletinsUseCase @Inject constructor(
     private val repo: BulletinCacheRepository
 ) {
     open suspend operator fun invoke(
-        onRetry: suspend (Int) -> Unit
+        onRetry: (Int) -> Unit
     ) {
         repo.refreshBulletins(onRetry)
     }

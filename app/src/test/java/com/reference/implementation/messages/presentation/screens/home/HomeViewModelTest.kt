@@ -3,10 +3,10 @@ package com.reference.implementation.messages.presentation.screens.home
 import com.reference.implementation.domain.model.UserDashboardDomainModel
 import com.reference.implementation.domain.use_case.GetUserDashboardUseCase
 import com.reference.implementation.domain.use_case.Resource
-import com.reference.implementation.messages.presentation.screens.bulletin.FakeGetUserDashboardUseCase
 import com.reference.implementation.messages.presentation.screens.bulletin.MainDispatcherRule
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
@@ -94,9 +94,18 @@ class HomeViewModelTest {
         runTest {
 
             // Arrange
-            val fakeUseCase = FakeGetUserDashboardUseCase()
+            val mockRepositoryStream = MutableStateFlow<Resource<UserDashboardDomainModel>>(
+                Resource.Loading
+            )
+            // THE TRICK: Define a slot to capture your production onRetry lambda function
+            val retryLambdaSlot = slot<(Int) -> Unit>()
+            // THE SENIOR FIX: Pass any() to match the use case invoke() signature
+            // that accepts the onRetry lambda!
+            every {
+                getUserDashboardUseCase(onRetry = capture(retryLambdaSlot))
+            } returns mockRepositoryStream
 
-            homeViewModel = HomeViewModel(fakeUseCase)
+            homeViewModel = HomeViewModel(getUserDashboardUseCase)
 
             // Wake up WhileSubscribed(5000)
             backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
@@ -111,8 +120,7 @@ class HomeViewModelTest {
             )
 
             // Act: Invoke the captured lambda to simulate an in-flight retry!
-            val targetCallback = checkNotNull(fakeUseCase.capturedOnRetry)
-            targetCallback.invoke(2) // Simulates second retry attempt
+            retryLambdaSlot.captured.invoke(2)
             runCurrent() // flush the combine pipeline
 
             // Assert

@@ -9,7 +9,7 @@ class LoadAllUsersUseCase @Inject constructor(
     private val repo: UserRepository
 ) {
     suspend operator fun invoke(
-        onRetry: suspend (Int) -> Unit
+        onRetry: (Int) -> Unit
     ) {
         repo.loadAllUsers(onRetry)
     }

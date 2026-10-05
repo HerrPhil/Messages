@@ -76,8 +76,7 @@ class LoginViewModel @Inject constructor(
             minimumLoadingVisibility.await()
 
             // Step 1: Authenticate and persist tokens via authApiService
-            val onRetry: suspend (Int) -> Unit =
-                { attempt -> uiState = LoginUiState.Retrying(attempt) }
+            val onRetry: (Int) -> Unit = { attempt -> uiState = LoginUiState.Retrying(attempt) }
             val resource = loginUseCase(
                 email,
                 password,
@@ -108,7 +107,7 @@ class LoginViewModel @Inject constructor(
 
     private suspend fun loadUserProfile(
         loginUser: LoginUserDomainModel,
-        onRetry: suspend (Int) -> Unit
+        onRetry: (Int) -> Unit
     ) {
         when (val profileResult = fetchNewUserProfileUseCase(
             loginUser,

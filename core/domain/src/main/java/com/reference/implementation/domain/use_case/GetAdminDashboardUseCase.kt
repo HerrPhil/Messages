@@ -21,7 +21,7 @@ open class GetAdminDashboardUseCase @Inject constructor(
     private val bulletinRepository: BulletinRepository
 ) {
     open operator fun invoke(
-        onRetry: suspend (Int) -> Unit = {}
+        onRetry: (Int) -> Unit = {}
     ): Flow<Resource<AdminDashboardDomainModel>> {
         return combine(
             userRepository.getUserCount(onRetry),

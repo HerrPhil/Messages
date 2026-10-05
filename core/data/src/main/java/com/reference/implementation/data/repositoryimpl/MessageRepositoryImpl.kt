@@ -30,7 +30,7 @@ class MessageRepositoryImpl @Inject constructor(
     private val sessionManager: SessionManager
 ) : MessageRepository {
 
-    override fun getSummaryMessages(onRetry: suspend (Int) -> Unit): Flow<NetworkResult<String>> =
+    override fun getSummaryMessages(onRetry: (Int) -> Unit): Flow<NetworkResult<String>> =
         flow {
 
             emit(NetworkResult.Loading)
@@ -69,7 +69,7 @@ class MessageRepositoryImpl @Inject constructor(
      * This is Phase 1 code of my re-factor of GetUserDashboardUseCase.
      * Phase 2 moves to leveraging the getMessagesByUser() function of MessageCacheRepository.
      */
-    override fun getMessagesByUserFlow(onRetry: suspend (Int) -> Unit): Flow<NetworkResult<List<MessageDomainModel>>> =
+    override fun getMessagesByUserFlow(onRetry: (Int) -> Unit): Flow<NetworkResult<List<MessageDomainModel>>> =
         flow {
             emit(NetworkResult.Loading)
 

@@ -14,7 +14,7 @@ internal suspend fun <T> retryIO(
     initialDelay: Long = 100, // 0.1 second
     maxDelay: Long = 1000, // 1 second
     factor: Double = 2.0,
-    onRetry: suspend (Int) -> Unit,
+    onRetry: (Int) -> Unit,
     block: suspend () -> T
 ): T {
 

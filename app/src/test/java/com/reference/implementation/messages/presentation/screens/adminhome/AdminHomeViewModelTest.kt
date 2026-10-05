@@ -3,10 +3,10 @@ package com.reference.implementation.messages.presentation.screens.adminhome
 import com.reference.implementation.domain.model.AdminDashboardDomainModel
 import com.reference.implementation.domain.use_case.GetAdminDashboardUseCase
 import com.reference.implementation.domain.use_case.Resource
-import com.reference.implementation.messages.presentation.screens.bulletin.FakeGetAdminDashboardUseCase
 import com.reference.implementation.messages.presentation.screens.bulletin.MainDispatcherRule
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.slot
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
@@ -121,10 +121,21 @@ class AdminHomeViewModelTest {
     fun `when use case triggers retry lambda, uiState emits Retrying state with correct attempt number`() =
         runTest {
             // 1. Arrange
-            val fakeUseCase = FakeGetAdminDashboardUseCase()
+            val mockRepositoryStream = MutableStateFlow<Resource<AdminDashboardDomainModel>>(
+                Resource.Loading
+            )
+
+            // THE TRICK: Define a slot to capture your production onRetry lambda function
+            val retryLambdaSlot = slot<(Int) -> Unit>()
+
+            // THE SENIOR FIX: Pass any() to match the use case invoke() signature
+            // that accepts the onRetry lambda!
+            every {
+                getAdminDashboardUseCase(onRetry = capture(retryLambdaSlot))
+            } returns mockRepositoryStream
 
             adminHomeViewModel = AdminHomeViewModel(
-                getAdminDashboardUseCase = fakeUseCase
+                getAdminDashboardUseCase = getAdminDashboardUseCase
             )
 
             // Wake up WhileSubscribed(5000)
@@ -137,8 +148,7 @@ class AdminHomeViewModelTest {
             assertEquals(AdminHomeUiState.Loading, adminHomeViewModel.uiState.value)
 
             // 2. Act: Invoke your captured lambda to simulate an in-flight retry!
-            val targetCallback = checkNotNull(fakeUseCase.capturedOnRetry)
-            targetCallback.invoke(2) // Simulates second retry attempt
+            retryLambdaSlot.captured.invoke(2)
             runCurrent()
 
             // 3. Assert
