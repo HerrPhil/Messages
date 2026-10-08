@@ -26,7 +26,10 @@ android {
         versionCode = 1
         versionName = "1.0"
 
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // ORIGINAL test runner
+//        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // Point this to the exact package path where your CustomTestRunner class rests!
+        testInstrumentationRunner = "com.reference.implementation.messages.CustomTestRunner"
     }
 
     buildTypes {
@@ -111,6 +114,11 @@ dependencies {
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
     testImplementation(libs.kotlinx.coroutines.test)
+
+    // Hilt architecture rule test
+    androidTestImplementation(libs.hilt.android.testing)
+    kspAndroidTest(libs.hilt.compiler)
+
 
     // MockWebServer for Retrofit/OkHttp Network Contract & HTTP 401 Testing
     testImplementation(libs.okhttp.mockwebserver)
