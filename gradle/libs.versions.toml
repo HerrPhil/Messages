@@ -36,6 +36,9 @@ hilt = "2.60.1"
 hiltNavigationCompose = "1.2.0"
 javaxInject = "1"
 
+# versions for Room and related libraries and plugins
+room = "2.8.5" # SET TO THE POWERFUL 2.8.5 STABLE PROFILE
+
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
@@ -90,14 +93,19 @@ androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version
 material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 
 # Libraries for Hilt Core
-hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt"}
-hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt"}
+hilt-android = { group = "com.google.dagger", name = "hilt-android", version.ref = "hilt" }
+hilt-compiler = { group = "com.google.dagger", name = "hilt-android-compiler", version.ref = "hilt" }
 
 # Library for Hilt Compose Navigation Integration
-hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose"}
+hilt-navigation-compose = { group = "androidx.hilt", name = "hilt-navigation-compose", version.ref = "hiltNavigationCompose" }
 
 # Library for Standard injection for Pure Kotlin modules (like :core:domain)
-javax-inject = { group = "javax.inject", name = "javax.inject", version.ref = "javaxInject"}
+javax-inject = { group = "javax.inject", name = "javax.inject", version.ref = "javaxInject" }
+
+# Libraries for Room offline-first Epic features
+room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
+room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
+room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
@@ -116,6 +124,6 @@ jetbrains-kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "jetbrai
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
 
 # Hilt Plugins
-ksp = { id = "com.google.devtools.ksp", version.ref = "ksp"}
-hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt"}
+ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 
