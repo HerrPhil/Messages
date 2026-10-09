@@ -14,6 +14,7 @@ import javax.inject.Singleton
 // object - provide
 @Module
 @InstallIn(SingletonComponent::class)
+@Suppress("unused")
 object DatabaseModule {
     private const val DATABASE_NAME = "messages_cache.db"
 
@@ -22,6 +23,7 @@ object DatabaseModule {
     // protecting your SQLite database file from dangerous multi-thread file-access crashes.
     @Provides
     @Singleton
+    @Suppress("unused")
     fun provideAppDatabase(
         @ApplicationContext context: Context
     ): AppDatabase {
@@ -43,6 +45,7 @@ object DatabaseModule {
     // Hilt automatically fetches your Singleton AppDatabase provider from above to satisfy
     // the argument.
     @Provides
+    @Suppress("unused")
     fun provideBulletinDao(database: AppDatabase): BulletinDao = database.bulletinDao()
 
 
