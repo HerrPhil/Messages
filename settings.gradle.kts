@@ -26,3 +26,4 @@ rootProject.name = "Messages"
 include(":app")
 include(":core:domain")
 include(":core:data")
+include(":core:database")
