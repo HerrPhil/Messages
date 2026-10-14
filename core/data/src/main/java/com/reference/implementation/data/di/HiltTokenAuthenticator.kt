@@ -17,7 +17,7 @@ import javax.inject.Singleton
 
 @Singleton
 class HiltTokenAuthenticator @Inject constructor(
-    @ApplicationScope private val externalScope: CoroutineScope,
+    @DefaultScope private val externalScope: CoroutineScope,
     // Dagger's Lazy acts exactly like the old custom lambdas
     private val refreshTokenUseCaseProvider: Lazy<RefreshTokenUseCase>,
     private val forceLogoutUseCaseProvider: Lazy<ForceLogoutUseCase>

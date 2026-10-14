@@ -1,6 +1,7 @@
 [versions]
 agp = "9.4.0"
 converterScalars = "2.9.0"
+core = "1.7.0"
 coreKtx = "1.17.0"
 datastorePreferences = "1.2.1"
 hiltAndroidTesting = "2.60.1"
@@ -21,6 +22,7 @@ retrofit = "3.0.0"
 converterKotlinxSerialization = "3.0.0"
 kotlinxSerializationJsonVersion = "1.11.0"
 okhttp = "5.3.2"
+robolectric = "4.17"
 turbine = "1.2.1"
 jetbrainsKotlinJvm = "2.3.21"
 
@@ -38,8 +40,10 @@ javaxInject = "1"
 
 # versions for Room and related libraries and plugins
 room = "2.8.5" # SET TO THE POWERFUL 2.8.5 STABLE PROFILE
+sqlite = "2.5.0-alpha3"
 
 [libraries]
+androidx-core = { module = "androidx.test:core", version.ref = "core" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastorePreferences" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleRuntimeKtx" }
@@ -79,6 +83,7 @@ okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 okhttp-logging = { group = "com.squareup.okhttp3", name = "logging-interceptor", version.ref = "okhttp" }
 okhttp-mockwebserver = { module = "com.squareup.okhttp3:mockwebserver", version.ref = "okhttp" }
 
+robolectric = { module = "org.robolectric:robolectric", version.ref = "robolectric" }
 turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 
 google-truth = { module = "com.google.truth:truth", version.ref = "truth" }
@@ -106,6 +111,8 @@ javax-inject = { group = "javax.inject", name = "javax.inject", version.ref = "j
 room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+room-testing = { group = "androidx.room", name = "room-testing", version.ref = "room" }
+androidx-sqlite-bundled = { module = "androidx.sqlite:sqlite-bundled", version.ref = "sqlite"}
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -1,6 +1,7 @@
 package com.reference.implementation.domain.use_case
 
 import app.cash.turbine.test
+import com.reference.implementation.domain.model.CachePayload
 import com.reference.implementation.domain.repository.BulletinRepository
 import com.reference.implementation.domain.repository.MessageRepository
 import com.reference.implementation.domain.repository.UserRepository
@@ -9,11 +10,17 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
+import okhttp3.MediaType
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.ResponseBody
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import retrofit2.HttpException
+import retrofit2.Response
 import java.io.IOException
 
 class GetAdminDashboardUseCaseTest {
@@ -41,8 +48,12 @@ class GetAdminDashboardUseCaseTest {
         val messagesFlow = MutableStateFlow<NetworkResult<String>>(
             NetworkResult.Loading
         )
-        val bulletinFlow = MutableStateFlow<NetworkResult<Int>>(
-            NetworkResult.Loading
+        val bulletinFlow = MutableStateFlow<CachePayload<Int>>(
+            CachePayload.ActiveStream(
+                0,
+                true,
+                null
+            )
         )
 
         every { userRepository.getUserCount(any()) } returns userFlow
@@ -69,8 +80,12 @@ class GetAdminDashboardUseCaseTest {
                 NetworkResult.Success(messagesSummary)
             )
             val numberOfBulletins = 9
-            val bulletinFlow = MutableStateFlow<NetworkResult<Int>>(
-                NetworkResult.Success(numberOfBulletins)
+            val bulletinFlow = MutableStateFlow<CachePayload<Int>>(
+                CachePayload.ActiveStream(
+                    numberOfBulletins,
+                    false,
+                    null
+                )
             )
 
             every { userRepository.getUserCount(any()) } returns userFlow
@@ -112,8 +127,12 @@ class GetAdminDashboardUseCaseTest {
                 NetworkResult.Success(messagesSummary)
             )
             val numberOfBulletins = 9
-            val bulletinFlow = MutableStateFlow<NetworkResult<Int>>(
-                NetworkResult.Success(numberOfBulletins)
+            val bulletinFlow = MutableStateFlow<CachePayload<Int>>(
+                CachePayload.ActiveStream(
+                    numberOfBulletins,
+                    false,
+                    null
+                )
             )
 
             every { userRepository.getUserCount(any()) } returns userFlow
@@ -155,8 +174,12 @@ class GetAdminDashboardUseCaseTest {
                 NetworkResult.Loading
             )
             val numberOfBulletins = 9
-            val bulletinFlow = MutableStateFlow<NetworkResult<Int>>(
-                NetworkResult.Success(numberOfBulletins)
+            val bulletinFlow = MutableStateFlow<CachePayload<Int>>(
+                CachePayload.ActiveStream(
+                    numberOfBulletins,
+                    false,
+                    null
+                )
             )
 
             every { userRepository.getUserCount(any()) } returns userFlow
@@ -198,8 +221,12 @@ class GetAdminDashboardUseCaseTest {
             val messageFlow = MutableStateFlow<NetworkResult<String>>(
                 NetworkResult.Success(messagesSummary)
             )
-            val bulletinFlow = MutableStateFlow<NetworkResult<Int>>(
-                NetworkResult.Loading
+            val bulletinFlow = MutableStateFlow<CachePayload<Int>>(
+                CachePayload.ActiveStream(
+                    0,
+                    true,
+                    null
+                )
             )
 
             every { userRepository.getUserCount(any()) } returns userFlow
@@ -224,7 +251,7 @@ class GetAdminDashboardUseCaseTest {
                 assertEquals(messagesSummary, actualDashboard.summaryMessages)
 
                 // 5. the bulletin count
-                assertNull(actualDashboard.bulletinsCount)
+                assertEquals(0, actualDashboard.bulletinsCount)
 
                 cancelAndIgnoreRemainingEvents()
             }
@@ -239,8 +266,20 @@ class GetAdminDashboardUseCaseTest {
             val messageFlow = MutableStateFlow<NetworkResult<String>>(
                 NetworkResult.Exception(IOException("Network down"))
             )
-            val bulletinFlow = MutableStateFlow<NetworkResult<Int>>(
-                NetworkResult.Error(400, "Bad Request of Permissions")
+            val bulletinFlow = MutableStateFlow<CachePayload<Int>>(
+                CachePayload.ActiveStream(
+                    0,
+                    false,
+                    HttpException(
+                        Response.error<Int>(
+                            400,
+                            "bad request of permissions"
+                                .toResponseBody(
+                                    "application/json".toMediaTypeOrNull()
+                                )
+                        )
+                    )
+                )
             )
 
             every { userRepository.getUserCount(any()) } returns userFlow
@@ -265,7 +304,7 @@ class GetAdminDashboardUseCaseTest {
                 assertNull(actualDashboard.summaryMessages)
 
                 // 5. the bulletin count
-                assertNull(actualDashboard.bulletinsCount)
+                assertEquals(0, actualDashboard.bulletinsCount)
 
                 cancelAndIgnoreRemainingEvents()
             }
@@ -280,8 +319,20 @@ class GetAdminDashboardUseCaseTest {
             val messageFlow = MutableStateFlow<NetworkResult<String>>(
                 NetworkResult.Error(403, "Messages forbidden")
             )
-            val bulletinFlow = MutableStateFlow<NetworkResult<Int>>(
-                NetworkResult.Error(400, "Bad Request of Permissions")
+            val bulletinFlow = MutableStateFlow<CachePayload<Int>>(
+                CachePayload.ActiveStream(
+                    0,
+                    false,
+                    HttpException(
+                        Response.error<Int>(
+                            400,
+                            "bad request of permissions"
+                                .toResponseBody(
+                                    "application/json".toMediaTypeOrNull()
+                                )
+                        )
+                    )
+                )
             )
 
             every { userRepository.getUserCount(any()) } returns userFlow

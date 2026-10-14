@@ -47,7 +47,6 @@ class LogoutRepositoryImplTest {
 
         repository = LogoutRepositoryImpl(
             externalScope = testScope,
-            ioDispatcher = testDispatcher,
             sessionManager = sessionManager,
             authSessionManager = authSessionManager,
             roleManager = roleManager
