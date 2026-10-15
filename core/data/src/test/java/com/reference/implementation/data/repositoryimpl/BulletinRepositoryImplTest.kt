@@ -12,12 +12,16 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.TestDispatcher
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonDecodingException
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
@@ -34,6 +38,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
 import kotlin.test.assertTrue
+import kotlin.test.fail
 
 class BulletinRepositoryImplTest {
 
@@ -58,7 +63,7 @@ class BulletinRepositoryImplTest {
 
         // Bind the dispatcher to an explicit scheduler instance
         testScheduler = TestCoroutineScheduler()
-        testDispatcher = kotlinx.coroutines.test.UnconfinedTestDispatcher(testScheduler)
+        testDispatcher = UnconfinedTestDispatcher(testScheduler)
 
         // Mock static calls to android.util.Log
         mockkStatic(Log::class)
@@ -91,7 +96,7 @@ class BulletinRepositoryImplTest {
             apiService = api,
             ioDispatcher = testDispatcher,
             bulletinDao = bulletinDao, // PASS THE REAL IN-MEMORY DAO HERE
-            externalScope = kotlinx.coroutines.CoroutineScope(testDispatcher)
+            externalScope = CoroutineScope(testDispatcher)
         )
     }
 
@@ -185,6 +190,243 @@ class BulletinRepositoryImplTest {
             coVerify(exactly = 1) { bulletinDao.insertBulletins(any()) }
 
             // 8. Verify request payload contract on MockWebServer
+            val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
+            assertEquals("GET", recordedRequest?.method)
+            assertEquals("/bulletins", recordedRequest?.path)
+        }
+
+    @OptIn(ExperimentalSerializationApi::class)
+    @Test
+    fun `handles malformed JSON string`() =
+        runTest(testDispatcher) {
+
+            // 1. Enqueue MockWebServer response (e.g., 1 HTTP 200)
+            mockWebServer.enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setHeader("Content-Type", "application/json")
+                    .setBody("""{"oranges":789}""") // malformed JSON string
+            )
+
+            // 2. Do not intercept your repository's transactional writes
+            // to manually feed our mock channel - retryIO limit was reached (no data)!
+
+            var retryCount = 0
+
+            repository.getBulletinCount(onRetry = { attempt ->
+                retryCount = attempt
+            }).test {
+
+                // 3. Immediate emission must be Loading baseline
+                val loadingItem = awaitItem()
+                assertIs<CachePayload.ActiveStream<Int>>(loadingItem)
+                assertEquals(
+                    0,
+                    loadingItem.data,
+                    "Room cache contains nothing"
+                )
+                assertTrue(loadingItem.isSyncing)
+                assertEquals(null, loadingItem.syncError) // no problems for successful syncs!
+
+                // 4. Pump the virtual clock frame to execute the retryIO delayer blocks completely
+                testScheduler.advanceUntilIdle()
+
+                // 5. Background Data Sync Failure Execution Block!
+                // The sync task hits 1 401 exception - no payload.
+                // Combine consolidates baseline 0 entities with syncError
+                // Synchronization of bulletins updates syncError.
+                val errorItem = awaitItem()
+                assertIs<CachePayload.ActiveStream<Int>>(errorItem)
+                assertFalse(
+                    errorItem.isSyncing,
+                    "onStart() tried to synchronize bulletins"
+                )
+                assertEquals(
+                    0,
+                    errorItem.data,
+                    "Room counts 0 bulletins"
+                )
+                assertIs<JsonDecodingException>(errorItem.syncError) // different exception
+                val errorMessage = errorItem.syncError?.message
+                if (errorMessage != null) {
+                    assertTrue(
+                        actual = errorMessage
+                            .startsWith("Unexpected JSON token at offset 0")
+                    )
+                } else {
+                    fail("expected an error message")
+                }
+
+                // 6. Assert NO retry callbacks and 1 HTTP request count
+                assertEquals(0, retryCount)
+                assertEquals(1, mockWebServer.requestCount)
+
+                // Clean up Turbine collection
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            // Never reached when retryIO response is NOT successful!
+            coVerify(exactly = 0) { bulletinDao.insertBulletins(any()) }
+
+            // 7. Verify request payload contract on MockWebServer
+            val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
+            assertEquals("GET", recordedRequest?.method)
+            assertEquals("/bulletins", recordedRequest?.path)
+        }
+
+    @OptIn(ExperimentalSerializationApi::class)
+    @Test
+    fun `handles empty body of bulletin count`() =
+        runTest(testDispatcher) {
+
+            // 1. Enqueue MockWebServer response (e.g., 1 HTTP 200)
+            mockWebServer.enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setHeader("Content-Type", "application/json")
+                    .setBody("") // empty body
+            )
+
+            // 2. Do not intercept your repository's transactional writes
+            // to manually feed our mock channel - retryIO limit was reached (no data)!
+
+            var retryCount = 0
+
+            repository.getBulletinCount(onRetry = { attempt ->
+                retryCount = attempt
+            }).test {
+
+                // 3. Immediate emission must be Loading baseline
+                val loadingItem = awaitItem()
+                assertIs<CachePayload.ActiveStream<Int>>(loadingItem)
+                assertEquals(
+                    0,
+                    loadingItem.data,
+                    "Room cache contains nothing"
+                )
+                assertTrue(loadingItem.isSyncing)
+                assertEquals(null, loadingItem.syncError) // no problems for successful syncs!
+
+                // 4. Pump the virtual clock frame to execute the retryIO delayer blocks completely
+                testScheduler.advanceUntilIdle()
+
+                // 5. Background Data Sync Failure Execution Block!
+                // The sync task hits 1 401 exception - no payload.
+                // Combine consolidates baseline 0 entities with syncError
+                // Synchronization of bulletins updates syncError.
+                val errorItem = awaitItem()
+                assertIs<CachePayload.ActiveStream<Int>>(errorItem)
+                assertFalse(
+                    errorItem.isSyncing,
+                    "onStart() tried to synchronize bulletins"
+                )
+                assertEquals(
+                    0,
+                    errorItem.data,
+                    "Room counts 0 bulletins"
+                )
+                assertIs<JsonDecodingException>(errorItem.syncError) // different exception
+                val errorMessage = errorItem.syncError?.message
+                if (errorMessage != null) {
+                    assertTrue(
+                        actual = errorMessage
+                            .startsWith("Expected start of the array '['")
+                    )
+                } else {
+                    fail("expected an error message")
+                }
+
+                // 6. Assert NO retry callbacks and 1 HTTP request count
+                assertEquals(0, retryCount)
+                assertEquals(1, mockWebServer.requestCount)
+
+                // Clean up Turbine collection
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            // Never reached when retryIO response is NOT successful!
+            coVerify(exactly = 0) { bulletinDao.insertBulletins(any()) }
+
+            // 7. Verify request payload contract on MockWebServer
+            val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
+            assertEquals("GET", recordedRequest?.method)
+            assertEquals("/bulletins", recordedRequest?.path)
+        }
+
+    @OptIn(ExperimentalSerializationApi::class)
+    @Test
+    fun `handles no body of bulletin count`() =
+        runTest(testDispatcher) {
+
+            // 1. Enqueue MockWebServer response (e.g., 1 HTTP 200)
+            mockWebServer.enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setHeader("Content-Type", "application/json")
+                // NO BODY
+            )
+
+            // 2. Do not intercept your repository's transactional writes
+            // to manually feed our mock channel - retryIO limit was reached (no data)!
+
+            var retryCount = 0
+
+            repository.getBulletinCount(onRetry = { attempt ->
+                retryCount = attempt
+            }).test {
+
+                // 3. Immediate emission must be Loading baseline
+                val loadingItem = awaitItem()
+                assertIs<CachePayload.ActiveStream<Int>>(loadingItem)
+                assertEquals(
+                    0,
+                    loadingItem.data,
+                    "Room cache contains nothing"
+                )
+                assertTrue(loadingItem.isSyncing)
+                assertEquals(null, loadingItem.syncError) // no problems for successful syncs!
+
+                // 4. Pump the virtual clock frame to execute the retryIO delayer blocks completely
+                testScheduler.advanceUntilIdle()
+
+                // 5. Background Data Sync Failure Execution Block!
+                // The sync task hits 1 401 exception - no payload.
+                // Combine consolidates baseline 0 entities with syncError
+                // Synchronization of bulletins updates syncError.
+                val errorItem = awaitItem()
+                assertIs<CachePayload.ActiveStream<Int>>(errorItem)
+                assertFalse(
+                    errorItem.isSyncing,
+                    "onStart() tried to synchronize bulletins"
+                )
+                assertEquals(
+                    0,
+                    errorItem.data,
+                    "Room counts 0 bulletins"
+                )
+                assertIs<JsonDecodingException>(errorItem.syncError) // different exception
+                val errorMessage = errorItem.syncError?.message
+                if (errorMessage != null) {
+                    assertTrue(
+                        actual = errorMessage
+                            .startsWith("Expected start of the array '['")
+                    )
+                } else {
+                    fail("expected an error message")
+                }
+
+                // 6. Assert NO retry callbacks and 1 HTTP request count
+                assertEquals(0, retryCount)
+                assertEquals(1, mockWebServer.requestCount)
+
+                // Clean up Turbine collection
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            // Never reached when retryIO response is NOT successful!
+            coVerify(exactly = 0) { bulletinDao.insertBulletins(any()) }
+
+            // 7. Verify request payload contract on MockWebServer
             val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
             assertEquals("GET", recordedRequest?.method)
             assertEquals("/bulletins", recordedRequest?.path)
@@ -345,7 +587,6 @@ class BulletinRepositoryImplTest {
             assertEquals("/", recordedRequest?.path)
         }
 
-
     @Test
     fun `getBulletinCount emits Loading then retries IOException and returns Exception when API returns IOException 3x`() =
         runTest(testDispatcher) {
@@ -490,7 +731,7 @@ class BulletinRepositoryImplTest {
         }
 
     @Test
-    fun `refreshBulletins fails fast on HTTP 403 without retrying`() =
+    fun `getBulletinCount fails fast on HTTP 403 without retrying`() =
         runTest(testDispatcher) {
 
             // 1. Enqueue MockWebServer responses (e.g., 1 HTTP 403 Forbidden error)
@@ -560,7 +801,7 @@ class BulletinRepositoryImplTest {
         }
 
     @Test
-    fun `getBulletinCount cancels cleanly without emitting NetworkResult Exception`() =
+    fun `getBulletinCount cancels cleanly without emitting SyncError in CachePayload Exception`() =
         runTest(testDispatcher) {
             // 1. Enqueue a delayed response so the call stays suspended on the server
             mockWebServer.enqueue(

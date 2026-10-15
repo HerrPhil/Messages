@@ -26,8 +26,8 @@ import javax.inject.Singleton
 
 @Singleton
 class BulletinRepositoryImpl @Inject constructor(
-    @IoDispatcher private val ioDispatcher: CoroutineDispatcher, // Hilt provides it
     @AuthNetwork private val apiService: ApiService,
+    @IoDispatcher private val ioDispatcher: CoroutineDispatcher, // Hilt provides it
     private val bulletinDao: BulletinDao,
     @ApplicationScope private val externalScope: CoroutineScope
 ) : BulletinRepository {
@@ -67,7 +67,7 @@ class BulletinRepositoryImpl @Inject constructor(
             }
         }.flowOn(ioDispatcher) // Note: Dispatchers.IO is better suited for Network/API calls!
 
-    suspend fun syncBulletins(onRetry: (Int) -> Unit) {
+    private suspend fun syncBulletins(onRetry: (Int) -> Unit) {
         try {
 
             // Payload refactor away from NetworkResult
