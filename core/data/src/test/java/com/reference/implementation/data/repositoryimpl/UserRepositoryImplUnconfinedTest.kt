@@ -4,33 +4,23 @@ import android.util.Log
 import app.cash.turbine.test
 import com.reference.implementation.data.dtos.UserDto
 import com.reference.implementation.data.manager.SessionManager
-import com.reference.implementation.data.manager.SessionResult
 import com.reference.implementation.data.sources.ApiService
-import com.reference.implementation.database.dao.BulletinDao
 import com.reference.implementation.database.dao.UserDao
-import com.reference.implementation.database.model.BulletinEntity
 import com.reference.implementation.database.model.UserEntity
 import com.reference.implementation.domain.model.CachePayload
-import com.reference.implementation.domain.model.LoginUserDomainModel
-import com.reference.implementation.domain.util.NetworkResult
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.TimeoutCancellationException
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
-import kotlinx.coroutines.withTimeout
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonDecodingException
@@ -45,15 +35,12 @@ import retrofit2.HttpException
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.io.IOException
-import java.io.InvalidObjectException
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
-import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.test.fail
-import kotlin.time.Duration.Companion.milliseconds
 
 class UserRepositoryImplUnconfinedTest {
 
