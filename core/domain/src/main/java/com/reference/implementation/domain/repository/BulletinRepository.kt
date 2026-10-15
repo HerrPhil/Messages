@@ -1,7 +1,6 @@
 package com.reference.implementation.domain.repository
 
 import com.reference.implementation.domain.model.CachePayload
-import com.reference.implementation.domain.util.NetworkResult
 import kotlinx.coroutines.flow.Flow
 
 interface BulletinRepository {

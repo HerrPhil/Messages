@@ -1,6 +1,5 @@
 package com.reference.implementation.data.mappers
 
-import com.reference.implementation.data.dtos.BulletinDto
 import com.reference.implementation.database.model.BulletinEntity
 import com.reference.implementation.domain.model.BulletinDomainModel
 import java.time.Instant
