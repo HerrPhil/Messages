@@ -1,6 +1,8 @@
 package com.reference.implementation.data.repositoryimpl
 
 import com.reference.implementation.data.audit.auditLog
+import com.reference.implementation.data.dtos.UserDto
+import com.reference.implementation.database.model.UserEntity
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
@@ -86,3 +88,11 @@ internal fun auditLogTimestamp(): String {
     // Format the timestamp
     return now.format(formatter)
 }
+
+fun UserDto.toEntity() =
+    UserEntity(
+        id = this.id,
+        name = this.name,
+        email = this.email,
+        age = this.age
+    )

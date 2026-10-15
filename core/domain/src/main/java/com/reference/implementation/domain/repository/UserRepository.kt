@@ -1,12 +1,13 @@
 package com.reference.implementation.domain.repository
 
+import com.reference.implementation.domain.model.CachePayload
 import com.reference.implementation.domain.util.NetworkResult
 import com.reference.implementation.domain.model.LoginUserDomainModel
 import kotlinx.coroutines.flow.Flow
 
 interface UserRepository {
     fun getUserInfoFlow(): Flow<NetworkResult<LoginUserDomainModel>>
-    fun getUserCount(onRetry: (Int) -> Unit): Flow<NetworkResult<Int>>
+    fun getUserCount(onRetry: (Int) -> Unit): Flow<CachePayload<Int>>
     fun getUsers(): Flow<NetworkResult<List<LoginUserDomainModel>>>
     // The following has no return value - stores result in cached Flow
     suspend fun loadAllUsers(onRetry: (Int) -> Unit)

@@ -100,7 +100,7 @@ class BulletinRepositoryResilienceTest {
             // 2. Act & Assert: Open the stream subscription channel pipe using Turbine
             repository.getBulletinCount(onRetry = {}).test {
 
-                // 🟥 Event 1: Initial state of the flow must emit loading baseline at time zero
+                // Event 1: Initial state of the flow must emit loading baseline at time zero
                 // Thanks to StandardTestDispatcher, the network hasn't even executed a single line yet!
                 val loadingItem = awaitItem()
                 assertIs<CachePayload.ActiveStream<Int>>(loadingItem)
@@ -108,12 +108,12 @@ class BulletinRepositoryResilienceTest {
                 assertTrue(loadingItem.isSyncing, "The sync state begins as true")
                 assertEquals(null, loadingItem.syncError)
 
-                // 💡 CLOCK STEP 1: Move the virtual test clock forward completely!
+                // CLOCK STEP 1: Move the virtual test clock forward completely!
                 // This drives all retryIO background delays, executes the 3 attempts,
                 // and flushes your SyncState.Error state update natively down the pipeline.
                 testScheduler.advanceUntilIdle()
 
-                // 🟥 Event 2: Network Sync Failure State Snapshot!
+                // Event 2: Network Sync Failure State Snapshot!
                 // Turbine cleanly intercepts the intermediate network error update frame.
                 val errorStateItem = awaitItem()
                 assertIs<CachePayload.ActiveStream<Int>>(errorStateItem)
@@ -140,7 +140,7 @@ class BulletinRepositoryResilienceTest {
                 // Flush the scheduler one final time to step the clock and dispatch the mutation task
                 testScheduler.advanceUntilIdle()
 
-                // 🟥 Event 3: The Ultimate Resiliency Proof!
+                // Event 3: The Ultimate Resiliency Proof!
                 // Turbine cleanly intercepts the database write because the stream stayed 100% alive!
                 val resilientCacheEmission = awaitItem()
                 assertIs<CachePayload.ActiveStream<Int>>(resilientCacheEmission)

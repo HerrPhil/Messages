@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.reference.implementation.database.AppDatabase
 import com.reference.implementation.database.dao.BulletinDao
+import com.reference.implementation.database.dao.UserDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -40,7 +41,6 @@ object DatabaseModule {
             .build()
     }
 
-    // PROVIDER 2: Extracting individual DAO interfaces.
     // By providing BulletinDao directly, your repository constructors can demand it by name!
     // Hilt automatically fetches your Singleton AppDatabase provider from above to satisfy
     // the argument.
@@ -49,7 +49,10 @@ object DatabaseModule {
     fun provideBulletinDao(database: AppDatabase): BulletinDao = database.bulletinDao()
 
 
-    // Future DAO provider hooks will simply be appended right here step-by-step:
-    // @Provides
-    // fun provideMessageDao(database: AppDatabase): MessageDao = database.MessageDao()
+    // By providing UserDao directly, your repository constructors can demand it by name!
+    // Hilt automatically fetches your Singleton AppDatabase provider from above to satisfy
+    // the argument.
+     @Provides
+     @Suppress("unused")
+     fun provideUserDao(database: AppDatabase): UserDao = database.userDao()
 }

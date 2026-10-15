@@ -30,12 +30,15 @@ class GetAdminDashboardUseCase @Inject constructor(
         ) { userRes, messageRes, bulletinRes ->
 
             // Extract the specific ActiveStream type natively using Kotlin smart-casting
+            val userStream = userRes as CachePayload.ActiveStream
+            // Extract the specific ActiveStream type natively using Kotlin smart-casting
             val bulletinStream = bulletinRes as CachePayload.ActiveStream
 
             // Check for catastrophic hard error (e.g. if ALL streams failed)
             // Like, server(s) down, internet down, etc.
             val allFailed =
-                listOf(userRes, messageRes).all { it is NetworkResult.Error }
+                 messageRes is NetworkResult.Error
+                        && userStream.syncError != null
                         && bulletinStream.syncError != null
 
             if (allFailed) {
@@ -43,7 +46,10 @@ class GetAdminDashboardUseCase @Inject constructor(
             } else {
 
                 // Extract the data safely if Success: otherwise keep null
-                val users = (userRes as? NetworkResult.Success)?.data
+
+                // No safe-casting required anymore! Read the data property directly.
+                val users = userRes.data
+
                 val messages = (messageRes as? NetworkResult.Success)?.data
 
                 // No safe-casting required anymore! Read the data property directly.

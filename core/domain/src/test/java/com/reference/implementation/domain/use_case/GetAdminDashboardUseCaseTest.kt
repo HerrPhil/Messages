@@ -40,8 +40,12 @@ class GetAdminDashboardUseCaseTest {
     @Test
     fun `invoke starts on Resource Loading`() = runTest {
 
-        val userFlow = MutableStateFlow<NetworkResult<Int>>(
-            NetworkResult.Loading
+        val userFlow = MutableStateFlow<CachePayload<Int>>(
+            CachePayload.ActiveStream(
+                0,
+                true,
+                null
+            )
         )
         val messagesFlow = MutableStateFlow<NetworkResult<String>>(
             NetworkResult.Loading
@@ -70,8 +74,12 @@ class GetAdminDashboardUseCaseTest {
     fun `invoke combines user stream and message stream and bulletin stream into enriched Resource Success`() =
         runTest {
             val numberOfUsers = 7
-            val userFlow = MutableStateFlow<NetworkResult<Int>>(
-                NetworkResult.Success(numberOfUsers)
+            val userFlow = MutableStateFlow<CachePayload<Int>>(
+                CachePayload.ActiveStream(
+                    numberOfUsers,
+                    false,
+                    null
+                )
             )
             val messagesSummary = "4 / 8"
             val messageFlow = MutableStateFlow<NetworkResult<String>>(
@@ -117,8 +125,12 @@ class GetAdminDashboardUseCaseTest {
     @Test
     fun `invoke combines slow user stream and message stream and bulletin stream into enriched Resource Success`() =
         runTest {
-            val userFlow = MutableStateFlow<NetworkResult<Int>>(
-                NetworkResult.Loading
+            val userFlow = MutableStateFlow<CachePayload<Int>>(
+                CachePayload.ActiveStream(
+                    0,
+                    true,
+                    null
+                )
             )
             val messagesSummary = "4 / 8"
             val messageFlow = MutableStateFlow<NetworkResult<String>>(
@@ -149,7 +161,7 @@ class GetAdminDashboardUseCaseTest {
                 val actualDashboard = (nextItem as Resource.Success).data
 
                 // 3. the user info
-                assertNull(actualDashboard.usersCount)
+                assertEquals(0, actualDashboard.usersCount)
 
                 // 4. the message info
                 assertEquals(messagesSummary, actualDashboard.summaryMessages)
@@ -165,8 +177,12 @@ class GetAdminDashboardUseCaseTest {
     fun `invoke combines user stream and slow message stream and bulletin stream into enriched Resource Success`() =
         runTest {
             val numberOfUsers = 7
-            val userFlow = MutableStateFlow<NetworkResult<Int>>(
-                NetworkResult.Success(numberOfUsers)
+            val userFlow = MutableStateFlow<CachePayload<Int>>(
+                CachePayload.ActiveStream(
+                    numberOfUsers,
+                    false,
+                    null
+                )
             )
             val messageFlow = MutableStateFlow<NetworkResult<String>>(
                 NetworkResult.Loading
@@ -212,8 +228,12 @@ class GetAdminDashboardUseCaseTest {
     fun `invoke combines user stream and message stream and slow bulletin stream into enriched Resource Success`() =
         runTest {
             val numberOfUsers = 7
-            val userFlow = MutableStateFlow<NetworkResult<Int>>(
-                NetworkResult.Success(numberOfUsers)
+            val userFlow = MutableStateFlow<CachePayload<Int>>(
+                CachePayload.ActiveStream(
+                    numberOfUsers,
+                    false,
+                    null
+                )
             )
             val messagesSummary = "4 / 8"
             val messageFlow = MutableStateFlow<NetworkResult<String>>(
@@ -258,8 +278,20 @@ class GetAdminDashboardUseCaseTest {
     @Test
     fun `invoke combines NetworkResult 2 Errors and 1 Exception to Resource Success correctly`() =
         runTest {
-            val userFlow = MutableStateFlow<NetworkResult<Int>>(
-                NetworkResult.Error(503, "Service Unavailable")
+            val userFlow = MutableStateFlow<CachePayload<Int>>(
+                CachePayload.ActiveStream(
+                    0,
+                    false,
+                    HttpException(
+                        Response.error<Int>(
+                            503,
+                            "Service Unavailable"
+                                .toResponseBody(
+                                    "application/json".toMediaTypeOrNull()
+                                )
+                        )
+                    )
+                )
             )
             val messageFlow = MutableStateFlow<NetworkResult<String>>(
                 NetworkResult.Exception(IOException("Network down"))
@@ -296,7 +328,8 @@ class GetAdminDashboardUseCaseTest {
                 val actualDashboard = (nextItem as Resource.Success).data
 
                 // 3. the user info
-                assertNull(actualDashboard.usersCount)
+//                assertNull(actualDashboard.usersCount)
+                assertEquals(0, actualDashboard.usersCount)
 
                 // 4. the message info
                 assertNull(actualDashboard.summaryMessages)
@@ -311,8 +344,20 @@ class GetAdminDashboardUseCaseTest {
     @Test
     fun `invoke combines NetworkResult 3 Errors to Resource Success correctly`() =
         runTest {
-            val userFlow = MutableStateFlow<NetworkResult<Int>>(
-                NetworkResult.Error(503, "Service Unavailable")
+            val userFlow = MutableStateFlow<CachePayload<Int>>(
+                CachePayload.ActiveStream(
+                    0,
+                    false,
+                    HttpException(
+                        Response.error<Int>(
+                            503,
+                            "Service Unavailable"
+                                .toResponseBody(
+                                    "application/json".toMediaTypeOrNull()
+                                )
+                        )
+                    )
+                )
             )
             val messageFlow = MutableStateFlow<NetworkResult<String>>(
                 NetworkResult.Error(403, "Messages forbidden")

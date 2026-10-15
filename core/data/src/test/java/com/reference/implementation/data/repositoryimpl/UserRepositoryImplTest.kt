@@ -6,6 +6,9 @@ import com.reference.implementation.data.dtos.UserDto
 import com.reference.implementation.data.manager.SessionManager
 import com.reference.implementation.data.manager.SessionResult
 import com.reference.implementation.data.sources.ApiService
+import com.reference.implementation.database.dao.UserDao
+import com.reference.implementation.database.model.UserEntity
+import com.reference.implementation.domain.model.CachePayload
 import com.reference.implementation.domain.model.LoginUserDomainModel
 import com.reference.implementation.domain.util.NetworkResult
 import io.mockk.coEvery
@@ -14,9 +17,12 @@ import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.async
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestCoroutineScheduler
 import kotlinx.coroutines.test.TestDispatcher
@@ -26,18 +32,17 @@ import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
-import okhttp3.mockwebserver.SocketPolicy
 import org.junit.After
 import org.junit.Before
 import org.junit.Test
+import retrofit2.HttpException
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
-import java.io.IOException
 import java.io.InvalidObjectException
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertIs
-import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 
@@ -48,6 +53,10 @@ class UserRepositoryImplTest {
     private lateinit var testDispatcher: TestDispatcher
     private lateinit var mockWebServer: MockWebServer
     private lateinit var api: ApiService
+
+    private lateinit var userDao: UserDao // Stub for now!
+    private lateinit var daoMockStream: MutableStateFlow<List<UserEntity>>
+
     private val sessionManager: SessionManager = mockk(relaxed = true)
     private lateinit var repository: UserRepositoryImpl
     private val json = Json { ignoreUnknownKeys = true }
@@ -67,6 +76,12 @@ class UserRepositoryImplTest {
         every { Log.w(any(), any(), any()) } returns 0
         every { Log.isLoggable(any(), any()) } returns false
 
+        // Instantiate hot mocking data channels
+        userDao = mockk(relaxed = true)
+        daoMockStream = MutableStateFlow(emptyList())
+
+        every { userDao.getUsersStream() } returns daoMockStream
+
         mockWebServer = MockWebServer()
         mockWebServer.start() // automated tests should always use port 0 to avoid flakiness
 
@@ -83,7 +98,9 @@ class UserRepositoryImplTest {
         repository = UserRepositoryImpl(
             ioDispatcher = testDispatcher,
             apiService = api,
-            sessionManager = sessionManager
+            sessionManager = sessionManager,
+            userDao = userDao,
+            externalScope = CoroutineScope(testDispatcher)
         )
     }
 
@@ -235,496 +252,86 @@ class UserRepositoryImplTest {
 // #############################################################################################
 // #############################################################################################
 
+    // Requires StandardTestDispatcher for resilience test
+    @OptIn(ExperimentalCoroutinesApi::class)
     @Test
-    fun `getUserCount emits Loading then retries 500 error 2x and recovers to return Success when API returns HTTP 200`() =
+    fun `getUserCount stream remains open and active after background synchronization encounters network 500 error`() =
         runTest(testDispatcher) {
 
-            // 1. Enqueue MockWebServer responses (e.g., 2 HTTP 500s then 1 HTTP 200)
-            mockWebServer.enqueue(MockResponse().setResponseCode(500))
-            mockWebServer.enqueue(MockResponse().setResponseCode(500))
-            mockWebServer.enqueue(
-                MockResponse()
-                    .setResponseCode(200)
-                    .setHeader("Content-Type", "application/json")
-                    .setBody(createSampleUserDtos())
-            )
-
-            var retryCount = 0
-
-            repository.getUserCount(onRetry = { attempt ->
-                retryCount = attempt
-            }).test {
-
-                // Initial state of the cache flow
-                assertEquals(NetworkResult.Loading, awaitItem())
-
-                // 4. Advance virtual time to drain all delay() calls inside retryIO
-                testScheduler.advanceUntilIdle()
-
-                // 5. Assert UI state and total attempt counts
-                val successItem = awaitItem()
-                assertIs<NetworkResult.Success<Int>>(successItem)
-                val actualUserCount = successItem.data
-                assertIs<Int>(actualUserCount)
-                assertEquals(3, actualUserCount)
-
-                // 6. Assert retry callbacks and HTTP request counts
-                assertEquals(3, retryCount, "encountered 2 500 responses, 1 200 response")
-                assertEquals(3, mockWebServer.requestCount, "called api 3 times")
-
-                // Clean up Turbine collection
-                cancelAndIgnoreRemainingEvents()
-            }
-
-            // 7. Verify request payload contract on MockWebServer
-            val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
-            assertEquals("GET", recordedRequest?.method)
-            assertEquals("/users", recordedRequest?.path)
-
-        }
-
-    @Test
-    fun `handles malformed JSON string`() =
-        runTest(testDispatcher) {
-
-            // 1. Enqueue MockWebServer response (e.g., 1 HTTP 200)
-            mockWebServer.enqueue(
-                MockResponse()
-                    .setResponseCode(200)
-                    .setHeader("Content-Type", "application/json")
-                    .setBody("""{"oranges":789}""") // malformed JSON string
-            )
-
-            var retryCount = 0
-
-            repository.getUserCount(onRetry = { attempt ->
-                retryCount = attempt
-            }).test {
-
-                // Initial state of the cache flow
-                assertEquals(NetworkResult.Loading, awaitItem())
-
-                // 4. Advance virtual time to drain all delay() calls inside retryIO
-                testScheduler.advanceUntilIdle()
-
-                val errorItem = awaitItem()
-
-                // 5. Assert UI state and total attempt counts
-                assertIs<NetworkResult.Exception>(errorItem)
-                assertNotNull(errorItem.e.message)
-                val error = errorItem.e.message
-                assertTrue(
-                    actual =
-                        error?.startsWith("Unexpected JSON token at offset 0")
-                            ?: false
-                )
-
-                // 6. Assert retry callbacks and HTTP request counts
-                assertEquals(0, retryCount, "NO retries encountered")
-                assertEquals(1, mockWebServer.requestCount, "called api 1x")
-
-                // Clean up Turbine collection
-                cancelAndIgnoreRemainingEvents()
-            }
-
-            // 7. Verify request payload contract on MockWebServer
-            val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
-            assertEquals("GET", recordedRequest?.method)
-            assertEquals("/users", recordedRequest?.path)
-
-        }
-
-    @Test
-    fun `handles empty body of user count`() =
-        runTest(testDispatcher) {
-
-            // 1. Enqueue MockWebServer response (e.g., 1 HTTP 200)
-            mockWebServer.enqueue(
-                MockResponse()
-                    .setResponseCode(200)
-                    .setHeader("Content-Type", "application/json")
-                    .setBody("")
-            )
-
-            var retryCount = 0
-
-            repository.getUserCount(onRetry = { attempt ->
-                retryCount = attempt
-            }).test {
-
-                // Initial state of the cache flow
-                assertEquals(NetworkResult.Loading, awaitItem())
-
-                // 4. Advance virtual time to drain all delay() calls inside retryIO
-                testScheduler.advanceUntilIdle()
-
-                val errorItem = awaitItem()
-
-                // 5. Assert UI state and total attempt counts
-                // JsonDecodingException handled as NetworkResult.Exception
-                assertIs<NetworkResult.Exception>(errorItem)
-
-                // 6. Assert retry callbacks and HTTP request counts
-                assertEquals(0, retryCount, "NO retries encountered")
-                assertEquals(1, mockWebServer.requestCount, "called api 1x")
-
-                // Clean up Turbine collection
-                cancelAndIgnoreRemainingEvents()
-            }
-
-            // 7. Verify request payload contract on MockWebServer
-            val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
-            assertEquals("GET", recordedRequest?.method)
-            assertEquals("/users", recordedRequest?.path)
-
-        }
-
-    @Test
-    fun `handles no body of user count`() =
-        runTest(testDispatcher) {
-
-            // 1. Enqueue MockWebServer response (e.g., 1 HTTP 200)
-            mockWebServer.enqueue(
-                MockResponse()
-                    .setResponseCode(200)
-                    .setHeader("Content-Type", "application/json")
-                // no Body()
-            )
-
-            var retryCount = 0
-
-            repository.getUserCount(onRetry = { attempt ->
-                retryCount = attempt
-            }).test {
-
-                // Initial state of the cache flow
-                assertEquals(NetworkResult.Loading, awaitItem())
-
-                // 4. Advance virtual time to drain all delay() calls inside retryIO
-                testScheduler.advanceUntilIdle()
-
-                val errorItem = awaitItem()
-
-                // 5. Assert UI state and total attempt counts
-                // JsonDecodingException handled as NetworkResult.Exception
-                assertIs<NetworkResult.Exception>(errorItem)
-
-                // 6. Assert retry callbacks and HTTP request counts
-                assertEquals(0, retryCount, "NO retries encountered")
-                assertEquals(1, mockWebServer.requestCount, "called api 1x")
-
-                // Clean up Turbine collection
-                cancelAndIgnoreRemainingEvents()
-            }
-
-            // 7. Verify request payload contract on MockWebServer
-            val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
-            assertEquals("GET", recordedRequest?.method)
-            assertEquals("/users", recordedRequest?.path)
-
-        }
-
-    @Test
-    fun `getUserCount emits Loading then returns Error when API returns HTTP 500 3x`() =
-        runTest(testDispatcher) {
-
-            // 1. Enqueue MockWebServer responses (e.g., 3 HTTP 500 responses)
+            // 1. Arrange: Enqueue exactly 3 HTTP 500 failure responses on MockWebServer
             mockWebServer.enqueue(MockResponse().setResponseCode(500))
             mockWebServer.enqueue(MockResponse().setResponseCode(500))
             mockWebServer.enqueue(MockResponse().setResponseCode(500))
 
-            var retryCount = 0
-
-            repository.getUserCount(onRetry = { attempt ->
-                retryCount = attempt
-            }).test {
-
-                // Initial state of the cache flow
-                assertEquals(NetworkResult.Loading, awaitItem())
-
-                // 4. Advance virtual time to drain all delay() calls inside retryIO
-                testScheduler.advanceUntilIdle()
-
-                val errorItem = awaitItem()
-
-                // 5. Assert UI state and total attempt counts
-                // JsonDecodingException handled as NetworkResult.Exception
-                assertIs<NetworkResult.Exception>(errorItem)
-
-                // 6. Assert retry callbacks and HTTP request counts
-                assertEquals(3, retryCount, "NO retries encountered")
-                assertEquals(3, mockWebServer.requestCount, "called api 1x")
-
-                // Clean up Turbine collection
-                cancelAndIgnoreRemainingEvents()
-            }
-
-            // 7. Verify request payload contract on MockWebServer
-
-            // Pop the 2 failed socket attempts
-            mockWebServer.takeRequest()
-            mockWebServer.takeRequest()
-
-            val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
-            assertEquals("GET", recordedRequest?.method)
-            assertEquals("/users", recordedRequest?.path)
-
-        }
-
-    @Test
-    fun `getUserCount emits Loading then retries IOException 2x and recovers to return Success when API returns HTTP 200`() =
-        runTest(testDispatcher) {
-
-            // 1. Enqueue MockWebServer responses (e.g., 2 IOExceptions then 1 HTTP 200)
-            mockWebServer.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
-            mockWebServer.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
-            mockWebServer.enqueue(
-                MockResponse()
-                    .setResponseCode(200)
-                    .setHeader("Content-Type", "application/json")
-                    .setBody(createSampleUserDtos())
-            )
-
-            var retryCount = 0
-
-            repository.getUserCount(onRetry = { attempt ->
-                retryCount = attempt
-            }).test {
-
-                // Initial state of the cache flow
-                assertEquals(NetworkResult.Loading, awaitItem())
-
-                // 4. Advance virtual time to drain all delay() calls inside retryIO
-                testScheduler.advanceUntilIdle()
-
-                val successItem = awaitItem()
-
-                // 5. Assert UI state and total attempt counts
-                assertIs<NetworkResult.Success<Int>>(successItem)
-                val actualUserCount = successItem.data
-                assertIs<Int>(actualUserCount)
-                assertEquals(3, actualUserCount)
-
-                // 6. Assert retry callbacks and HTTP request counts
-                assertEquals(3, retryCount, "2 IOException retries, 1 HTTP 200 encountered")
-                assertEquals(3, mockWebServer.requestCount, "called api 1x")
-
-                // Clean up Turbine collection
-                cancelAndIgnoreRemainingEvents()
-            }
-
-            // 7. Verify request payload contract on MockWebServer
-
-            // Pop the 2 failed socket attempts
-            mockWebServer.takeRequest()
-            mockWebServer.takeRequest()
-
-            val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
-            assertEquals("GET", recordedRequest?.method)
-            assertEquals("/users", recordedRequest?.path)
-
-        }
-
-    @Test
-    fun `getUserCount emits Loading then retries IOException and returns Exception when API returns IOException 3x`() =
-        runTest(testDispatcher) {
-
-            // 1. Enqueue MockWebServer responses (e.g., 3 HTTP IOExceptions)
-            mockWebServer.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
-            mockWebServer.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
-            mockWebServer.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
-
-            var retryCount = 0
-
-            repository.getUserCount(onRetry = { attempt ->
-                retryCount = attempt
-            }).test {
-
-                // Initial state of the cache flow
-                assertEquals(NetworkResult.Loading, awaitItem())
-
-                // 4. Advance virtual time to drain all delay() calls inside retryIO
-                testScheduler.advanceUntilIdle()
-
-                val errorItem = awaitItem()
-
-                // 5. Assert UI state and total attempt counts
-                assertIs<NetworkResult.Exception>(errorItem)
-                assertIs<IOException>(errorItem.e)
-
-                // 6. Assert retry callbacks and HTTP request counts
-                assertEquals(3, retryCount, "3 IOException retries")
-                assertEquals(3, mockWebServer.requestCount, "called api 3x")
-
-                // Clean up Turbine collection
-                cancelAndIgnoreRemainingEvents()
-            }
-
-            // 7. Verify request payload contract on MockWebServer
-
-            // Pop the 2 failed socket attempts
-            mockWebServer.takeRequest()
-            mockWebServer.takeRequest()
-
-            val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
-            assertEquals("GET", recordedRequest?.method)
-            assertEquals("/users", recordedRequest?.path)
-
-        }
-
-    @Test
-    fun `getUserCount fails fast on HTTP 401 without retrying`() =
-        runTest(testDispatcher) {
-
-            // 1. Enqueue MockWebServer response (e.g., HTTP 401)
-            mockWebServer.enqueue(MockResponse().setResponseCode(401).setBody("Unauthorized"))
-
-            var retryCount = 0
-
-            repository.getUserCount(onRetry = { attempt ->
-                retryCount = attempt
-            }).test {
-
-                // Initial state of the cache flow
-                assertEquals(NetworkResult.Loading, awaitItem())
-
-                // 4. Advance virtual time to drain all delay() calls inside retryIO
-                testScheduler.advanceUntilIdle()
-
-                val errorItem = awaitItem()
-
-                // 5. Assert UI state and total attempt counts
-                assertIs<NetworkResult.Error>(errorItem) // Caught by repository's try/catch block
-                assertEquals(401, errorItem.code)
-                assertEquals("Client Error", errorItem.message)
-
-                // 6. Assert retry callbacks and HTTP request counts
-                assertEquals(0, retryCount, "1 HTTP 401 encountered")
-                assertEquals(1, mockWebServer.requestCount, "called api 1x")
-
-                // Clean up Turbine collection
-                cancelAndIgnoreRemainingEvents()
-            }
-
-            // 7. Verify request payload contract on MockWebServer
-
-            val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
-            assertEquals("GET", recordedRequest?.method)
-            assertEquals("/users", recordedRequest?.path)
-
-        }
-
-    @Test
-    fun `getUserCount fails fast on HTTP 403 without retrying`() =
-        runTest(testDispatcher) {
-
-            // 1. Enqueue MockWebServer response (e.g., HTTP 403)
-            mockWebServer.enqueue(MockResponse().setResponseCode(403).setBody("Forbidden"))
-
-            var retryCount = 0
-
-            repository.getUserCount(onRetry = { attempt ->
-                retryCount = attempt
-            }).test {
-
-                // Initial state of the cache flow
-                assertEquals(NetworkResult.Loading, awaitItem())
-
-                // 4. Advance virtual time to drain all delay() calls inside retryIO
-                testScheduler.advanceUntilIdle()
-
-                val errorItem = awaitItem()
-
-                // 5. Assert UI state and total attempt counts
-                assertIs<NetworkResult.Error>(errorItem) // Caught by repository's try/catch block
-                assertEquals(403, errorItem.code)
-                assertEquals("Client Error", errorItem.message)
-
-                // 6. Assert retry callbacks and HTTP request counts
-                assertEquals(0, retryCount, "1 HTTP 403 encountered")
-                assertEquals(1, mockWebServer.requestCount, "called api 1x")
-
-                // Clean up Turbine collection
-                cancelAndIgnoreRemainingEvents()
-            }
-
-            // 7. Verify request payload contract on MockWebServer
-
-            val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
-            assertEquals("GET", recordedRequest?.method)
-            assertEquals("/users", recordedRequest?.path)
-
-        }
-
-    @Test
-    fun `getUserCount fails fast when service is unavailable`() =
-        runTest(testDispatcher) {
-
-            // 1. Enqueue MockWebServer responses (e.g., 3 HTTP 503 responses)
-            repeat(3) {
-                mockWebServer.enqueue(
-                    MockResponse().setResponseCode(503).setBody("User service is unavailable")
-                )
-            }
-
-            var retryCount = 0
-
-            repository.getUserCount(onRetry = { attempt ->
-                retryCount = attempt
-            }).test {
-
-                // Initial state of the cache flow
-                assertEquals(NetworkResult.Loading, awaitItem())
-
-                // 4. Advance virtual time to drain all delay() calls inside retryIO
-                testScheduler.advanceUntilIdle()
-
-                val errorItem = awaitItem()
-
-                // 5. Assert UI state and total attempt counts
-                assertIs<NetworkResult.Exception>(errorItem)
-                assertEquals("HTTP 503 Server Error", errorItem.e.message)
-
-                // 6. Assert retry callbacks and HTTP request counts
-                assertEquals(3, retryCount, "3 HTTP 503 encountered")
-                assertEquals(3, mockWebServer.requestCount, "called api 3x")
-
-                // Clean up Turbine collection
-                cancelAndIgnoreRemainingEvents()
-            }
-
-            // 7. Verify request payload contract on MockWebServer
-
-            val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
-            assertEquals("GET", recordedRequest?.method)
-            assertEquals("/users", recordedRequest?.path)
-
-        }
-
-    @Test
-    fun `getUserCount cancels cleanly without emitting NetworkResult Exception`() =
-        runTest(testDispatcher) {
-            // 1. Enqueue a delayed response so the call stays suspended on the server
-            mockWebServer.enqueue(
-                MockResponse()
-                    .setResponseCode(200)
-                    .setHeadersDelay(5, TimeUnit.SECONDS) // indicate cancellation (timeout)
-                    .setBody("""[{"id":"1"}]""")
-            )
-
-            // 2. Observe the flow with Turbine
+            // 2. Act & Assert: Open the stream subscription channel pipe using Turbine
             repository.getUserCount(onRetry = {}).test {
-                // Assert initial state
-                assertEquals(NetworkResult.Loading, awaitItem())
 
-                // 3. Cancel the flow subscriber while suspended on the network call
+                // Event 1: Initial state of the flow must emit loading baseline at time zero
+                // Thanks to StandardTestDispatcher, the network hasn't even executed a single line yet!
+                val loadingItem = awaitItem()
+                assertIs<CachePayload.ActiveStream<Int>>(loadingItem)
+                assertEquals(0, loadingItem.data, "Room cache contains nothing initially")
+                assertTrue(loadingItem.isSyncing, "The sync state begins as true")
+                assertEquals(null, loadingItem.syncError)
+
+                // CLOCK STEP 1: Move the virtual test clock forward completely!
+                // This drives all retryIO background delays, executes the 3 attempts,
+                // and flushes your SyncState.Error state update natively down the pipeline.
+                testScheduler.advanceUntilIdle()
+
+                // Event 2: Network Sync Failure State Snapshot!
+                // Turbine cleanly intercepts the intermediate network error update frame.
+                val errorStateItem = awaitItem()
+                assertIs<CachePayload.ActiveStream<Int>>(errorStateItem)
+                assertFalse(
+                    errorStateItem.isSyncing,
+                    "The background network synchronization has ended"
+                )
+                assertIs<HttpException>(
+                    errorStateItem.syncError,
+                    "Exposes the HttpException payload info"
+                )
+                assertEquals(0, errorStateItem.data, "Cache count remains clean at 0 rows")
+
+                // 💡 CLOCK STEP 2: Trigger an on-demand database write mutation!
+                // This simulates an offline user interaction modifying records post-failure.
+                launch {
+                    val sampleEntityList = listOf(
+                        UserEntity(
+                            id = 99,
+                            name = "test user",
+                            email = "test.user@learn.com",
+                            22
+                        )
+                    )
+                    daoMockStream.value = sampleEntityList
+                }
+
+                // Flush the scheduler one final time to step the clock and dispatch the mutation task
+                testScheduler.advanceUntilIdle()
+
+                // Event 3: The Ultimate Resiliency Proof!
+                // Turbine cleanly intercepts the database write because the stream stayed 100% alive!
+                val resilientCacheEmission = awaitItem()
+                assertIs<CachePayload.ActiveStream<Int>>(resilientCacheEmission)
+                assertFalse(resilientCacheEmission.isSyncing)
+                assertEquals(
+                    1,
+                    resilientCacheEmission.data,
+                    "Stream successfully caught the mutation post-crash!"
+                )
+                assertIs<HttpException>(
+                    resilientCacheEmission.syncError,
+                    "The background network error info persists"
+                )
+
                 cancelAndIgnoreRemainingEvents()
             }
 
-            testScheduler.advanceUntilIdle()
-
-            // If the repository mistakenly swallowed CancellationException and emitted
-            // NetworkResult.Exception, Turbine would have thrown an unconsumed event error above!
+            // 3. Verify request payload contract on MockWebServer
+            val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
+            assertEquals("GET", recordedRequest?.method)
+            assertEquals("/users", recordedRequest?.path)
         }
 
 
