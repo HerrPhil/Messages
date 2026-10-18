@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.reference.implementation.database.AppDatabase
 import com.reference.implementation.database.dao.BulletinDao
+import com.reference.implementation.database.dao.MessageDao
 import com.reference.implementation.database.dao.UserDao
 import dagger.Module
 import dagger.Provides
@@ -48,11 +49,17 @@ object DatabaseModule {
     @Suppress("unused")
     fun provideBulletinDao(database: AppDatabase): BulletinDao = database.bulletinDao()
 
-
     // By providing UserDao directly, your repository constructors can demand it by name!
     // Hilt automatically fetches your Singleton AppDatabase provider from above to satisfy
     // the argument.
      @Provides
      @Suppress("unused")
      fun provideUserDao(database: AppDatabase): UserDao = database.userDao()
+
+    // By providing MessageDao directly, your repository constructors can demand it by name!
+    // Hilt automatically fetches your Singleton AppDatabase provider from above to satisfy
+    // the argument.
+     @Provides
+     @Suppress("unused")
+     fun provideMessageDao(database: AppDatabase): MessageDao = database.messageDao()
 }

@@ -72,8 +72,6 @@ class UserRepositoryImplUnconfinedTest {
         mockkStatic(Log::class)
         every { Log.d(any(), any()) } returns 0
         every { Log.e(any(), any()) } returns 0
-        every { Log.i(any(), any()) } returns 0
-        every { Log.w(any(), any(), any()) } returns 0
         every { Log.isLoggable(any(), any()) } returns false
 
         // Instantiate hot mocking data channels
@@ -154,14 +152,14 @@ class UserRepositoryImplUnconfinedTest {
                 // 5. Modern Data Sync Success!
                 // The sync task hits the 200 payload.
                 // DAO updates the list.
-                // Room fills infinite pipeline with new bulletins.
+                // Room fills infinite pipeline with new users.
                 val successItem = awaitItem()
 
                 // 6. Assert CachePayload state
                 assertIs<CachePayload.ActiveStream<Int>>(successItem)
                 assertFalse(
                     successItem.isSyncing,
-                    "onStart() successfully synchronized bulletins"
+                    "onStart() successfully synchronized users"
                 )
                 assertEquals(
                     3,
@@ -223,9 +221,9 @@ class UserRepositoryImplUnconfinedTest {
                 testScheduler.advanceUntilIdle()
 
                 // 5. Background Data Sync Failure Execution Block!
-                // The sync task hits 1 401 exception - no payload.
+                // The sync task hits 1 JSON decoding exception - no payload.
                 // Combine consolidates baseline 0 entities with syncError
-                // Synchronization of bulletins updates syncError.
+                // Synchronization of users updates syncError.
                 val errorItem = awaitItem()
                 assertIs<CachePayload.ActiveStream<Int>>(errorItem)
                 assertFalse(
@@ -263,7 +261,6 @@ class UserRepositoryImplUnconfinedTest {
             val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
             assertEquals("GET", recordedRequest?.method)
             assertEquals("/users", recordedRequest?.path)
-
         }
 
     @OptIn(ExperimentalSerializationApi::class)

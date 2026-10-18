@@ -5,7 +5,6 @@ import com.reference.implementation.domain.model.CachePayload
 import com.reference.implementation.domain.repository.BulletinRepository
 import com.reference.implementation.domain.repository.MessageRepository
 import com.reference.implementation.domain.repository.UserRepository
-import com.reference.implementation.domain.util.NetworkResult
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,7 +12,6 @@ import kotlinx.coroutines.test.runTest
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -47,8 +45,12 @@ class GetAdminDashboardUseCaseTest {
                 null
             )
         )
-        val messagesFlow = MutableStateFlow<NetworkResult<String>>(
-            NetworkResult.Loading
+        val messagesFlow = MutableStateFlow<CachePayload<String>>(
+            CachePayload.ActiveStream(
+                "0 / 0",
+                true,
+                null
+            )
         )
         val bulletinFlow = MutableStateFlow<CachePayload<Int>>(
             CachePayload.ActiveStream(
@@ -82,8 +84,12 @@ class GetAdminDashboardUseCaseTest {
                 )
             )
             val messagesSummary = "4 / 8"
-            val messageFlow = MutableStateFlow<NetworkResult<String>>(
-                NetworkResult.Success(messagesSummary)
+            val messageFlow = MutableStateFlow<CachePayload<String>>(
+                CachePayload.ActiveStream(
+                    messagesSummary,
+                    false,
+                    null
+                )
             )
             val numberOfBulletins = 9
             val bulletinFlow = MutableStateFlow<CachePayload<Int>>(
@@ -133,8 +139,12 @@ class GetAdminDashboardUseCaseTest {
                 )
             )
             val messagesSummary = "4 / 8"
-            val messageFlow = MutableStateFlow<NetworkResult<String>>(
-                NetworkResult.Success(messagesSummary)
+            val messageFlow = MutableStateFlow<CachePayload<String>>(
+                CachePayload.ActiveStream(
+                    messagesSummary,
+                    false,
+                    null
+                )
             )
             val numberOfBulletins = 9
             val bulletinFlow = MutableStateFlow<CachePayload<Int>>(
@@ -184,8 +194,12 @@ class GetAdminDashboardUseCaseTest {
                     null
                 )
             )
-            val messageFlow = MutableStateFlow<NetworkResult<String>>(
-                NetworkResult.Loading
+            val messageFlow = MutableStateFlow<CachePayload<String>>(
+                CachePayload.ActiveStream(
+                    "0 / 0",
+                    true,
+                    null
+                )
             )
             val numberOfBulletins = 9
             val bulletinFlow = MutableStateFlow<CachePayload<Int>>(
@@ -215,7 +229,7 @@ class GetAdminDashboardUseCaseTest {
                 assertEquals(numberOfUsers, actualDashboard.usersCount)
 
                 // 4. the message info
-                assertNull(actualDashboard.summaryMessages)
+                assertEquals("0 / 0", actualDashboard.summaryMessages)
 
                 // 5. the bulletin count
                 assertEquals(numberOfBulletins, actualDashboard.bulletinsCount)
@@ -236,8 +250,12 @@ class GetAdminDashboardUseCaseTest {
                 )
             )
             val messagesSummary = "4 / 8"
-            val messageFlow = MutableStateFlow<NetworkResult<String>>(
-                NetworkResult.Success(messagesSummary)
+            val messageFlow = MutableStateFlow<CachePayload<String>>(
+                CachePayload.ActiveStream(
+                    messagesSummary,
+                    false,
+                    null
+                )
             )
             val bulletinFlow = MutableStateFlow<CachePayload<Int>>(
                 CachePayload.ActiveStream(
@@ -276,7 +294,7 @@ class GetAdminDashboardUseCaseTest {
         }
 
     @Test
-    fun `invoke combines NetworkResult 2 Errors and 1 Exception to Resource Success correctly`() =
+    fun `invoke combines CachePayload 2 Errors and 1 Exception to Resource Success correctly`() =
         runTest {
             val userFlow = MutableStateFlow<CachePayload<Int>>(
                 CachePayload.ActiveStream(
@@ -293,8 +311,12 @@ class GetAdminDashboardUseCaseTest {
                     )
                 )
             )
-            val messageFlow = MutableStateFlow<NetworkResult<String>>(
-                NetworkResult.Exception(IOException("Network down"))
+            val messageFlow = MutableStateFlow<CachePayload<String>>(
+                CachePayload.ActiveStream(
+                    "0 / 0",
+                    false,
+                    IOException("Network down")
+                )
             )
             val bulletinFlow = MutableStateFlow<CachePayload<Int>>(
                 CachePayload.ActiveStream(
@@ -323,19 +345,12 @@ class GetAdminDashboardUseCaseTest {
 
                 // 2. Next emission: Resource.Success(UserDashboardDomainModel)
                 val nextItem = awaitItem()
-                assertTrue(nextItem is Resource.Success)
+                assertTrue(nextItem is Resource.Error)
 
-                val actualDashboard = (nextItem as Resource.Success).data
+                val errorMessage = (nextItem as Resource.Error).message
 
                 // 3. the user info
-//                assertNull(actualDashboard.usersCount)
-                assertEquals(0, actualDashboard.usersCount)
-
-                // 4. the message info
-                assertNull(actualDashboard.summaryMessages)
-
-                // 5. the bulletin count
-                assertEquals(0, actualDashboard.bulletinsCount)
+                assertEquals("Unable to load dashboard data.", errorMessage)
 
                 cancelAndIgnoreRemainingEvents()
             }
@@ -359,8 +374,20 @@ class GetAdminDashboardUseCaseTest {
                     )
                 )
             )
-            val messageFlow = MutableStateFlow<NetworkResult<String>>(
-                NetworkResult.Error(403, "Messages forbidden")
+            val messageFlow = MutableStateFlow<CachePayload<String>>(
+                CachePayload.ActiveStream(
+                    "0 / 0",
+                    false,
+                    HttpException(
+                        Response.error<Int>(
+                            403,
+                            "Messages forbidden"
+                                .toResponseBody(
+                                    "application/json".toMediaTypeOrNull()
+                                )
+                        )
+                    )
+                )
             )
             val bulletinFlow = MutableStateFlow<CachePayload<Int>>(
                 CachePayload.ActiveStream(
