@@ -1,7 +1,9 @@
 package com.reference.implementation.data.repositoryimpl
 
 import com.reference.implementation.data.audit.auditLog
+import com.reference.implementation.data.dtos.MessageDto
 import com.reference.implementation.data.dtos.UserDto
+import com.reference.implementation.database.model.MessageEntity
 import com.reference.implementation.database.model.UserEntity
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
@@ -95,4 +97,14 @@ fun UserDto.toEntity() =
         name = this.name,
         email = this.email,
         age = this.age
+    )
+
+fun MessageDto.toEntity() =
+    MessageEntity(
+        id = this.id,
+        subject = this.subject,
+        body = this.body,
+        read = this.read,
+        userId = this.userId,
+        createdAt = this.createdAt
     )

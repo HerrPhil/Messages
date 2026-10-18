@@ -104,7 +104,7 @@ class UserRepositoryImpl @Inject constructor(
     // Your public stream now yields a unified payload containing BOTH local data and sync health!
     // Note: CachePayload is the evolution from NetworkResult.
     // Note: There is NO .onCompletion {} - the Room stream is infinite.
-    // Note; There is NO ,catch {} - the network health check is information in CachePayload
+    // Note; There is NO .catch {} - the network health check is information in CachePayload
     override fun getUserCount(onRetry: (Int) -> Unit): Flow<CachePayload<Int>> =
         flow {
 

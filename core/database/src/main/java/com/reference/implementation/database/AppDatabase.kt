@@ -3,15 +3,18 @@ package com.reference.implementation.database
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import com.reference.implementation.database.dao.BulletinDao
+import com.reference.implementation.database.dao.MessageDao
 import com.reference.implementation.database.dao.UserDao
 import com.reference.implementation.database.model.BulletinEntity
+import com.reference.implementation.database.model.MessageEntity
 import com.reference.implementation.database.model.UserEntity
 
 @Database(
     entities =
         [
             BulletinEntity::class,
-            UserEntity::class
+            UserEntity::class,
+            MessageEntity::class
         ],
     version = 1,
     exportSchema = true
@@ -19,4 +22,5 @@ import com.reference.implementation.database.model.UserEntity
 abstract class AppDatabase : RoomDatabase() {
     abstract fun bulletinDao(): BulletinDao
     abstract fun userDao(): UserDao
+    abstract fun messageDao(): MessageDao
 }
