@@ -6,7 +6,6 @@ import com.reference.implementation.data.di.AuthNetwork
 import com.reference.implementation.data.di.IoDispatcher
 import com.reference.implementation.data.manager.SessionManager
 import com.reference.implementation.data.manager.SessionResult
-import com.reference.implementation.data.mappers.toDomainModel
 import com.reference.implementation.data.model.SyncState
 import com.reference.implementation.data.sources.ApiService
 import com.reference.implementation.database.dao.UserDao
@@ -20,11 +19,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
@@ -46,12 +45,12 @@ class UserRepositoryImpl @Inject constructor(
     // Starts as completely idle (No errors, not syncing).
     private val syncStatus = MutableStateFlow<SyncState>(SyncState.Idle)
 
-    private val _allUsersCache =
-        MutableStateFlow<NetworkResult<List<LoginUserDomainModel>>>(NetworkResult.Loading)
-
     /**
      * Emits:
      * - user info stored in the session manager at login
+     *
+     * Remains NetworkResult - do not want session info from previous session stored in Room.
+     * Keep session information in-memory.
      */
     override fun getUserInfoFlow(): Flow<NetworkResult<LoginUserDomainModel>> =
         flow {
@@ -100,20 +99,31 @@ class UserRepositoryImpl @Inject constructor(
             }
         }.flowOn(ioDispatcher)
 
+
+    override fun getUserCount(): Flow<CachePayload<Int>> = getUsers().map { usersCachePayload ->
+        val usersStream = usersCachePayload as CachePayload.ActiveStream
+        CachePayload.ActiveStream(
+            data = usersStream.data.size,
+            isSyncing = usersStream.isSyncing,
+            syncError = usersStream.syncError
+        )
+    }
+
     // THE DEPTH-FIRST ENGINE: Connects use cases natively to the database pipe.
     // Your public stream now yields a unified payload containing BOTH local data and sync health!
     // Note: CachePayload is the evolution from NetworkResult.
     // Note: There is NO .onCompletion {} - the Room stream is infinite.
     // Note; There is NO .catch {} - the network health check is information in CachePayload
-    override fun getUserCount(onRetry: (Int) -> Unit): Flow<CachePayload<Int>> =
+    override fun getUsers(): Flow<CachePayload<List<LoginUserDomainModel>>> =
         flow {
 
             // THE CONFLUENCE ENGINE:
             // We combine Room's infinite stream with our private background sync status flow!
             userDao.getUsersStream()
                 .combine(syncStatus) { entities, status ->
+                    val domainModels = entities.map { it.toDomainModel() }
                     CachePayload.ActiveStream(
-                        data = entities.size,
+                        data = domainModels,
                         isSyncing = status is SyncState.Loading,
                         syncError = (status as? SyncState.Error)?.exception // propagates 4xx/5xx errors
                     )
@@ -126,54 +136,16 @@ class UserRepositoryImpl @Inject constructor(
             // This action is called before the upstream flow is started.
             // Trigger background sync exactly once on collection entry
             externalScope.launch {
-                syncUsers(onRetry)
+                syncUsers()
             }
         }.flowOn(ioDispatcher)
 
-    override fun getUsers(): Flow<NetworkResult<List<LoginUserDomainModel>>> =
-        _allUsersCache.asStateFlow()
+    // The following has no return value - stores result in Room (the local "cache" now!)
+    private suspend fun syncUsers() {
 
-    // The following has no return value - stores result in cached Flow
-    override suspend fun loadAllUsers(onRetry: (Int) -> Unit) {
+        val onRetry: (Int) -> Unit =
+            { attempt -> auditLog("syncUsers has retry attempt # $attempt.") }
 
-        // Force the cache to show "Loading" if it is a manual retry/refresh action
-        _allUsersCache.value = NetworkResult.Loading
-
-        // force the execution onto the IO thread pool
-        withContext(ioDispatcher) {
-            try {
-                val response = retryIO(times = 3, onRetry = onRetry) {
-                    val res = apiService.getUsers()
-                    if (res.code() >= 500) {
-                        throw HttpException(res) // Force retryIO's catch block to trigger!
-                    }
-                    res
-                }
-                val body = response.body()
-                if (response.isSuccessful && body != null) { // 200 response
-                    _allUsersCache.value =
-                        NetworkResult.Success(data = body.map { it.toDomainModel() })
-                } else { // 4xx errors
-                    // Transform unsuccessful Retrofit calls.
-                    // Update the SSOT cache with the network result error!
-                    _allUsersCache.value =
-                        NetworkResult.Error(response.code(), response.message())
-                }
-
-            } catch (e: Exception) {
-                if (e is CancellationException) throw e
-                auditLog(e.message ?: "no message")
-                // Update the SSOT cache with the network result exception!
-                _allUsersCache.value = NetworkResult.Exception(e) // 5xx errors
-            } finally {
-                withContext(NonCancellable) {
-                    auditLog("${auditLogTimestamp()} refresh messages by user ended")
-                }
-            }
-        }
-    }
-
-    private suspend fun syncUsers(onRetry: (Int) -> Unit) {
         try {
 
             // Payload refactor away from NetworkResult
@@ -217,5 +189,4 @@ class UserRepositoryImpl @Inject constructor(
             syncStatus.value = SyncState.Error(exception = e)
         }
     }
-
 }

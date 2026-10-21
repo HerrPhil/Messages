@@ -8,7 +8,6 @@ import com.reference.implementation.domain.use_case.GetAdminUserInformationUseCa
 import com.reference.implementation.domain.use_case.GetCachedMessagesUseCase
 import com.reference.implementation.domain.use_case.GetMessageEventsUseCase
 import com.reference.implementation.domain.use_case.LoadActiveMessagesUseCase
-import com.reference.implementation.domain.use_case.LoadAllUsersUseCase
 import com.reference.implementation.domain.use_case.LoadSelectedMessagesUseCase
 import com.reference.implementation.domain.use_case.MarkMessageAsImportantUseCase
 import com.reference.implementation.domain.use_case.MarkMessageAsNotImportantUseCase
@@ -16,10 +15,10 @@ import com.reference.implementation.domain.use_case.MarkMessageAsReadUseCase
 import com.reference.implementation.domain.use_case.MarkMessageAsUnreadUseCase
 import com.reference.implementation.domain.use_case.Resource
 import com.reference.implementation.domain.use_case.RestoreMessageUseCase
+import com.reference.implementation.messages.presentation.screens.message.toMessageUiDetail
 import com.reference.implementation.messages.presentation.screens.util.FakeLoadActiveMessagesUseCase
 import com.reference.implementation.messages.presentation.screens.util.FakeLoadSelectedMessagesUseCase
 import com.reference.implementation.messages.presentation.screens.util.MainDispatcherRule
-import com.reference.implementation.messages.presentation.screens.message.toMessageUiDetail
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
@@ -45,7 +44,6 @@ class AdminMessageViewModelTest {
     private val loadActiveMessagesUseCase: LoadActiveMessagesUseCase = mockk(relaxed = true)
     private val loadSelectedMessagesUseCase: LoadSelectedMessagesUseCase = mockk(relaxed = true)
     private val getCachedMessagesUseCase: GetCachedMessagesUseCase = mockk()
-    private val loadAllUsersUseCase: LoadAllUsersUseCase = mockk(relaxed = true)
     private val getAdminUserInformationUseCase: GetAdminUserInformationUseCase = mockk()
     private val markMessageAsReadUseCase: MarkMessageAsReadUseCase = mockk(relaxed = true)
     private val markMessageAsUnreadUseCase: MarkMessageAsUnreadUseCase = mockk(relaxed = true)
@@ -54,7 +52,6 @@ class AdminMessageViewModelTest {
     private val markMessageAsImportantUseCase: MarkMessageAsImportantUseCase = mockk(relaxed = true)
     private val markMessageAsNotImportantUseCase: MarkMessageAsNotImportantUseCase =
         mockk(relaxed = true)
-
     // do not care about events for combine/scan tests - can make it strict locally in event test
     private val getMessageEventsUseCase: GetMessageEventsUseCase = mockk(relaxed = true)
 
@@ -92,7 +89,6 @@ class AdminMessageViewModelTest {
                 loadActiveMessagesUseCase = loadActiveMessagesUseCase,
                 loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
                 getCachedMessagesUseCase = getCachedMessagesUseCase,
-                loadAllUsersUseCase = loadAllUsersUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -129,7 +125,6 @@ class AdminMessageViewModelTest {
             )
 
             coVerify(exactly = 1) { loadActiveMessagesUseCase(any())}
-            coVerify(exactly = 1) { loadAllUsersUseCase(any()) }
         }
 
     @Test
@@ -159,7 +154,6 @@ class AdminMessageViewModelTest {
                 loadActiveMessagesUseCase = loadActiveMessagesUseCase,
                 loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
                 getCachedMessagesUseCase = getCachedMessagesUseCase,
-                loadAllUsersUseCase = loadAllUsersUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -237,7 +231,6 @@ class AdminMessageViewModelTest {
                 loadActiveMessagesUseCase = loadActiveMessagesUseCase,
                 loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
                 getCachedMessagesUseCase = getCachedMessagesUseCase,
-                loadAllUsersUseCase = loadAllUsersUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -316,7 +309,6 @@ class AdminMessageViewModelTest {
                 loadActiveMessagesUseCase = loadActiveMessagesUseCase,
                 loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
                 getCachedMessagesUseCase = getCachedMessagesUseCase,
-                loadAllUsersUseCase = loadAllUsersUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -383,7 +375,6 @@ class AdminMessageViewModelTest {
                 loadActiveMessagesUseCase = loadActiveMessagesUseCase,
                 loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
                 getCachedMessagesUseCase = getCachedMessagesUseCase,
-                loadAllUsersUseCase = loadAllUsersUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -466,7 +457,6 @@ class AdminMessageViewModelTest {
                 loadActiveMessagesUseCase = loadActiveMessagesUseCase,
                 loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
                 getCachedMessagesUseCase = getCachedMessagesUseCase,
-                loadAllUsersUseCase = loadAllUsersUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -534,7 +524,6 @@ class AdminMessageViewModelTest {
                 loadActiveMessagesUseCase = loadActiveMessagesUseCase,
                 loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
                 getCachedMessagesUseCase = getCachedMessagesUseCase,
-                loadAllUsersUseCase = loadAllUsersUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -626,7 +615,6 @@ class AdminMessageViewModelTest {
                 loadActiveMessagesUseCase = fakeLoadActiveMessagesUseCase,
                 loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
                 getCachedMessagesUseCase = getCachedMessagesUseCase,
-                loadAllUsersUseCase = loadAllUsersUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -711,7 +699,6 @@ class AdminMessageViewModelTest {
                 loadActiveMessagesUseCase = fakeLoadActiveMessagesUseCase,
                 loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
                 getCachedMessagesUseCase = getCachedMessagesUseCase,
-                loadAllUsersUseCase = loadAllUsersUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -748,7 +735,6 @@ class AdminMessageViewModelTest {
 
             // expect 2 calls - init {} and onRefresh()
             assertEquals(2, fakeLoadActiveMessagesUseCase.invocationCount)
-
         }
 
     @Test
@@ -787,7 +773,6 @@ class AdminMessageViewModelTest {
                 loadActiveMessagesUseCase = loadActiveMessagesUseCase,
                 loadSelectedMessagesUseCase = fakeLoadSelectedMessagesUseCase,
                 getCachedMessagesUseCase = getCachedMessagesUseCase,
-                loadAllUsersUseCase = loadAllUsersUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -858,7 +843,6 @@ class AdminMessageViewModelTest {
                 loadActiveMessagesUseCase = loadActiveMessagesUseCase,
                 loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
                 getCachedMessagesUseCase = getCachedMessagesUseCase,
-                loadAllUsersUseCase = loadAllUsersUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -918,7 +902,6 @@ class AdminMessageViewModelTest {
                 loadActiveMessagesUseCase = fakeLoadActiveMessagesUseCase,
                 loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
                 getCachedMessagesUseCase = getCachedMessagesUseCase,
-                loadAllUsersUseCase = loadAllUsersUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -992,7 +975,6 @@ class AdminMessageViewModelTest {
                 loadActiveMessagesUseCase = loadActiveMessagesUseCase,
                 loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
                 getCachedMessagesUseCase = getCachedMessagesUseCase,
-                loadAllUsersUseCase = loadAllUsersUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -1049,7 +1031,6 @@ class AdminMessageViewModelTest {
                 loadActiveMessagesUseCase = loadActiveMessagesUseCase,
                 loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
                 getCachedMessagesUseCase = getCachedMessagesUseCase,
-                loadAllUsersUseCase = loadAllUsersUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -1100,7 +1081,6 @@ class AdminMessageViewModelTest {
                 loadActiveMessagesUseCase = loadActiveMessagesUseCase,
                 loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
                 getCachedMessagesUseCase = getCachedMessagesUseCase,
-                loadAllUsersUseCase = loadAllUsersUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -1162,7 +1142,6 @@ class AdminMessageViewModelTest {
                 loadActiveMessagesUseCase = loadActiveMessagesUseCase,
                 loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
                 getCachedMessagesUseCase = getCachedMessagesUseCase,
-                loadAllUsersUseCase = loadAllUsersUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -1211,7 +1190,6 @@ class AdminMessageViewModelTest {
                 loadActiveMessagesUseCase = loadActiveMessagesUseCase,
                 loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
                 getCachedMessagesUseCase = getCachedMessagesUseCase,
-                loadAllUsersUseCase = loadAllUsersUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -1260,7 +1238,6 @@ class AdminMessageViewModelTest {
                 loadActiveMessagesUseCase = loadActiveMessagesUseCase,
                 loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
                 getCachedMessagesUseCase = getCachedMessagesUseCase,
-                loadAllUsersUseCase = loadAllUsersUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -1310,7 +1287,6 @@ class AdminMessageViewModelTest {
                 loadActiveMessagesUseCase = loadActiveMessagesUseCase,
                 loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
                 getCachedMessagesUseCase = getCachedMessagesUseCase,
-                loadAllUsersUseCase = loadAllUsersUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,

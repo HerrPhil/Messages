@@ -41,7 +41,7 @@ class BulletinRepositoryImpl @Inject constructor(
     // Note: CachePayload is the evolution from NetworkResult.
     // Note: There is NO .onCompletion {} - the Room stream is infinite.
     // Note; There is NO .catch {} - the network health check is information in CachePayload
-    override fun getBulletinCount(onRetry: (Int) -> Unit): Flow<CachePayload<Int>> =
+    override fun getBulletinCount(): Flow<CachePayload<Int>> =
         flow {
 
             // THE CONFLUENCE ENGINE:
@@ -63,11 +63,15 @@ class BulletinRepositoryImpl @Inject constructor(
             // This action is called before the upstream flow is started.
             // Trigger background sync exactly once on collection entry
             externalScope.launch {
-                syncBulletins(onRetry)
+                syncBulletins()
             }
         }.flowOn(ioDispatcher) // Note: Dispatchers.IO is better suited for Network/API calls!
 
-    private suspend fun syncBulletins(onRetry: (Int) -> Unit) {
+    private suspend fun syncBulletins() {
+
+        val onRetry: (Int) -> Unit =
+            { attempt -> auditLog("getSummaryMessages has retry attempt # $attempt.") }
+
         try {
 
             // Payload refactor away from NetworkResult

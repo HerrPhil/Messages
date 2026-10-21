@@ -5,7 +5,6 @@ import com.reference.implementation.domain.model.AdminDashboardDomainModel
 sealed interface AdminHomeUiState {
     object Idle : AdminHomeUiState
     object Loading : AdminHomeUiState
-    data class Retrying(val attempt: Int) : AdminHomeUiState
     data class Success(
         val usersCount: Int?,
         val summaryMessages: String?,

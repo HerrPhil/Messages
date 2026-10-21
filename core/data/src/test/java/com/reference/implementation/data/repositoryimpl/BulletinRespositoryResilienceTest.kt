@@ -98,7 +98,7 @@ class BulletinRepositoryResilienceTest {
             mockWebServer.enqueue(MockResponse().setResponseCode(500))
 
             // 2. Act & Assert: Open the stream subscription channel pipe using Turbine
-            repository.getBulletinCount(onRetry = {}).test {
+            repository.getBulletinCount().test {
 
                 // Event 1: Initial state of the flow must emit loading baseline at time zero
                 // Thanks to StandardTestDispatcher, the network hasn't even executed a single line yet!

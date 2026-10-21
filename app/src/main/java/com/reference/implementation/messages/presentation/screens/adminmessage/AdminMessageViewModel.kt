@@ -7,11 +7,10 @@ import androidx.lifecycle.viewModelScope
 import com.reference.implementation.domain.model.MessageDomainModel
 import com.reference.implementation.domain.model.UserOptionDomainModel
 import com.reference.implementation.domain.use_case.DeleteMessageUseCase
-import com.reference.implementation.domain.use_case.GetCachedMessagesUseCase
 import com.reference.implementation.domain.use_case.GetAdminUserInformationUseCase
+import com.reference.implementation.domain.use_case.GetCachedMessagesUseCase
 import com.reference.implementation.domain.use_case.GetMessageEventsUseCase
 import com.reference.implementation.domain.use_case.LoadActiveMessagesUseCase
-import com.reference.implementation.domain.use_case.LoadAllUsersUseCase
 import com.reference.implementation.domain.use_case.LoadSelectedMessagesUseCase
 import com.reference.implementation.domain.use_case.MarkMessageAsImportantUseCase
 import com.reference.implementation.domain.use_case.MarkMessageAsNotImportantUseCase
@@ -41,7 +40,6 @@ class AdminMessageViewModel @Inject constructor(
     private val loadActiveMessagesUseCase: LoadActiveMessagesUseCase,
     private val loadSelectedMessagesUseCase: LoadSelectedMessagesUseCase,
     getCachedMessagesUseCase: GetCachedMessagesUseCase,
-    private val loadAllUsersUseCase: LoadAllUsersUseCase,
     getAdminUserInformationUseCase: GetAdminUserInformationUseCase,
     private val markMessageAsReadUseCase: MarkMessageAsReadUseCase,
     private val markMessageAsUnreadUseCase: MarkMessageAsUnreadUseCase,
@@ -107,7 +105,7 @@ class AdminMessageViewModel @Inject constructor(
         // it cancels the previous database/network stream execution and starts a fresh one.
         // Standard combine does not cancel in-flight work when values change!
         _loadTrigger.flatMapLatest { getCachedMessagesUseCase() },
-        _loadTrigger.flatMapLatest { getAdminUserInformationUseCase() },
+         getAdminUserInformationUseCase(),
         _isRefreshing,
         filterPreferencesFlow
     ) { resourceResult, allUsersResult, isRefreshing, filterPreferences ->//, query, isImportantOnly ->
@@ -216,8 +214,6 @@ class AdminMessageViewModel @Inject constructor(
         } else {
             loadSelectedMessageData()
         }
-        // Initialize user information for SearchBar
-        loadAllUsersData()
     }
 
     private fun loadAdminMessageData() {
@@ -228,11 +224,14 @@ class AdminMessageViewModel @Inject constructor(
         }
     }
 
-    private fun loadAllUsersData() {
+    fun loadSelectedMessageData() {
+        val newUserId: Int = savedStateHandle[KEY_SELECTED_USER_ID] ?: return
         viewModelScope.launch {
-            loadAllUsersUseCase(onRetry = { attempt ->
-                _loadTrigger.value = attempt
-            })
+            loadSelectedMessagesUseCase(
+                newUserId,
+                onRetry = { attempt ->
+                    _loadTrigger.value = attempt
+                })
         }
     }
 
@@ -326,17 +325,6 @@ class AdminMessageViewModel @Inject constructor(
     fun onUserOptionClicked(newUserId: Int, newIsAdmin: Boolean) {
         savedStateHandle[KEY_SELECTED_USER_ID] = newUserId
         savedStateHandle[KEY_IS_ADMIN_SELECTED] = newIsAdmin
-    }
-
-    fun loadSelectedMessageData() {
-        val newUserId: Int = savedStateHandle[KEY_SELECTED_USER_ID] ?: return
-        viewModelScope.launch {
-            loadSelectedMessagesUseCase(
-                newUserId,
-                onRetry = { attempt ->
-                    _loadTrigger.value = attempt
-                })
-        }
     }
 
 }

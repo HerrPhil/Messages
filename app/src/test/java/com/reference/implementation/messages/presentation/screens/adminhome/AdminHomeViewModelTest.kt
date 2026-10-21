@@ -6,7 +6,6 @@ import com.reference.implementation.domain.use_case.Resource
 import com.reference.implementation.messages.presentation.screens.util.MainDispatcherRule
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.slot
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.collect
@@ -41,7 +40,7 @@ class AdminHomeViewModelTest {
             )
             // THE SENIOR FIX: Pass any() to match the use case invoke() signature
             // that accepts the onRetry lambda!
-            every { getAdminDashboardUseCase(onRetry = any()) } returns mockRepositoryStream
+            every { getAdminDashboardUseCase() } returns mockRepositoryStream
 
             // Act
             adminHomeViewModel = AdminHomeViewModel(
@@ -86,7 +85,7 @@ class AdminHomeViewModelTest {
             )
             // THE SENIOR FIX: Pass any() to match the use case invoke() signature
             // that accepts the onRetry lambda!
-            every { getAdminDashboardUseCase(onRetry = any()) } returns mockRepositoryStream
+            every { getAdminDashboardUseCase() } returns mockRepositoryStream
 
             // Act
             adminHomeViewModel = AdminHomeViewModel(
@@ -118,49 +117,6 @@ class AdminHomeViewModelTest {
         }
 
     @Test
-    fun `when use case triggers retry lambda, uiState emits Retrying state with correct attempt number`() =
-        runTest {
-            // 1. Arrange
-            val mockRepositoryStream = MutableStateFlow<Resource<AdminDashboardDomainModel>>(
-                Resource.Loading
-            )
-
-            // THE TRICK: Define a slot to capture your production onRetry lambda function
-            val retryLambdaSlot = slot<(Int) -> Unit>()
-
-            // THE SENIOR FIX: Pass any() to match the use case invoke() signature
-            // that accepts the onRetry lambda!
-            every {
-                getAdminDashboardUseCase(onRetry = capture(retryLambdaSlot))
-            } returns mockRepositoryStream
-
-            adminHomeViewModel = AdminHomeViewModel(
-                getAdminDashboardUseCase = getAdminDashboardUseCase
-            )
-
-            // Wake up WhileSubscribed(5000)
-            backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
-                adminHomeViewModel.uiState.collect()
-            }
-            runCurrent() // Flushes initial state pass (attempt = 0 -> AdminHomeUiState.Loading)
-
-            // Verify initial baseline state is Loading
-            assertEquals(AdminHomeUiState.Loading, adminHomeViewModel.uiState.value)
-
-            // 2. Act: Invoke your captured lambda to simulate an in-flight retry!
-            retryLambdaSlot.captured.invoke(2)
-            runCurrent()
-
-            // 3. Assert
-            // The combine block catches attempt = 2 paired with Resource.Loading,
-            // mapping flawlessly to Retrying(2)!
-            assertEquals(
-                expected = AdminHomeUiState.Retrying(attempt = 2),
-                actual = adminHomeViewModel.uiState.value
-            )
-        }
-
-    @Test
     fun `init fetches dashboard resource error state from use case and collects error ui state`() =
         runTest {
 
@@ -170,7 +126,7 @@ class AdminHomeViewModelTest {
             )
             // THE SENIOR FIX: Pass any() to match the use case invoke() signature
             // that accepts the onRetry lambda!
-            every { getAdminDashboardUseCase(onRetry = any()) } returns mockRepositoryStream
+            every { getAdminDashboardUseCase() } returns mockRepositoryStream
 
             // Act
             adminHomeViewModel = AdminHomeViewModel(
