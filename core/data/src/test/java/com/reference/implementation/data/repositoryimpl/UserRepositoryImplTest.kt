@@ -408,19 +408,4 @@ class UserRepositoryImplTest {
             assertEquals("GET", recordedRequest?.method)
             assertEquals("/users", recordedRequest?.path)
         }
-
-// #############################################################################################
-// #############################################################################################
-// #############################################################################################
-// #############################################################################################
-
-    @Suppress("SameParameterValue")
-    private fun createSampleUserDto(id: Int, email: String, name: String, age: Int): UserDto {
-        return UserDto(
-            id = id,
-            email = email,
-            name = name,
-            age = age
-        )
-    }
 }
