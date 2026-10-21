@@ -1,5 +1,6 @@
 package com.reference.implementation.domain.use_case
 
+import com.reference.implementation.domain.model.CachePayload
 import com.reference.implementation.domain.util.NetworkResult
 import com.reference.implementation.domain.model.UserOptionDomainModel
 import com.reference.implementation.domain.repository.UserRepository
@@ -25,20 +26,24 @@ class GetAdminUserInformationUseCase @Inject constructor(
             userRepository.getUserInfoFlow() // the admin session user
         ) { listRes, sessionRes ->
 
+            // Extract the specific ActiveStream type natively using Kotlin smart-casting
+            val listStream = listRes as CachePayload.ActiveStream
+
             // Check of catastrophic hard error (e.g. streams failed)
-            val allFailed = listOf(
-                listRes, sessionRes
-            ).all { it is NetworkResult.Error }
+            val listFailed = listStream.syncError != null
+            val sessionFailed = sessionRes is NetworkResult.Error
+            val allFailed = listFailed && sessionFailed
 
             if (allFailed) {
                 Resource.Error("Unable to load user list data.")
             } else {
 
                 // Extracts the data safely if Success: otherwise keep null
-                val listInfo = (listRes as? NetworkResult.Success)?.data
+                val listInfo = listStream.data
                 val sessionUserInfo = (sessionRes as? NetworkResult.Success)?.data
 
-                val userOptions: List<UserOptionDomainModel>? = listInfo?.map { userItem ->
+                // map from LoginUserDomainModel to UserOptionDomainModel
+                val userOptions: List<UserOptionDomainModel> = listInfo.map { userItem ->
                     UserOptionDomainModel(
                         id = userItem.id,
                         name = userItem.name,

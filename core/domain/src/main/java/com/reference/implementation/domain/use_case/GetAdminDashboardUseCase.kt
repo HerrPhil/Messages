@@ -19,13 +19,11 @@ class GetAdminDashboardUseCase @Inject constructor(
     private val messageRepository: MessageRepository,
     private val bulletinRepository: BulletinRepository
 ) {
-    operator fun invoke(
-        onRetry: (Int) -> Unit = {}
-    ): Flow<Resource<AdminDashboardDomainModel>> {
+    operator fun invoke(): Flow<Resource<AdminDashboardDomainModel>> {
         return combine(
-            userRepository.getUserCount(onRetry),
-            messageRepository.getSummaryMessages(onRetry),
-            bulletinRepository.getBulletinCount(onRetry)
+            userRepository.getUserCount(),
+            messageRepository.getSummaryMessages(),
+            bulletinRepository.getBulletinCount()
         ) { userRes, messageRes, bulletinRes ->
 
             // Extract the specific ActiveStream type natively using Kotlin smart-casting

@@ -52,13 +52,10 @@ class MessageRepositoryImplUnconfinedTest {
     private lateinit var testDispatcher: TestDispatcher
     private lateinit var mockWebServer: MockWebServer
     private lateinit var api: ApiService
-
     // THE IMMUTABLE FIX: Mock the DAO contract interfaces natively!
     private lateinit var messageDao: MessageDao
-
     // A hot stream placeholder that perfectly mimics Room's active table emissions
     private lateinit var daoMockStream: MutableStateFlow<List<MessageEntity>>
-
     private val sessionManager: SessionManager = mockk(relaxed = true)
     private lateinit var repository: MessageRepositoryImpl
     private val json = Json { ignoreUnknownKeys = true }
@@ -133,11 +130,12 @@ class MessageRepositoryImplUnconfinedTest {
                 daoMockStream.value = incomingList // Update the hot stream immediately!
             }
 
-            var retryCount = 0
+//            var retryCount = 0
 
-            repository.getSummaryMessages(onRetry = { attempt ->
-                retryCount = attempt
-            }).test {
+//            repository.getSummaryMessages(onRetry = { attempt ->
+//                retryCount = attempt
+//            }).test {
+            repository.getSummaryMessages().test {
 
                 // 3. Immediate emission must be Loading baseline
                 val loadingItem = awaitItem()
@@ -173,7 +171,7 @@ class MessageRepositoryImplUnconfinedTest {
                 assertEquals(null, successItem.syncError) // no problems for successful syncs!
 
                 // 7. Assert retry callbacks and HTTP request counts
-                assertEquals(3, retryCount, "encountered 2 500 responses, 1 200 response")
+//                assertEquals(3, retryCount, "encountered 2 500 responses, 1 200 response")
                 assertEquals(3, mockWebServer.requestCount, "called api 3 times")
 
                 // Clean up Turbine collection
@@ -205,11 +203,12 @@ class MessageRepositoryImplUnconfinedTest {
             // 2. Do not intercept your repository's transactional writes
             // to manually feed our mock channel - retryIO limit was reached (no data)!
 
-            var retryCount = 0
+//            var retryCount = 0
 
-            repository.getSummaryMessages(onRetry = { attempt ->
-                retryCount = attempt
-            }).test {
+//            repository.getSummaryMessages(onRetry = { attempt ->
+//                retryCount = attempt
+//            }).test {
+            repository.getSummaryMessages().test {
 
                 // 3. Immediate emission must be Loading baseline
                 val loadingItem = awaitItem()
@@ -252,7 +251,7 @@ class MessageRepositoryImplUnconfinedTest {
                 }
 
                 // 6. Assert NO retry callbacks and 1 HTTP request count
-                assertEquals(0, retryCount)
+//                assertEquals(0, retryCount)
                 assertEquals(1, mockWebServer.requestCount)
 
                 // Clean up Turbine collection
@@ -284,11 +283,12 @@ class MessageRepositoryImplUnconfinedTest {
             // 2. Do not intercept your repository's transactional writes
             // to manually feed our mock channel - retryIO limit was reached (no data)!
 
-            var retryCount = 0
+//            var retryCount = 0
 
-            repository.getSummaryMessages(onRetry = { attempt ->
-                retryCount = attempt
-            }).test {
+//            repository.getSummaryMessages(onRetry = { attempt ->
+//                retryCount = attempt
+//            }).test {
+            repository.getSummaryMessages().test {
 
                 // 3. Immediate emission must be Loading baseline
                 val loadingItem = awaitItem()
@@ -322,7 +322,7 @@ class MessageRepositoryImplUnconfinedTest {
                 assertNull(noResultItem.syncError)
 
                 // 6. Assert NO retry callbacks and 1 HTTP request count
-                assertEquals(0, retryCount)
+//                assertEquals(0, retryCount)
                 assertEquals(1, mockWebServer.requestCount)
 
                 // Clean up Turbine collection
@@ -354,11 +354,12 @@ class MessageRepositoryImplUnconfinedTest {
             // 2. Do not intercept your repository's transactional writes
             // to manually feed our mock channel - retryIO limit was reached (no data)!
 
-            var retryCount = 0
+//            var retryCount = 0
 
-            repository.getSummaryMessages(onRetry = { attempt ->
-                retryCount = attempt
-            }).test {
+//            repository.getSummaryMessages(onRetry = { attempt ->
+//                retryCount = attempt
+//            }).test {
+            repository.getSummaryMessages().test {
 
                 // 3. Immediate emission must be Loading baseline
                 val loadingItem = awaitItem()
@@ -401,7 +402,7 @@ class MessageRepositoryImplUnconfinedTest {
                 }
 
                 // 6. Assert NO retry callbacks and 1 HTTP request count
-                assertEquals(0, retryCount)
+//                assertEquals(0, retryCount)
                 assertEquals(1, mockWebServer.requestCount)
 
                 // Clean up Turbine collection
@@ -433,11 +434,12 @@ class MessageRepositoryImplUnconfinedTest {
             // 2. Do not intercept your repository's transactional writes
             // to manually feed our mock channel - retryIO limit was reached (no data)!
 
-            var retryCount = 0
+//            var retryCount = 0
 
-            repository.getSummaryMessages(onRetry = { attempt ->
-                retryCount = attempt
-            }).test {
+//            repository.getSummaryMessages(onRetry = { attempt ->
+//                retryCount = attempt
+//            }).test {
+            repository.getSummaryMessages().test {
 
                 // 3. Immediate emission must be Loading baseline
                 val loadingItem = awaitItem()
@@ -480,7 +482,7 @@ class MessageRepositoryImplUnconfinedTest {
                 }
 
                 // 6. Assert NO retry callbacks and 1 HTTP request count
-                assertEquals(0, retryCount)
+//                assertEquals(0, retryCount)
                 assertEquals(1, mockWebServer.requestCount)
 
                 // Clean up Turbine collection
@@ -508,11 +510,12 @@ class MessageRepositoryImplUnconfinedTest {
             // 2. Do not intercept your repository's transactional writes
             // to manually feed our mock channel - retryIO limit was reached (no data)!
 
-            var retryCount = 0
+//            var retryCount = 0
 
-            repository.getSummaryMessages(onRetry = { attempt ->
-                retryCount = attempt
-            }).test {
+//            repository.getSummaryMessages(onRetry = { attempt ->
+//                retryCount = attempt
+//            }).test {
+            repository.getSummaryMessages().test {
 
                 // 3. Immediate emission must be Loading baseline
                 val loadingItem = awaitItem()
@@ -547,7 +550,7 @@ class MessageRepositoryImplUnconfinedTest {
                 assertEquals("HTTP 500 Server Error", errorItem.syncError?.message)
 
                 // 6. Assert retry callbacks and HTTP request counts
-                assertEquals(3, retryCount, "encountered 3 500 responses")
+//                assertEquals(3, retryCount, "encountered 3 500 responses")
                 assertEquals(3, mockWebServer.requestCount, "called api 3 times")
 
                 // Clean up Turbine collection
@@ -567,7 +570,6 @@ class MessageRepositoryImplUnconfinedTest {
             assertEquals("GET", recordedRequest?.method)
             assertEquals("/messages", recordedRequest?.path)
         }
-
 
     @Test
     fun `getSummaryMessage emits Loading then retries IOException and recovers to add Success to the cache when API returns HTTP 200`() =
@@ -589,11 +591,12 @@ class MessageRepositoryImplUnconfinedTest {
                 daoMockStream.value = incomingList // Update the hot stream immediately!
             }
 
-            var retryCount = 0
+//            var retryCount = 0
 
-            repository.getSummaryMessages(onRetry = { attempt ->
-                retryCount = attempt
-            }).test {
+//            repository.getSummaryMessages(onRetry = { attempt ->
+//                retryCount = attempt
+//            }).test {
+            repository.getSummaryMessages().test {
 
                 // 3. Immediate emission must be Loading baseline
                 val loadingItem = awaitItem()
@@ -629,7 +632,7 @@ class MessageRepositoryImplUnconfinedTest {
                 assertEquals(null, successItem.syncError) // no problems for successful syncs!
 
                 // 7. Assert retry callbacks and HTTP request counts
-                assertEquals(3, retryCount, "encountered 2 500 responses, 1 200 response")
+//                assertEquals(3, retryCount, "encountered 2 500 responses, 1 200 response")
                 assertEquals(3, mockWebServer.requestCount, "called api 3 times")
 
                 // Clean up Turbine collection
@@ -662,11 +665,12 @@ class MessageRepositoryImplUnconfinedTest {
             // 2. Do not intercept your repository's transactional writes
             // to manually feed our mock channel - retryIO limit was reached (no data)!
 
-            var retryCount = 0
+//            var retryCount = 0
 
-            repository.getSummaryMessages(onRetry = { attempt ->
-                retryCount = attempt
-            }).test {
+//            repository.getSummaryMessages(onRetry = { attempt ->
+//                retryCount = attempt
+//            }).test {
+            repository.getSummaryMessages().test {
 
                 // 3. Immediate emission must be Loading baseline
                 val loadingItem = awaitItem()
@@ -707,7 +711,7 @@ class MessageRepositoryImplUnconfinedTest {
                 }
 
                 // 6. Assert retry callbacks and HTTP request counts
-                assertEquals(3, retryCount, "encountered 3 IOException responses")
+//                assertEquals(3, retryCount, "encountered 3 IOException responses")
                 assertEquals(3, mockWebServer.requestCount, "called api 3 times")
 
                 // Clean up Turbine collection
@@ -736,12 +740,12 @@ class MessageRepositoryImplUnconfinedTest {
         // 2. Do not intercept your repository's transactional writes
         // to manually feed our mock channel - retryIO limit was reached (no data)!
 
-        var retryCount = 0
+//        var retryCount = 0
 
-        repository.getSummaryMessages(onRetry = { attempt ->
-            retryCount = attempt
-            Log.d("retry", "$attempt")
-        }).test {
+//        repository.getSummaryMessages(onRetry = { attempt ->
+//            retryCount = attempt
+//        }).test {
+        repository.getSummaryMessages().test {
 
             // 3. Immediate emission must be Loading baseline
             val loadingItem = awaitItem()
@@ -781,7 +785,7 @@ class MessageRepositoryImplUnconfinedTest {
             }
 
             // 6. Assert NO retry callbacks and 1 HTTP request count
-            assertEquals(0, retryCount)
+//            assertEquals(0, retryCount)
             assertEquals(1, mockWebServer.requestCount)
 
             cancelAndIgnoreRemainingEvents()
@@ -802,12 +806,12 @@ class MessageRepositoryImplUnconfinedTest {
         // 2. Do not intercept your repository's transactional writes
         // to manually feed our mock channel - retryIO limit was reached (no data)!
 
-        var retryCount = 0
+//        var retryCount = 0
 
-        repository.getSummaryMessages(onRetry = { attempt ->
-            retryCount = attempt
-            Log.d("retry", "$attempt")
-        }).test {
+//        repository.getSummaryMessages(onRetry = { attempt ->
+//            retryCount = attempt
+//        }).test {
+        repository.getSummaryMessages().test {
 
             // 3. Immediate emission must be Loading baseline
             val loadingItem = awaitItem()
@@ -847,7 +851,7 @@ class MessageRepositoryImplUnconfinedTest {
             }
 
             // 6. Assert NO retry callbacks and 1 HTTP request count
-            assertEquals(0, retryCount)
+//            assertEquals(0, retryCount)
             assertEquals(1, mockWebServer.requestCount)
 
             cancelAndIgnoreRemainingEvents()
@@ -874,7 +878,7 @@ class MessageRepositoryImplUnconfinedTest {
             )
 
             // 2. Observe the flow with Turbine
-            repository.getSummaryMessages(onRetry = {}).test {
+            repository.getSummaryMessages().test {
 
                 // 3. Immediate emission must be Loading baseline
                 val loadingItem = awaitItem()

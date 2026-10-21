@@ -50,7 +50,7 @@ class MessageRepositoryImpl @Inject constructor(
     // Note: CachePayload is the evolution from NetworkResult.
     // Note: There is NO .onCompletion {} - the Room stream is infinite.
     // Note; There is NO .catch {} - the network health check is information in CachePayload
-    override fun getSummaryMessages(onRetry: (Int) -> Unit): Flow<CachePayload<String>> =
+    override fun getSummaryMessages(): Flow<CachePayload<String>> =
         flow {
 
             // THE CONFLUENCE ENGINE:
@@ -76,7 +76,7 @@ class MessageRepositoryImpl @Inject constructor(
             // This action is called before the upstream flow is started.
             // Trigger background sync exactly once on collection entry
             externalScope.launch {
-                syncMessages(onRetry)
+                syncMessages()
             }
         }.flowOn(ioDispatcher)
 
@@ -117,7 +117,11 @@ class MessageRepositoryImpl @Inject constructor(
             }
         }.flowOn(ioDispatcher) // Note: Dispatchers.IO is better suited for Network/API calls!
 
-    private suspend fun syncMessages(onRetry: (Int) -> Unit) {
+    private suspend fun syncMessages() {
+
+        val onRetry: (Int) -> Unit =
+            { attempt -> auditLog("getSummaryMessages has retry attempt # $attempt.") }
+
         try {
 
             // Payload refactor away from NetworkResult

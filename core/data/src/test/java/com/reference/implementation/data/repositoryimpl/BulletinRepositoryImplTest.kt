@@ -47,13 +47,10 @@ class BulletinRepositoryImplTest {
     private lateinit var testDispatcher: TestDispatcher
     private lateinit var mockWebServer: MockWebServer
     private lateinit var api: ApiService
-
     // THE IMMUTABLE FIX: Mock the DAO contract interfaces natively!
     private lateinit var bulletinDao: BulletinDao
-
     // A hot stream placeholder that perfectly mimics Room's active table emissions
     private lateinit var daoMockStream: MutableStateFlow<List<BulletinEntity>>
-
     private lateinit var repository: BulletinRepositoryImpl
     private val json = Json { ignoreUnknownKeys = true }
 
@@ -140,11 +137,7 @@ class BulletinRepositoryImplTest {
                 daoMockStream.value = incomingList // Update the hot stream immediately!
             }
 
-            var retryCount = 0
-
-            repository.getBulletinCount(onRetry = { attempt ->
-                retryCount = attempt
-            }).test {
+            repository.getBulletinCount().test {
 
                 // 3. Immediate emission must be Loading baseline
                 val loadingItem = awaitItem()
@@ -180,7 +173,6 @@ class BulletinRepositoryImplTest {
                 assertEquals(null, successItem.syncError) // no problems for successful syncs!
 
                 // 7. Assert retry callbacks and HTTP request counts
-                assertEquals(3, retryCount, "encountered 2 500 responses, 1 200 response")
                 assertEquals(3, mockWebServer.requestCount, "called api 3 times")
 
                 // Clean up Turbine collection
@@ -211,11 +203,7 @@ class BulletinRepositoryImplTest {
             // 2. Do not intercept your repository's transactional writes
             // to manually feed our mock channel - retryIO limit was reached (no data)!
 
-            var retryCount = 0
-
-            repository.getBulletinCount(onRetry = { attempt ->
-                retryCount = attempt
-            }).test {
+            repository.getBulletinCount().test {
 
                 // 3. Immediate emission must be Loading baseline
                 val loadingItem = awaitItem()
@@ -258,7 +246,6 @@ class BulletinRepositoryImplTest {
                 }
 
                 // 6. Assert NO retry callbacks and 1 HTTP request count
-                assertEquals(0, retryCount)
                 assertEquals(1, mockWebServer.requestCount)
 
                 // Clean up Turbine collection
@@ -290,11 +277,7 @@ class BulletinRepositoryImplTest {
             // 2. Do not intercept your repository's transactional writes
             // to manually feed our mock channel - retryIO limit was reached (no data)!
 
-            var retryCount = 0
-
-            repository.getBulletinCount(onRetry = { attempt ->
-                retryCount = attempt
-            }).test {
+            repository.getBulletinCount().test {
 
                 // 3. Immediate emission must be Loading baseline
                 val loadingItem = awaitItem()
@@ -337,7 +320,6 @@ class BulletinRepositoryImplTest {
                 }
 
                 // 6. Assert NO retry callbacks and 1 HTTP request count
-                assertEquals(0, retryCount)
                 assertEquals(1, mockWebServer.requestCount)
 
                 // Clean up Turbine collection
@@ -369,11 +351,7 @@ class BulletinRepositoryImplTest {
             // 2. Do not intercept your repository's transactional writes
             // to manually feed our mock channel - retryIO limit was reached (no data)!
 
-            var retryCount = 0
-
-            repository.getBulletinCount(onRetry = { attempt ->
-                retryCount = attempt
-            }).test {
+            repository.getBulletinCount().test {
 
                 // 3. Immediate emission must be Loading baseline
                 val loadingItem = awaitItem()
@@ -416,7 +394,6 @@ class BulletinRepositoryImplTest {
                 }
 
                 // 6. Assert NO retry callbacks and 1 HTTP request count
-                assertEquals(0, retryCount)
                 assertEquals(1, mockWebServer.requestCount)
 
                 // Clean up Turbine collection
@@ -444,12 +421,7 @@ class BulletinRepositoryImplTest {
             // 2. Do not intercept your repository's transactional writes
             // to manually feed our mock channel - retryIO limit was reached (no data)!
 
-            var retryCount = 0
-
-            repository.getBulletinCount(onRetry = { attempt ->
-                retryCount = attempt
-                Log.d("retry", "$attempt")
-            }).test {
+            repository.getBulletinCount().test {
 
                 // 3. Immediate emission must be Loading baseline
                 val loadingItem = awaitItem()
@@ -484,7 +456,6 @@ class BulletinRepositoryImplTest {
                 assertEquals("HTTP 500 Server Error", errorItem.syncError?.message)
 
                 // 6. Assert retry callbacks and HTTP request counts
-                assertEquals(3, retryCount, "encountered 3 500 responses")
                 assertEquals(3, mockWebServer.requestCount, "called api 3 times")
 
                 // Clean up Turbine collection
@@ -534,11 +505,7 @@ class BulletinRepositoryImplTest {
                 daoMockStream.value = incomingList // Update the hot stream immediately!
             }
 
-            var retryCount = 0
-
-            repository.getBulletinCount(onRetry = { attempt ->
-                retryCount = attempt
-            }).test {
+            repository.getBulletinCount().test {
 
                 // 3. Immediate emission must be Loading baseline
                 val loadingItem = awaitItem()
@@ -574,7 +541,6 @@ class BulletinRepositoryImplTest {
                 assertEquals(null, successItem.syncError) // no problems for successful syncs!
 
                 // 7. Assert retry callbacks and HTTP request counts
-                assertEquals(3, retryCount, "encountered 2 IOException responses, 1 200 response")
                 assertEquals(3, mockWebServer.requestCount, "called api 3 times")
 
                 // Clean up Turbine collection
@@ -599,11 +565,7 @@ class BulletinRepositoryImplTest {
             // 2. Do not intercept your repository's transactional writes
             // to manually feed our mock channel - retryIO limit was reached (no data)!
 
-            var retryCount = 0
-
-            repository.getBulletinCount(onRetry = { attempt ->
-                retryCount = attempt
-            }).test {
+            repository.getBulletinCount().test {
 
                 // 3. Immediate emission must be Loading baseline
                 val loadingItem = awaitItem()
@@ -644,7 +606,6 @@ class BulletinRepositoryImplTest {
                 }
 
                 // 6. Assert retry callbacks and HTTP request counts
-                assertEquals(3, retryCount, "encountered 3 IOException responses")
                 assertEquals(3, mockWebServer.requestCount, "called api 3 times")
 
                 // Clean up Turbine collection
@@ -670,12 +631,7 @@ class BulletinRepositoryImplTest {
             // 2. Do not intercept your repository's transactional writes
             // to manually feed our mock channel - retryIO limit was reached (no data)!
 
-            var retryCount = 0
-
-            repository.getBulletinCount(onRetry = { attempt ->
-                retryCount = attempt
-                Log.d("retry", "$attempt")
-            }).test {
+            repository.getBulletinCount().test {
 
                 // 3. Immediate emission must be Loading baseline
                 val loadingItem = awaitItem()
@@ -715,7 +671,6 @@ class BulletinRepositoryImplTest {
                 }
 
                 // 6. Assert NO retry callbacks and 1 HTTP request count
-                assertEquals(0, retryCount)
                 assertEquals(1, mockWebServer.requestCount)
 
                 cancelAndIgnoreRemainingEvents()
@@ -740,12 +695,7 @@ class BulletinRepositoryImplTest {
             // 2. Do not intercept your repository's transactional writes
             // to manually feed our mock channel - retryIO limit was reached (no data)!
 
-            var retryCount = 0
-
-            repository.getBulletinCount(onRetry = { attempt ->
-                retryCount = attempt
-                Log.d("retry", "$attempt")
-            }).test {
+            repository.getBulletinCount().test {
 
                 // 3. Immediate emission must be Loading baseline
                 val loadingItem = awaitItem()
@@ -785,7 +735,6 @@ class BulletinRepositoryImplTest {
                 }
 
                 // 6. Assert NO retry callbacks and 1 HTTP request count
-                assertEquals(0, retryCount)
                 assertEquals(1, mockWebServer.requestCount)
 
                 cancelAndIgnoreRemainingEvents()
@@ -814,7 +763,7 @@ class BulletinRepositoryImplTest {
             // 2. Do not intercept your repository's transactional writes
             // to manually feed our mock channel - retryIO limit was reached (no data)!
 
-            repository.getBulletinCount(onRetry = {}).test {
+            repository.getBulletinCount().test {
 
                 // 3. Immediate emission must be Loading baseline
                 val loadingItem = awaitItem()

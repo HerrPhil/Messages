@@ -60,9 +60,9 @@ class GetAdminDashboardUseCaseTest {
             )
         )
 
-        every { userRepository.getUserCount(any()) } returns userFlow
-        every { messageRepository.getSummaryMessages(any()) } returns messagesFlow
-        every { bulletinRepository.getBulletinCount(any()) } returns bulletinFlow
+        every { userRepository.getUserCount() } returns userFlow
+        every { messageRepository.getSummaryMessages() } returns messagesFlow
+        every { bulletinRepository.getBulletinCount() } returns bulletinFlow
 
         useCase().test {
             val initialItem = awaitItem()
@@ -100,9 +100,9 @@ class GetAdminDashboardUseCaseTest {
                 )
             )
 
-            every { userRepository.getUserCount(any()) } returns userFlow
-            every { messageRepository.getSummaryMessages(any()) } returns messageFlow
-            every { bulletinRepository.getBulletinCount(any()) } returns bulletinFlow
+            every { userRepository.getUserCount() } returns userFlow
+            every { messageRepository.getSummaryMessages() } returns messageFlow
+            every { bulletinRepository.getBulletinCount() } returns bulletinFlow
 
             useCase().test {
                 // 1. Initial emission: onStart outputs Loading
@@ -155,9 +155,9 @@ class GetAdminDashboardUseCaseTest {
                 )
             )
 
-            every { userRepository.getUserCount(any()) } returns userFlow
-            every { messageRepository.getSummaryMessages(any()) } returns messageFlow
-            every { bulletinRepository.getBulletinCount(any()) } returns bulletinFlow
+            every { userRepository.getUserCount() } returns userFlow
+            every { messageRepository.getSummaryMessages() } returns messageFlow
+            every { bulletinRepository.getBulletinCount() } returns bulletinFlow
 
             useCase().test {
                 // 1. Initial emission: onStart outputs Loading
@@ -210,9 +210,9 @@ class GetAdminDashboardUseCaseTest {
                 )
             )
 
-            every { userRepository.getUserCount(any()) } returns userFlow
-            every { messageRepository.getSummaryMessages(any()) } returns messageFlow
-            every { bulletinRepository.getBulletinCount(any()) } returns bulletinFlow
+            every { userRepository.getUserCount() } returns userFlow
+            every { messageRepository.getSummaryMessages() } returns messageFlow
+            every { bulletinRepository.getBulletinCount() } returns bulletinFlow
 
             useCase().test {
                 // 1. Initial emission: onStart outputs Loading
@@ -265,9 +265,9 @@ class GetAdminDashboardUseCaseTest {
                 )
             )
 
-            every { userRepository.getUserCount(any()) } returns userFlow
-            every { messageRepository.getSummaryMessages(any()) } returns messageFlow
-            every { bulletinRepository.getBulletinCount(any()) } returns bulletinFlow
+            every { userRepository.getUserCount() } returns userFlow
+            every { messageRepository.getSummaryMessages() } returns messageFlow
+            every { bulletinRepository.getBulletinCount() } returns bulletinFlow
 
             useCase().test {
                 // 1. Initial emission: onStart outputs Loading
@@ -334,9 +334,9 @@ class GetAdminDashboardUseCaseTest {
                 )
             )
 
-            every { userRepository.getUserCount(any()) } returns userFlow
-            every { messageRepository.getSummaryMessages(any()) } returns messageFlow
-            every { bulletinRepository.getBulletinCount(any()) } returns bulletinFlow
+            every { userRepository.getUserCount() } returns userFlow
+            every { messageRepository.getSummaryMessages() } returns messageFlow
+            every { bulletinRepository.getBulletinCount() } returns bulletinFlow
 
             useCase().test {
                 // 1. Initial emission: onStart outputs Loading
@@ -405,9 +405,9 @@ class GetAdminDashboardUseCaseTest {
                 )
             )
 
-            every { userRepository.getUserCount(any()) } returns userFlow
-            every { messageRepository.getSummaryMessages(any()) } returns messageFlow
-            every { bulletinRepository.getBulletinCount(any()) } returns bulletinFlow
+            every { userRepository.getUserCount() } returns userFlow
+            every { messageRepository.getSummaryMessages() } returns messageFlow
+            every { bulletinRepository.getBulletinCount() } returns bulletinFlow
 
             useCase().test {
                 // 1. Initial emission: onStart outputs Loading

@@ -29,7 +29,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.reference.implementation.messages.presentation.components.ErrorContent
-import com.reference.implementation.messages.presentation.components.RetryingContent
 import com.reference.implementation.messages.presentation.components.SkeletonText
 import com.reference.implementation.messages.presentation.components.Welcome
 import com.reference.implementation.messages.presentation.navigation.Route
@@ -68,11 +67,6 @@ fun AdminHomeScreen(uiState: AdminHomeUiState) {
 
         is AdminHomeUiState.Loading -> {
             AdminHomeDetails(usersCount = null, summaryMessages = null, bulletinsCount = null)
-        }
-
-        is AdminHomeUiState.Retrying -> {
-            val retryAttempt = "attempt #${currentState.attempt}"
-            RetryingContent(retryAttempt)
         }
 
         is AdminHomeUiState.Error -> {

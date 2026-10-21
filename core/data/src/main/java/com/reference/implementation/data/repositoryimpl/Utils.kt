@@ -5,6 +5,7 @@ import com.reference.implementation.data.dtos.MessageDto
 import com.reference.implementation.data.dtos.UserDto
 import com.reference.implementation.database.model.MessageEntity
 import com.reference.implementation.database.model.UserEntity
+import com.reference.implementation.domain.model.LoginUserDomainModel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
@@ -78,7 +79,6 @@ internal suspend fun <T> retryIO(
 
 
 private suspend fun currentContext() = currentCoroutineContext()
-//private suspend fun currentContext() = coroutineContext
 
 internal fun auditLogTimestamp(): String {
     // Get the current date and time
@@ -107,4 +107,12 @@ fun MessageDto.toEntity() =
         read = this.read,
         userId = this.userId,
         createdAt = this.createdAt
+    )
+
+fun UserEntity.toDomainModel() =
+    LoginUserDomainModel(
+        id = this.id,
+        name = this.name,
+        email = this.email,
+        age = this.age
     )
