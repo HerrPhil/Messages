@@ -15,6 +15,15 @@ import javax.inject.Singleton
 import kotlin.collections.minus
 import kotlin.collections.plus
 
+/**
+ * DataStore is not a good fit for structured local cache tables, but it is the
+ * perfect companion to a Room-enabled setup. To build a clean offline-first application,
+ * you do not replace DataStore with Room, nor do you put Room inside DataStore.
+ * Instead, you let them work side by side as specialized tools, with Room handling your complex,
+ * multi-row business data (like bulletins, messages, and user lists)
+ * and DataStore handling lightweight, key-value user configurations
+ * (like app theme settings, auth tokens, or feature flags).
+ */
 // Hilt now matches the dataStore straight to the DataStoreModule provider!!!!
 @Singleton
 class UserPreferencesRepositoryImpl @Inject constructor(

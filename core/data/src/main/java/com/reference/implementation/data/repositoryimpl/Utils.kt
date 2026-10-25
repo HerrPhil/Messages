@@ -5,7 +5,6 @@ import com.reference.implementation.data.dtos.MessageDto
 import com.reference.implementation.data.dtos.UserDto
 import com.reference.implementation.database.model.MessageEntity
 import com.reference.implementation.database.model.UserEntity
-import com.reference.implementation.domain.model.LoginUserDomainModel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
@@ -109,10 +108,3 @@ fun MessageDto.toEntity() =
         createdAt = this.createdAt
     )
 
-fun UserEntity.toDomainModel() =
-    LoginUserDomainModel(
-        id = this.id,
-        name = this.name,
-        email = this.email,
-        age = this.age
-    )

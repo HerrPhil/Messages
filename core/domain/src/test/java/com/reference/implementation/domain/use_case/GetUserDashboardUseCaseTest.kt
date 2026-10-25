@@ -1,8 +1,9 @@
 package com.reference.implementation.domain.use_case
 
 import app.cash.turbine.test
+import com.reference.implementation.domain.model.CachePayload
 import com.reference.implementation.domain.model.LoginUserDomainModel
-import com.reference.implementation.domain.model.MessageDomainModel
+import com.reference.implementation.domain.model.UserMessageReadUnreadDomainModel
 import com.reference.implementation.domain.model.UserPermissionDomainModel
 import com.reference.implementation.domain.model.UserRoleDomainModel
 import com.reference.implementation.domain.repository.MessageRepository
@@ -14,14 +15,17 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runTest
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import retrofit2.HttpException
+import retrofit2.Response
 import java.io.IOException
-import java.time.Instant
 
 class GetUserDashboardUseCaseTest {
 
@@ -49,9 +53,15 @@ class GetUserDashboardUseCaseTest {
             NetworkResult.Loading
         )
 
-        val messagesFlow = MutableStateFlow<NetworkResult<List<MessageDomainModel>>>(
-            NetworkResult.Loading
-        )
+        val initialDomainModel = UserMessageReadUnreadDomainModel(2, 1)
+        val userMessageCountFlow =
+            MutableStateFlow<CachePayload<UserMessageReadUnreadDomainModel>>(
+                CachePayload.ActiveStream(
+                    data = initialDomainModel,
+                    isSyncing = true,
+                    syncError = null
+                )
+            )
 
         val roleFlow = MutableStateFlow<NetworkResult<UserRoleDomainModel>>(
             NetworkResult.Loading
@@ -62,7 +72,7 @@ class GetUserDashboardUseCaseTest {
         )
 
         every { userRepository.getUserInfoFlow() } returns userFlow
-        every { messageRepository.getMessagesByUserFlow(any()) } returns messagesFlow
+        every { messageRepository.getUserReadUnreadCounts() } returns userMessageCountFlow
         every { roleRepository.getRoleInfoFlow() } returns roleFlow
         every { permissionRepository.getPermissionInfoFlow(any()) } returns permissionFlow
 
@@ -91,29 +101,15 @@ class GetUserDashboardUseCaseTest {
                 NetworkResult.Success(user1)
             )
 
-            val message1 = MessageDomainModel(
-                id = 101,
-                subject = "Hey there",
-                body = "this is test message one",
-                read = false,
-                userId = 123,
-                createdAt = "2026-08-01T10:00:00Z",
-                createdAtInstant = Instant.parse("2026-08-01T10:00:00Z"),
-                isImportant = false
-            )
-            val message2 = MessageDomainModel(
-                id = 102,
-                subject = "Good bye",
-                body = "this is test message two",
-                read = false,
-                userId = 987,
-                createdAt = "2026-08-02T10:00:00Z",
-                createdAtInstant = Instant.parse("2026-08-02T10:00:00Z"),
-                isImportant = false
-            )
-            val messagesFlow = MutableStateFlow<NetworkResult<List<MessageDomainModel>>>(
-                NetworkResult.Success(listOf(message1, message2))
-            )
+            val initialDomainModel = UserMessageReadUnreadDomainModel(2, 1)
+            val userMessageCountFlow =
+                MutableStateFlow<CachePayload<UserMessageReadUnreadDomainModel>>(
+                    CachePayload.ActiveStream(
+                        data = initialDomainModel,
+                        isSyncing = false,
+                        syncError = null
+                    )
+                )
 
             val roleInfo = UserRoleDomainModel(
                 listOf("Developer", "Tester", "Manager")
@@ -130,7 +126,7 @@ class GetUserDashboardUseCaseTest {
             )
 
             every { userRepository.getUserInfoFlow() } returns userFlow
-            every { messageRepository.getMessagesByUserFlow(any()) } returns messagesFlow
+            every { messageRepository.getUserReadUnreadCounts() } returns userMessageCountFlow
             every { roleRepository.getRoleInfoFlow() } returns roleFlow
             every { permissionRepository.getPermissionInfoFlow(any()) } returns permissionFlow
 
@@ -152,8 +148,8 @@ class GetUserDashboardUseCaseTest {
                 assertEquals("test_user@test.com", actualDashboard.userEmail)
 
                 // 4. the message info
-                assertEquals(2, actualDashboard.unreadMessages)
-                assertEquals(0, actualDashboard.readMessages)
+                assertEquals(1, actualDashboard.unreadMessages)
+                assertEquals(2, actualDashboard.readMessages)
 
                 // 5. role info
                 assertFalse(actualDashboard.roles?.isEmpty() ?: false)
@@ -182,29 +178,15 @@ class GetUserDashboardUseCaseTest {
                 NetworkResult.Loading
             )
 
-            val message1 = MessageDomainModel(
-                id = 101,
-                subject = "Hey there",
-                body = "this is test message one",
-                read = false,
-                userId = 123,
-                createdAt = "2026-08-01T10:00:00Z",
-                createdAtInstant = Instant.parse("2026-08-01T10:00:00Z"),
-                isImportant = false
-            )
-            val message2 = MessageDomainModel(
-                id = 102,
-                subject = "Good bye",
-                body = "this is test message two",
-                read = false,
-                userId = 987,
-                createdAt = "2026-08-02T10:00:00Z",
-                createdAtInstant = Instant.parse("2026-08-02T10:00:00Z"),
-                isImportant = false
-            )
-            val messagesFlow = MutableStateFlow<NetworkResult<List<MessageDomainModel>>>(
-                NetworkResult.Success(listOf(message1, message2))
-            )
+            val initialDomainModel = UserMessageReadUnreadDomainModel(2, 1)
+            val userMessageCountFlow =
+                MutableStateFlow<CachePayload<UserMessageReadUnreadDomainModel>>(
+                    CachePayload.ActiveStream(
+                        data = initialDomainModel,
+                        isSyncing = false,
+                        syncError = null
+                    )
+                )
 
             val roleInfo = UserRoleDomainModel(
                 listOf("Developer", "Tester", "Manager")
@@ -221,7 +203,7 @@ class GetUserDashboardUseCaseTest {
             )
 
             every { userRepository.getUserInfoFlow() } returns userFlow
-            every { messageRepository.getMessagesByUserFlow(any()) } returns messagesFlow
+            every { messageRepository.getUserReadUnreadCounts() } returns userMessageCountFlow
             every { roleRepository.getRoleInfoFlow() } returns roleFlow
             every { permissionRepository.getPermissionInfoFlow(any()) } returns permissionFlow
 
@@ -242,8 +224,8 @@ class GetUserDashboardUseCaseTest {
                 assertNull(actualDashboard.userEmail)
 
                 // 4. the message info
-                assertEquals(2, actualDashboard.unreadMessages)
-                assertEquals(0, actualDashboard.readMessages)
+                assertEquals(1, actualDashboard.unreadMessages)
+                assertEquals(2, actualDashboard.readMessages)
 
                 // 5. role info
                 assertFalse(actualDashboard.roles?.isEmpty() ?: false)
@@ -278,9 +260,15 @@ class GetUserDashboardUseCaseTest {
                 NetworkResult.Success(user1)
             )
 
-            val messagesFlow = MutableStateFlow<NetworkResult<List<MessageDomainModel>>>(
-                NetworkResult.Loading
-            )
+            val initialDomainModel = UserMessageReadUnreadDomainModel(0, 0)
+            val userMessageCountFlow =
+                MutableStateFlow<CachePayload<UserMessageReadUnreadDomainModel>>(
+                    CachePayload.ActiveStream(
+                        data = initialDomainModel,
+                        isSyncing = true,
+                        syncError = null
+                    )
+                )
 
             val roleInfo = UserRoleDomainModel(
                 listOf("Developer", "Tester", "Manager")
@@ -297,7 +285,7 @@ class GetUserDashboardUseCaseTest {
             )
 
             every { userRepository.getUserInfoFlow() } returns userFlow
-            every { messageRepository.getMessagesByUserFlow(any()) } returns messagesFlow
+            every { messageRepository.getUserReadUnreadCounts() } returns userMessageCountFlow
             every { roleRepository.getRoleInfoFlow() } returns roleFlow
             every { permissionRepository.getPermissionInfoFlow(any()) } returns permissionFlow
 
@@ -318,8 +306,8 @@ class GetUserDashboardUseCaseTest {
                 assertEquals("test_user@test.com", actualDashboard.userEmail)
 
                 // 4. the message info
-                assertNull(actualDashboard.unreadMessages)
-                assertNull(actualDashboard.readMessages)
+                assertEquals(0, actualDashboard.unreadMessages)
+                assertEquals(0, actualDashboard.readMessages)
 
                 // 5. role info
                 assertFalse(actualDashboard.roles?.isEmpty() ?: false)
@@ -354,29 +342,15 @@ class GetUserDashboardUseCaseTest {
                 NetworkResult.Success(user1)
             )
 
-            val message1 = MessageDomainModel(
-                id = 101,
-                subject = "Hey there",
-                body = "this is test message one",
-                read = false,
-                userId = 123,
-                createdAt = "2026-08-01T10:00:00Z",
-                createdAtInstant = Instant.parse("2026-08-01T10:00:00Z"),
-                isImportant = false
-            )
-            val message2 = MessageDomainModel(
-                id = 102,
-                subject = "Good bye",
-                body = "this is test message two",
-                read = false,
-                userId = 987,
-                createdAt = "2026-08-02T10:00:00Z",
-                createdAtInstant = Instant.parse("2026-08-02T10:00:00Z"),
-                isImportant = false
-            )
-            val messagesFlow = MutableStateFlow<NetworkResult<List<MessageDomainModel>>>(
-                NetworkResult.Success(listOf(message1, message2))
-            )
+            val initialDomainModel = UserMessageReadUnreadDomainModel(2, 1)
+            val userMessageCountFlow =
+                MutableStateFlow<CachePayload<UserMessageReadUnreadDomainModel>>(
+                    CachePayload.ActiveStream(
+                        data = initialDomainModel,
+                        isSyncing = false,
+                        syncError = null
+                    )
+                )
 
             val roleFlow = MutableStateFlow<NetworkResult<UserRoleDomainModel>>(
                 NetworkResult.Loading
@@ -390,7 +364,7 @@ class GetUserDashboardUseCaseTest {
             )
 
             every { userRepository.getUserInfoFlow() } returns userFlow
-            every { messageRepository.getMessagesByUserFlow(any()) } returns messagesFlow
+            every { messageRepository.getUserReadUnreadCounts() } returns userMessageCountFlow
             every { roleRepository.getRoleInfoFlow() } returns roleFlow
             every { permissionRepository.getPermissionInfoFlow(any()) } returns permissionFlow
 
@@ -411,8 +385,8 @@ class GetUserDashboardUseCaseTest {
                 assertEquals("test_user@test.com", actualDashboard.userEmail)
 
                 // 4. the message info
-                assertEquals(2, actualDashboard.unreadMessages)
-                assertEquals(0, actualDashboard.readMessages)
+                assertEquals(1, actualDashboard.unreadMessages)
+                assertEquals(2, actualDashboard.readMessages)
 
                 // 5. role info
                 assertNull(actualDashboard.roles)
@@ -444,29 +418,15 @@ class GetUserDashboardUseCaseTest {
                 NetworkResult.Success(user1)
             )
 
-            val message1 = MessageDomainModel(
-                id = 101,
-                subject = "Hey there",
-                body = "this is test message one",
-                read = false,
-                userId = 123,
-                createdAt = "2026-08-01T10:00:00Z",
-                createdAtInstant = Instant.parse("2026-08-01T10:00:00Z"),
-                isImportant = false
-            )
-            val message2 = MessageDomainModel(
-                id = 102,
-                subject = "Good bye",
-                body = "this is test message two",
-                read = false,
-                userId = 987,
-                createdAt = "2026-08-02T10:00:00Z",
-                createdAtInstant = Instant.parse("2026-08-02T10:00:00Z"),
-                isImportant = false
-            )
-            val messagesFlow = MutableStateFlow<NetworkResult<List<MessageDomainModel>>>(
-                NetworkResult.Success(listOf(message1, message2))
-            )
+            val initialDomainModel = UserMessageReadUnreadDomainModel(2, 1)
+            val userMessageCountFlow =
+                MutableStateFlow<CachePayload<UserMessageReadUnreadDomainModel>>(
+                    CachePayload.ActiveStream(
+                        data = initialDomainModel,
+                        isSyncing = false,
+                        syncError = null
+                    )
+                )
 
             val roleInfo = UserRoleDomainModel(
                 listOf("Developer", "Tester", "Manager")
@@ -480,7 +440,7 @@ class GetUserDashboardUseCaseTest {
             )
 
             every { userRepository.getUserInfoFlow() } returns userFlow
-            every { messageRepository.getMessagesByUserFlow(any()) } returns messagesFlow
+            every { messageRepository.getUserReadUnreadCounts() } returns userMessageCountFlow
             every { roleRepository.getRoleInfoFlow() } returns roleFlow
             every { permissionRepository.getPermissionInfoFlow(any()) } returns permissionFlow
 
@@ -501,8 +461,8 @@ class GetUserDashboardUseCaseTest {
                 assertEquals("test_user@test.com", actualDashboard.userEmail)
 
                 // 4. the message info
-                assertEquals(2, actualDashboard.unreadMessages)
-                assertEquals(0, actualDashboard.readMessages)
+                assertEquals(1, actualDashboard.unreadMessages)
+                assertEquals(2, actualDashboard.readMessages)
 
                 // 5. role info
                 assertFalse(actualDashboard.roles?.isEmpty() ?: false)
@@ -527,9 +487,23 @@ class GetUserDashboardUseCaseTest {
             val userFlow = MutableStateFlow<NetworkResult<LoginUserDomainModel>>(
                 NetworkResult.Error(503, "Service Unavailable")
             )
-            val messagesFlow = MutableStateFlow<NetworkResult<List<MessageDomainModel>>>(
-                NetworkResult.Error(503, "Service Unavailable")
-            )
+            val initialDomainModel = UserMessageReadUnreadDomainModel(0, 0)
+            val userMessageCountFlow =
+                MutableStateFlow<CachePayload<UserMessageReadUnreadDomainModel>>(
+                    CachePayload.ActiveStream(
+                        data = initialDomainModel,
+                        isSyncing = false,
+                        syncError = HttpException(
+                            Response.error<Int>(
+                                503,
+                                "Service Unavailable"
+                                    .toResponseBody(
+                                        "application/json".toMediaTypeOrNull()
+                                    )
+                            )
+                        )
+                    )
+                )
             val roleFlow = MutableStateFlow<NetworkResult<UserRoleDomainModel>>(
                 NetworkResult.Exception(IOException("Network down"))
             )
@@ -538,7 +512,7 @@ class GetUserDashboardUseCaseTest {
             )
 
             every { userRepository.getUserInfoFlow() } returns userFlow
-            every { messageRepository.getMessagesByUserFlow(any()) } returns messagesFlow
+            every { messageRepository.getUserReadUnreadCounts() } returns userMessageCountFlow
             every { roleRepository.getRoleInfoFlow() } returns roleFlow
             every { permissionRepository.getPermissionInfoFlow(any()) } returns permissionFlow
 
@@ -559,8 +533,8 @@ class GetUserDashboardUseCaseTest {
                 assertNull(actualDashboard.userEmail)
 
                 // 4. the message info
-                assertNull(actualDashboard.unreadMessages)
-                assertNull(actualDashboard.readMessages)
+                assertEquals(0, actualDashboard.unreadMessages)
+                assertEquals(0, actualDashboard.readMessages)
 
                 // 5. role info
                 assertNull(actualDashboard.roles)
@@ -580,9 +554,23 @@ class GetUserDashboardUseCaseTest {
             val userFlow = MutableStateFlow<NetworkResult<LoginUserDomainModel>>(
                 NetworkResult.Error(503, "Service Unavailable")
             )
-            val messagesFlow = MutableStateFlow<NetworkResult<List<MessageDomainModel>>>(
-                NetworkResult.Error(503, "Service Unavailable")
-            )
+            val initialDomainModel = UserMessageReadUnreadDomainModel(2, 1)
+            val userMessageCountFlow =
+                MutableStateFlow<CachePayload<UserMessageReadUnreadDomainModel>>(
+                    CachePayload.ActiveStream(
+                        data = initialDomainModel,
+                        isSyncing = false,
+                        syncError = HttpException(
+                            Response.error<Int>(
+                                503,
+                                "Service Unavailable"
+                                    .toResponseBody(
+                                        "application/json".toMediaTypeOrNull()
+                                    )
+                            )
+                        )
+                    )
+                )
             val roleFlow = MutableStateFlow<NetworkResult<UserRoleDomainModel>>(
                 NetworkResult.Error(403, "Roles forbidden")
             )
@@ -591,7 +579,7 @@ class GetUserDashboardUseCaseTest {
             )
 
             every { userRepository.getUserInfoFlow() } returns userFlow
-            every { messageRepository.getMessagesByUserFlow(any()) } returns messagesFlow
+            every { messageRepository.getUserReadUnreadCounts() } returns userMessageCountFlow
             every { roleRepository.getRoleInfoFlow() } returns roleFlow
             every { permissionRepository.getPermissionInfoFlow(any()) } returns permissionFlow
 
@@ -612,6 +600,4 @@ class GetUserDashboardUseCaseTest {
                 cancelAndIgnoreRemainingEvents()
             }
         }
-
-
 }

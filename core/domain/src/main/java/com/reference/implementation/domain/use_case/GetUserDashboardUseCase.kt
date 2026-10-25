@@ -1,5 +1,6 @@
 package com.reference.implementation.domain.use_case
 
+import com.reference.implementation.domain.model.CachePayload
 import com.reference.implementation.domain.util.NetworkResult
 import com.reference.implementation.domain.model.UserDashboardDomainModel
 import com.reference.implementation.domain.repository.MessageRepository
@@ -30,16 +31,19 @@ open class GetUserDashboardUseCase @Inject constructor(
     ): Flow<Resource<UserDashboardDomainModel>> {
         return combine(
             userRepository.getUserInfoFlow(),
-            messageRepository.getMessagesByUserFlow(onRetry),
+            messageRepository.getUserReadUnreadCounts(),
             roleRepository.getRoleInfoFlow(),
             permissionRepository.getPermissionInfoFlow(onRetry)
-        ) { userRes, messageRes, roleRes, permissionRes ->
+        ) { userRes, userMessageRes, roleRes, permissionRes ->
+
+            val userMessagesCachePayload = userMessageRes as CachePayload.ActiveStream
 
             // Check for catastrophic hard error (e.g. if ALL streams failed)
             // Like, server(s) down, internet down, etc.
             val allFailed = listOf(
-                userRes, messageRes, roleRes, permissionRes
+                userRes, roleRes, permissionRes
             ).all { it is NetworkResult.Error }
+                    && userMessagesCachePayload.syncError != null
 
             if (allFailed) {
                 Resource.Error("Unable to load dashboard data.")
@@ -47,8 +51,12 @@ open class GetUserDashboardUseCase @Inject constructor(
 
                 // Extracts the data safely if Success: otherwise keep null
                 val user = (userRes as? NetworkResult.Success)?.data
-                val messages = (messageRes as? NetworkResult.Success)?.data // returns List<MessageDomainModel>?
-                val roles = (roleRes as? NetworkResult.Success)?.data?.roles // returns List<String>?
+                val userMessagesData = userMessagesCachePayload.data
+                val unreadCount = userMessagesData.unreadCount
+                val readCount = userMessagesData.readCount
+
+                val roles =
+                    (roleRes as? NetworkResult.Success)?.data?.roles // returns List<String>?
                 val permissions =
                     (permissionRes as? NetworkResult.Success)?.data?.permissions // returns List<String>?
 
@@ -56,8 +64,8 @@ open class GetUserDashboardUseCase @Inject constructor(
                     UserDashboardDomainModel(
                         userName = user?.name,
                         userEmail = user?.email,
-                        unreadMessages = messages?.count { !it.read },
-                        readMessages = messages?.count { it.read },
+                        unreadMessages = unreadCount,
+                        readMessages = readCount,
                         roles = roles,
                         permissions = permissions
                     )
