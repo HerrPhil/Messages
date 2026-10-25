@@ -6,6 +6,7 @@ import com.reference.implementation.data.di.AuthNetwork
 import com.reference.implementation.data.di.IoDispatcher
 import com.reference.implementation.data.manager.SessionManager
 import com.reference.implementation.data.manager.SessionResult
+import com.reference.implementation.data.mappers.toDomainModel
 import com.reference.implementation.data.model.SyncState
 import com.reference.implementation.data.sources.ApiService
 import com.reference.implementation.database.dao.UserDao

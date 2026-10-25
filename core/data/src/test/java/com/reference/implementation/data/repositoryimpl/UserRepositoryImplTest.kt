@@ -4,6 +4,7 @@ import android.util.Log
 import app.cash.turbine.test
 import com.reference.implementation.data.manager.SessionManager
 import com.reference.implementation.data.manager.SessionResult
+import com.reference.implementation.data.mappers.toDomainModel
 import com.reference.implementation.data.sources.ApiService
 import com.reference.implementation.database.dao.UserDao
 import com.reference.implementation.database.model.UserEntity

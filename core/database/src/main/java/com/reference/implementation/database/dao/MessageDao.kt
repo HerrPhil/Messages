@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.reference.implementation.database.model.MessageEntity
+import com.reference.implementation.database.model.MessageReadUnreadQueryResult
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -17,5 +18,18 @@ interface MessageDao {
     // THE CONTRACT: Accepts a list of entities and executes an atomic SQLite transaction loop
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMessages(users: List<MessageEntity>)
+
+    // THE READ/UNREAD CONDITIONAL AGGREGATION ENGINE:
+    // Computes both read and unread message counts for a selected user ID simultaneously.
+    // down in the native C++ SQLite framework, returning a single, real-time snapshot row!
+    @Query(value = """
+        SELECT
+            SUM(CASE WHEN read = 0 THEN 1 ELSE 0 END) as unreadCount,
+            SUM(CASE WHEN read = 1 THEN 1 ELSE 0 END) as readCount
+        FROM messages
+        WHERE userId = :userId 
+    """
+    )
+    fun getUserMessageReadUnreadStream(userId: Int): Flow<MessageReadUnreadQueryResult>
 
 }

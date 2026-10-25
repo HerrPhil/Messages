@@ -6,28 +6,22 @@ import com.reference.implementation.data.di.AuthNetwork
 import com.reference.implementation.data.di.IoDispatcher
 import com.reference.implementation.data.manager.SessionManager
 import com.reference.implementation.data.manager.SessionResult
-import com.reference.implementation.data.mappers.toMessageDomainModel
 import com.reference.implementation.data.model.SyncState
 import com.reference.implementation.data.sources.ApiService
 import com.reference.implementation.database.dao.MessageDao
 import com.reference.implementation.domain.model.CachePayload
-import com.reference.implementation.domain.model.MessageDomainModel
+import com.reference.implementation.domain.model.UserMessageReadUnreadDomainModel
 import com.reference.implementation.domain.repository.MessageRepository
-import com.reference.implementation.domain.util.NetworkResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import retrofit2.HttpException
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -45,11 +39,14 @@ class MessageRepositoryImpl @Inject constructor(
     // Starts as completely idle (No errors, not syncing).
     private val syncStatus = MutableStateFlow<SyncState>(SyncState.Idle)
 
-    // THE DEPTH-FIRST ENGINE: Connects use cases natively to the database pipe.
-    // Your public stream now yields a unified payload containing BOTH local data and sync health!
-    // Note: CachePayload is the evolution from NetworkResult.
-    // Note: There is NO .onCompletion {} - the Room stream is infinite.
-    // Note; There is NO .catch {} - the network health check is information in CachePayload
+    /**
+     * THE DEPTH-FIRST ENGINE: Connects use cases natively to the database pipe.
+     * Your public stream now yields a unified payload containing BOTH local data and sync health!
+     * Note: CachePayload is the evolution from NetworkResult.
+     * Note: There is NO .onCompletion {} - the Room stream is infinite.
+     * Note: There is NO .catch {} - the network health check is information in CachePayload.
+     * Note: Called by Admin Dashboard - that is why it syncs all messages.
+     */
     override fun getSummaryMessages(): Flow<CachePayload<String>> =
         flow {
 
@@ -83,39 +80,51 @@ class MessageRepositoryImpl @Inject constructor(
     /**
      * This is Phase 1 code of my re-factor of GetUserDashboardUseCase.
      * Phase 2 moves to leveraging the getMessagesByUser() function of MessageCacheRepository.
+     * Note: Called by User Dashboard - that is why it syncs messages by user ID.
+     *
+     * Learning:
+     * The function getMessagesByUserFlow(onRetry: (Int) -> Unit) was called once. Once.
+     * It was a stop-gap measure for the absence of the Room  cache.
+     * The reason not due to caching though. It was due to no query feature in the RESTful API,
+     * short of writing a custom middleware.
+     *
+     * Now, with Room, this function can use a customized DAO to roll up the read/unread integers.
+     * GetUserDashboardUseCase, the one user of this function, only uses counts
+     * of the list of messages.
      */
-    override fun getMessagesByUserFlow(onRetry: (Int) -> Unit): Flow<NetworkResult<List<MessageDomainModel>>> =
+    override fun getUserReadUnreadCounts(): Flow<CachePayload<UserMessageReadUnreadDomainModel>> =
         flow {
-            emit(NetworkResult.Loading)
 
             val userId = when (val userIdResult = sessionManager.getSessionUserId()) {
                 is SessionResult.Authenticated -> userIdResult.data
                 else -> 0
             }
 
-            val response = retryIO(times = 3, onRetry = onRetry) {
-                val res = apiService.getMessages(userId)
-                if (res.code() >= 500) {
-                    throw HttpException(res) // Force retryIO's catch block to trigger!
+            // THE CONFLUENCE ENGINE:
+            // We combine Room's infinite stream with our private background sync status flow!
+            messageDao.getUserMessageReadUnreadStream(userId)
+                .combine(syncStatus) { result, status ->
+                    val domainModel = UserMessageReadUnreadDomainModel(
+                        readCount = result.readCount,
+                        unreadCount = result.unreadCount
+                    )
+                    CachePayload.ActiveStream(
+                        data = domainModel,
+                        isSyncing = status is SyncState.Loading,
+                        syncError = (status as? SyncState.Error)?.exception // propagates 4xx/5xx errors
+                    )
+                }.collect { unifiedPayload ->
+                    // Emit the combined model down your existing public pipeline channels!
+                    emit(unifiedPayload)
                 }
-                res
+        }.onStart {
+            // Emitters documentation says:
+            // This action is called before the upstream flow is started.
+            // Trigger background sync exactly once on collection entry
+            externalScope.launch {
+                syncMessages()
             }
-
-            val body = response.body()
-            if (response.isSuccessful && body != null) {
-                emit(NetworkResult.Success(body.map { it.toMessageDomainModel() }))
-            } else {
-                emit(NetworkResult.Error(response.code(), response.message()))
-            }
-        }.catch { e ->
-            if (e is CancellationException) throw e
-            auditLog(e.message ?: "no messages")
-            emit(NetworkResult.Exception(e))
-        }.onCompletion {
-            withContext(NonCancellable) {
-                auditLog("${auditLogTimestamp()} get messages ended")
-            }
-        }.flowOn(ioDispatcher) // Note: Dispatchers.IO is better suited for Network/API calls!
+        }.flowOn(ioDispatcher)
 
     private suspend fun syncMessages() {
 

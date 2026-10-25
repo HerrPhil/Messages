@@ -35,6 +35,13 @@ class RoleRepositoryImpl @Inject constructor(
     private val sessionManager: SessionManager
 ) : RoleRepository {
 
+    /**
+     * Emits:
+     * - role info stored in the session manager at login
+     *
+     * Remains NetworkResult - do not want session info from previous session stored in Room.
+     * Keep session information in-memory.
+     */
     override fun getRoleInfoFlow(): Flow<NetworkResult<UserRoleDomainModel>> =
         flow {
             emit(NetworkResult.Loading)

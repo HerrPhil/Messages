@@ -6,11 +6,13 @@ import com.reference.implementation.data.dtos.UserDto
 import com.reference.implementation.database.model.MessageEntity
 import com.reference.implementation.database.model.UserEntity
 import com.reference.implementation.domain.model.LoginUserDomainModel
+import com.reference.implementation.domain.model.MessageDomainModel
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.ensureActive
 import retrofit2.HttpException
 import java.io.IOException
+import java.time.Instant
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.time.Duration.Companion.milliseconds
@@ -109,10 +111,3 @@ fun MessageDto.toEntity() =
         createdAt = this.createdAt
     )
 
-fun UserEntity.toDomainModel() =
-    LoginUserDomainModel(
-        id = this.id,
-        name = this.name,
-        email = this.email,
-        age = this.age
-    )
