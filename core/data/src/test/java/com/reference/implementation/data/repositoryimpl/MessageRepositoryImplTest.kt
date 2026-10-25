@@ -2,7 +2,6 @@ package com.reference.implementation.data.repositoryimpl
 
 import android.util.Log
 import app.cash.turbine.test
-import com.reference.implementation.data.dtos.toDto
 import com.reference.implementation.data.manager.SessionManager
 import com.reference.implementation.data.manager.SessionResult
 import com.reference.implementation.data.sources.ApiService
@@ -10,7 +9,6 @@ import com.reference.implementation.database.dao.MessageDao
 import com.reference.implementation.database.model.MessageEntity
 import com.reference.implementation.database.model.MessageReadUnreadQueryResult
 import com.reference.implementation.domain.model.CachePayload
-import com.reference.implementation.domain.model.MessageDomainModel
 import com.reference.implementation.domain.model.UserMessageReadUnreadDomainModel
 import io.mockk.coEvery
 import io.mockk.every
@@ -35,7 +33,6 @@ import org.junit.Test
 import retrofit2.HttpException
 import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
-import java.time.Instant
 import java.util.concurrent.TimeUnit
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -206,7 +203,6 @@ class MessageRepositoryImplTest {
             assertEquals("/messages", recordedRequest?.path)
         }
 
-
 // ################################################################################################
 // ################################################################################################
 // ################################################################################################
@@ -295,29 +291,4 @@ class MessageRepositoryImplTest {
             assertEquals("GET", recordedRequest?.method)
             assertEquals("/messages", recordedRequest?.path)
         }
-
-    private fun createSampleDomainMessage(id: Int, read: Boolean): MessageDomainModel {
-        return MessageDomainModel(
-            id = 100 + id,
-            userId = 1,
-            subject = "Test Subject",
-            body = "Test Body",
-            read = read,
-            createdAt = "2026-08-27T18:00:00Z",
-            createdAtInstant = Instant.parse("2026-08-27T18:00:00Z"),
-        )
-    }
-
-    // Fabricate the list of messages to get.
-    // Notice by making the Json instance create the raw JSON string
-    // that it relieves us from balancing array brackets, squiggly braces, and commas
-    // of a traditional raw """[...]""" list.
-    private fun createSampleDomainMessages(): String =
-        json.encodeToString(MutableList(3) { index ->
-            createSampleDomainMessage(
-                index,
-                (index % 2 == 0)
-            )
-        }.map { it.toDto() })
-
 }

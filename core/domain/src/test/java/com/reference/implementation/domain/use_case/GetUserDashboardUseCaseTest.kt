@@ -3,7 +3,6 @@ package com.reference.implementation.domain.use_case
 import app.cash.turbine.test
 import com.reference.implementation.domain.model.CachePayload
 import com.reference.implementation.domain.model.LoginUserDomainModel
-import com.reference.implementation.domain.model.MessageDomainModel
 import com.reference.implementation.domain.model.UserMessageReadUnreadDomainModel
 import com.reference.implementation.domain.model.UserPermissionDomainModel
 import com.reference.implementation.domain.model.UserRoleDomainModel
@@ -27,7 +26,6 @@ import org.junit.Test
 import retrofit2.HttpException
 import retrofit2.Response
 import java.io.IOException
-import java.time.Instant
 
 class GetUserDashboardUseCaseTest {
 
