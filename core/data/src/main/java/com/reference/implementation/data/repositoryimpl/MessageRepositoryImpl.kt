@@ -9,6 +9,7 @@ import com.reference.implementation.data.manager.SessionResult
 import com.reference.implementation.data.model.SyncState
 import com.reference.implementation.data.sources.ApiService
 import com.reference.implementation.database.dao.MessageDao
+import com.reference.implementation.domain.model.AdminMessageUnreadTotalDomainModel
 import com.reference.implementation.domain.model.CachePayload
 import com.reference.implementation.domain.model.UserMessageReadUnreadDomainModel
 import com.reference.implementation.domain.repository.MessageRepository
@@ -47,20 +48,21 @@ class MessageRepositoryImpl @Inject constructor(
      * Note: There is NO .catch {} - the network health check is information in CachePayload.
      * Note: Called by Admin Dashboard - that is why it syncs all messages.
      */
-    override fun getSummaryMessages(): Flow<CachePayload<String>> =
+    override fun getAdminUnreadTotalCounts(): Flow<CachePayload<AdminMessageUnreadTotalDomainModel>> =
         flow {
 
             // THE CONFLUENCE ENGINE:
             // We combine Room's infinite stream with our private background sync status flow!
-            messageDao.getMessagesStream()
-                .combine(syncStatus) { entities, status ->
+            messageDao.getAdminMessageUnreadTotalStream()
+                .combine(syncStatus) { result, status ->
 
-                    val unreadMessages = entities.count { !it.read }
-                    val allMessages = entities.size
-                    val summaryMessage = "$unreadMessages / $allMessages"
+                    val domainModel = AdminMessageUnreadTotalDomainModel(
+                        unreadCount = result.unreadCount,
+                        totalCount = result.totalCount
+                    )
 
                     CachePayload.ActiveStream(
-                        data = summaryMessage,
+                        data = domainModel,
                         isSyncing = status is SyncState.Loading,
                         syncError = (status as? SyncState.Error)?.exception // propagates 4xx/5xx errors
                     )
