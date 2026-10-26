@@ -1,6 +1,7 @@
 package com.reference.implementation.domain.use_case
 
 import app.cash.turbine.test
+import com.reference.implementation.domain.model.AdminMessageUnreadTotalDomainModel
 import com.reference.implementation.domain.model.CachePayload
 import com.reference.implementation.domain.repository.BulletinRepository
 import com.reference.implementation.domain.repository.MessageRepository
@@ -45,10 +46,11 @@ class GetAdminDashboardUseCaseTest {
                 null
             )
         )
-        val messagesFlow = MutableStateFlow<CachePayload<String>>(
+        val messageDomainModel = AdminMessageUnreadTotalDomainModel(4,8)
+        val messageFlow = MutableStateFlow<CachePayload<AdminMessageUnreadTotalDomainModel>>(
             CachePayload.ActiveStream(
-                "0 / 0",
-                true,
+                messageDomainModel,
+                false,
                 null
             )
         )
@@ -61,7 +63,7 @@ class GetAdminDashboardUseCaseTest {
         )
 
         every { userRepository.getUserCount() } returns userFlow
-        every { messageRepository.getSummaryMessages() } returns messagesFlow
+        every { messageRepository.getAdminUnreadTotalCounts() } returns messageFlow
         every { bulletinRepository.getBulletinCount() } returns bulletinFlow
 
         useCase().test {
@@ -83,10 +85,10 @@ class GetAdminDashboardUseCaseTest {
                     null
                 )
             )
-            val messagesSummary = "4 / 8"
-            val messageFlow = MutableStateFlow<CachePayload<String>>(
+            val messageDomainModel = AdminMessageUnreadTotalDomainModel(4,8)
+            val messageFlow = MutableStateFlow<CachePayload<AdminMessageUnreadTotalDomainModel>>(
                 CachePayload.ActiveStream(
-                    messagesSummary,
+                    messageDomainModel,
                     false,
                     null
                 )
@@ -101,7 +103,7 @@ class GetAdminDashboardUseCaseTest {
             )
 
             every { userRepository.getUserCount() } returns userFlow
-            every { messageRepository.getSummaryMessages() } returns messageFlow
+            every { messageRepository.getAdminUnreadTotalCounts() } returns messageFlow
             every { bulletinRepository.getBulletinCount() } returns bulletinFlow
 
             useCase().test {
@@ -119,7 +121,8 @@ class GetAdminDashboardUseCaseTest {
                 assertEquals(numberOfUsers, actualDashboard.usersCount)
 
                 // 3. the message info
-                assertEquals(messagesSummary, actualDashboard.summaryMessages)
+                val expectedSummaryMessages = "4 / 8"
+                assertEquals(expectedSummaryMessages, actualDashboard.summaryMessages)
 
                 // 4. the bulletin count
                 assertEquals(numberOfBulletins, actualDashboard.bulletinsCount)
@@ -138,10 +141,10 @@ class GetAdminDashboardUseCaseTest {
                     null
                 )
             )
-            val messagesSummary = "4 / 8"
-            val messageFlow = MutableStateFlow<CachePayload<String>>(
+            val messageDomainModel = AdminMessageUnreadTotalDomainModel(4,8)
+            val messageFlow = MutableStateFlow<CachePayload<AdminMessageUnreadTotalDomainModel>>(
                 CachePayload.ActiveStream(
-                    messagesSummary,
+                    messageDomainModel,
                     false,
                     null
                 )
@@ -156,7 +159,7 @@ class GetAdminDashboardUseCaseTest {
             )
 
             every { userRepository.getUserCount() } returns userFlow
-            every { messageRepository.getSummaryMessages() } returns messageFlow
+            every { messageRepository.getAdminUnreadTotalCounts() } returns messageFlow
             every { bulletinRepository.getBulletinCount() } returns bulletinFlow
 
             useCase().test {
@@ -174,7 +177,8 @@ class GetAdminDashboardUseCaseTest {
                 assertEquals(0, actualDashboard.usersCount)
 
                 // 4. the message info
-                assertEquals(messagesSummary, actualDashboard.summaryMessages)
+                val expectedSummaryMessages = "4 / 8"
+                assertEquals(expectedSummaryMessages, actualDashboard.summaryMessages)
 
                 // 5. the bulletin count
                 assertEquals(numberOfBulletins, actualDashboard.bulletinsCount)
@@ -194,10 +198,11 @@ class GetAdminDashboardUseCaseTest {
                     null
                 )
             )
-            val messageFlow = MutableStateFlow<CachePayload<String>>(
+            val messageDomainModel = AdminMessageUnreadTotalDomainModel(0,0)
+            val messageFlow = MutableStateFlow<CachePayload<AdminMessageUnreadTotalDomainModel>>(
                 CachePayload.ActiveStream(
-                    "0 / 0",
-                    true,
+                    messageDomainModel,
+                    false,
                     null
                 )
             )
@@ -211,7 +216,7 @@ class GetAdminDashboardUseCaseTest {
             )
 
             every { userRepository.getUserCount() } returns userFlow
-            every { messageRepository.getSummaryMessages() } returns messageFlow
+            every { messageRepository.getAdminUnreadTotalCounts() } returns messageFlow
             every { bulletinRepository.getBulletinCount() } returns bulletinFlow
 
             useCase().test {
@@ -229,7 +234,8 @@ class GetAdminDashboardUseCaseTest {
                 assertEquals(numberOfUsers, actualDashboard.usersCount)
 
                 // 4. the message info
-                assertEquals("0 / 0", actualDashboard.summaryMessages)
+                val expectedSummaryMessages = "0 / 0"
+                assertEquals(expectedSummaryMessages, actualDashboard.summaryMessages)
 
                 // 5. the bulletin count
                 assertEquals(numberOfBulletins, actualDashboard.bulletinsCount)
@@ -249,10 +255,10 @@ class GetAdminDashboardUseCaseTest {
                     null
                 )
             )
-            val messagesSummary = "4 / 8"
-            val messageFlow = MutableStateFlow<CachePayload<String>>(
+            val messageDomainModel = AdminMessageUnreadTotalDomainModel(4,8)
+            val messageFlow = MutableStateFlow<CachePayload<AdminMessageUnreadTotalDomainModel>>(
                 CachePayload.ActiveStream(
-                    messagesSummary,
+                    messageDomainModel,
                     false,
                     null
                 )
@@ -266,7 +272,7 @@ class GetAdminDashboardUseCaseTest {
             )
 
             every { userRepository.getUserCount() } returns userFlow
-            every { messageRepository.getSummaryMessages() } returns messageFlow
+            every { messageRepository.getAdminUnreadTotalCounts() } returns messageFlow
             every { bulletinRepository.getBulletinCount() } returns bulletinFlow
 
             useCase().test {
@@ -284,7 +290,8 @@ class GetAdminDashboardUseCaseTest {
                 assertEquals(numberOfUsers, actualDashboard.usersCount)
 
                 // 4. the message info
-                assertEquals(messagesSummary, actualDashboard.summaryMessages)
+                val expectedSummaryMessages = "4 / 8"
+                assertEquals(expectedSummaryMessages, actualDashboard.summaryMessages)
 
                 // 5. the bulletin count
                 assertEquals(0, actualDashboard.bulletinsCount)
@@ -311,13 +318,15 @@ class GetAdminDashboardUseCaseTest {
                     )
                 )
             )
-            val messageFlow = MutableStateFlow<CachePayload<String>>(
+            val messageDomainModel = AdminMessageUnreadTotalDomainModel(0,0)
+            val messageFlow = MutableStateFlow<CachePayload<AdminMessageUnreadTotalDomainModel>>(
                 CachePayload.ActiveStream(
-                    "0 / 0",
+                    messageDomainModel,
                     false,
                     IOException("Network down")
                 )
             )
+
             val bulletinFlow = MutableStateFlow<CachePayload<Int>>(
                 CachePayload.ActiveStream(
                     0,
@@ -335,7 +344,7 @@ class GetAdminDashboardUseCaseTest {
             )
 
             every { userRepository.getUserCount() } returns userFlow
-            every { messageRepository.getSummaryMessages() } returns messageFlow
+            every { messageRepository.getAdminUnreadTotalCounts() } returns messageFlow
             every { bulletinRepository.getBulletinCount() } returns bulletinFlow
 
             useCase().test {
@@ -374,9 +383,10 @@ class GetAdminDashboardUseCaseTest {
                     )
                 )
             )
-            val messageFlow = MutableStateFlow<CachePayload<String>>(
+            val messageDomainModel = AdminMessageUnreadTotalDomainModel(0,0)
+            val messageFlow = MutableStateFlow<CachePayload<AdminMessageUnreadTotalDomainModel>>(
                 CachePayload.ActiveStream(
-                    "0 / 0",
+                    messageDomainModel,
                     false,
                     HttpException(
                         Response.error<Int>(
@@ -406,7 +416,7 @@ class GetAdminDashboardUseCaseTest {
             )
 
             every { userRepository.getUserCount() } returns userFlow
-            every { messageRepository.getSummaryMessages() } returns messageFlow
+            every { messageRepository.getAdminUnreadTotalCounts() } returns messageFlow
             every { bulletinRepository.getBulletinCount() } returns bulletinFlow
 
             useCase().test {

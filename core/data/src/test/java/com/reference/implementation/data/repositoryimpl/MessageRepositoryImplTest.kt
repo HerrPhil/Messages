@@ -6,8 +6,9 @@ import com.reference.implementation.data.manager.SessionManager
 import com.reference.implementation.data.manager.SessionResult
 import com.reference.implementation.data.sources.ApiService
 import com.reference.implementation.database.dao.MessageDao
-import com.reference.implementation.database.model.MessageEntity
+import com.reference.implementation.database.model.AdminMessageUnreadTotalQueryResult
 import com.reference.implementation.database.model.MessageReadUnreadQueryResult
+import com.reference.implementation.domain.model.AdminMessageUnreadTotalDomainModel
 import com.reference.implementation.domain.model.CachePayload
 import com.reference.implementation.domain.model.UserMessageReadUnreadDomainModel
 import io.mockk.coEvery
@@ -49,9 +50,10 @@ class MessageRepositoryImplTest {
     // THE IMMUTABLE FIX: Mock the DAO contract interfaces natively!
     private lateinit var messageDao: MessageDao
     // A hot stream placeholder that perfectly mimics Room's active table emissions
-    private lateinit var daoMockStream: MutableStateFlow<List<MessageEntity>>
+    private lateinit var daoAdminAggregationMockStream: MutableStateFlow<AdminMessageUnreadTotalQueryResult>
+    //    private lateinit var daoMockStream: MutableStateFlow<List<MessageEntity>>
     // 💡 THE CHRONOLOGICAL REMEDY: Add a hot stream placeholder matching your custom query model!
-    private lateinit var daoAggregationMockStream: MutableStateFlow<MessageReadUnreadQueryResult>
+    private lateinit var daoUserAggregationMockStream: MutableStateFlow<MessageReadUnreadQueryResult>
     private val sessionManager: SessionManager = mockk(relaxed = true)
     private lateinit var repository: MessageRepositoryImpl
     private val json = Json { ignoreUnknownKeys = true }
@@ -72,16 +74,18 @@ class MessageRepositoryImplTest {
         // Instantiate hot mocking data channels
         messageDao = mockk(relaxed = true)
 
-        daoMockStream = MutableStateFlow(emptyList())
+        daoAdminAggregationMockStream =
+            MutableStateFlow(AdminMessageUnreadTotalQueryResult(unreadCount = 0, totalCount = 0))
 
         // Initialize your aggregate data class stream baseline (unread=0, read=0)
-        daoAggregationMockStream = MutableStateFlow(MessageReadUnreadQueryResult(unreadCount = 0, readCount = 0))
+        daoUserAggregationMockStream =
+            MutableStateFlow(MessageReadUnreadQueryResult(unreadCount = 0, readCount = 0))
 
         // Bind the mock use case getter to pipe our StateFlow records natively!
-        every { messageDao.getMessagesStream() } returns daoMockStream
+        every { messageDao.getAdminMessageUnreadTotalStream() } returns daoAdminAggregationMockStream
 
         // THE RESOLUTION: Instruct MockK exactly how to satisfy your custom query call!
-        every { messageDao.getUserMessageReadUnreadStream(any()) } returns daoAggregationMockStream
+        every { messageDao.getUserMessageReadUnreadStream(any()) } returns daoUserAggregationMockStream
 
         mockWebServer = MockWebServer()
         mockWebServer.start() // automated tests should always use port 0 to avoid flakiness
@@ -133,7 +137,7 @@ class MessageRepositoryImplTest {
                 // Thanks to StandardTestDispatcher, the network hasn't even executed a single line yet!
                 val loadingItem = awaitItem()
                 assertIs<CachePayload.ActiveStream<UserMessageReadUnreadDomainModel>>(loadingItem)
-                val initialDomainModel = UserMessageReadUnreadDomainModel(0,0)
+                val initialDomainModel = UserMessageReadUnreadDomainModel(0, 0)
                 assertEquals(
                     initialDomainModel,
                     loadingItem.data,
@@ -169,7 +173,7 @@ class MessageRepositoryImplTest {
                 // 💡 CLOCK STEP 2: Trigger an on-demand database write mutation!
                 // This simulates an offline user interaction modifying records post-failure.
                 launch {
-                    daoAggregationMockStream.value = MessageReadUnreadQueryResult(
+                    daoUserAggregationMockStream.value = MessageReadUnreadQueryResult(
                         unreadCount = 0,
                         readCount = 1
                     )
@@ -181,7 +185,9 @@ class MessageRepositoryImplTest {
                 // Event 3: The Ultimate Resiliency Proof!
                 // Turbine cleanly intercepts the database write because the stream stayed 100% alive!
                 val resilientCacheEmission = awaitItem()
-                assertIs<CachePayload.ActiveStream<UserMessageReadUnreadDomainModel>>(resilientCacheEmission)
+                assertIs<CachePayload.ActiveStream<UserMessageReadUnreadDomainModel>>(
+                    resilientCacheEmission
+                )
                 val successModel = UserMessageReadUnreadDomainModel(1, 0)
                 assertFalse(resilientCacheEmission.isSyncing)
                 assertEquals(
@@ -211,7 +217,7 @@ class MessageRepositoryImplTest {
     // Requires StandardTestDispatcher for resilience test
     @OptIn(ExperimentalCoroutinesApi::class)
     @Test
-    fun `getSummaryMessages stream remains open and active after background synchronization encounters network 500 error`() =
+    fun `getAdminUnreadTotalCounts stream remains open and active after background synchronization encounters network 500 error`() =
         runTest(testDispatcher) {
 
             // 1. Arrange: Enqueue exactly 3 HTTP 500 failure responses on MockWebServer
@@ -220,13 +226,18 @@ class MessageRepositoryImplTest {
             mockWebServer.enqueue(MockResponse().setResponseCode(500))
 
             // 2. Act & Assert: Open the stream subscription channel pipe using Turbine
-            repository.getSummaryMessages().test {
+            repository.getAdminUnreadTotalCounts().test {
 
                 // Event 1: Initial state of the flow must emit loading baseline at time zero
                 // Thanks to StandardTestDispatcher, the network hasn't even executed a single line yet!
                 val loadingItem = awaitItem()
-                assertIs<CachePayload.ActiveStream<String>>(loadingItem)
-                assertEquals("0 / 0", loadingItem.data, "Room cache contains nothing initially")
+                assertIs<CachePayload.ActiveStream<AdminMessageUnreadTotalDomainModel>>(loadingItem)
+                val initialDomainModel = AdminMessageUnreadTotalDomainModel(0, 0)
+                assertEquals(
+                    initialDomainModel,
+                    loadingItem.data,
+                    "Room cache contains nothing initially"
+                )
                 assertTrue(loadingItem.isSyncing, "The sync state begins as true")
                 assertEquals(null, loadingItem.syncError)
 
@@ -238,7 +249,9 @@ class MessageRepositoryImplTest {
                 // Event 2: Network Sync Failure State Snapshot!
                 // Turbine cleanly intercepts the intermediate network error update frame.
                 val errorStateItem = awaitItem()
-                assertIs<CachePayload.ActiveStream<String>>(errorStateItem)
+                assertIs<CachePayload.ActiveStream<AdminMessageUnreadTotalDomainModel>>(
+                    errorStateItem
+                )
                 assertFalse(
                     errorStateItem.isSyncing,
                     "The background network synchronization has ended"
@@ -247,22 +260,16 @@ class MessageRepositoryImplTest {
                     errorStateItem.syncError,
                     "Exposes the HttpException payload info"
                 )
-                assertEquals("0 / 0", errorStateItem.data, "Cache count remains clean at 0 rows")
+                assertEquals(
+                    initialDomainModel,
+                    errorStateItem.data,
+                    "Cache count remains clean at 0 rows"
+                )
 
                 // 💡 CLOCK STEP 2: Trigger an on-demand database write mutation!
                 // This simulates an offline user interaction modifying records post-failure.
                 launch {
-                    val sampleEntityList = listOf(
-                        MessageEntity(
-                            id = 99,
-                            subject = "nightly outage",
-                            body = "there is an outage",
-                            read = true,
-                            userId = 1234,
-                            createdAt = "2026-07-13T22:28:56.321Z"
-                        )
-                    )
-                    daoMockStream.value = sampleEntityList
+                    daoAdminAggregationMockStream.value = AdminMessageUnreadTotalQueryResult(3, 7)
                 }
 
                 // Flush the scheduler one final time to step the clock and dispatch the mutation task
@@ -271,10 +278,13 @@ class MessageRepositoryImplTest {
                 // Event 3: The Ultimate Resiliency Proof!
                 // Turbine cleanly intercepts the database write because the stream stayed 100% alive!
                 val resilientCacheEmission = awaitItem()
-                assertIs<CachePayload.ActiveStream<String>>(resilientCacheEmission)
+                assertIs<CachePayload.ActiveStream<AdminMessageUnreadTotalDomainModel>>(
+                    resilientCacheEmission
+                )
+                val successModel = AdminMessageUnreadTotalDomainModel(3, 7)
                 assertFalse(resilientCacheEmission.isSyncing)
                 assertEquals(
-                    expected = "0 / 1",
+                    expected = successModel,
                     actual = resilientCacheEmission.data,
                     "Stream successfully caught the mutation post-crash!"
                 )

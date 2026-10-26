@@ -22,7 +22,7 @@ class GetAdminDashboardUseCase @Inject constructor(
     operator fun invoke(): Flow<Resource<AdminDashboardDomainModel>> {
         return combine(
             userRepository.getUserCount(),
-            messageRepository.getSummaryMessages(),
+            messageRepository.getAdminUnreadTotalCounts(),
             bulletinRepository.getBulletinCount()
         ) { userRes, messageRes, bulletinRes ->
 
@@ -49,7 +49,8 @@ class GetAdminDashboardUseCase @Inject constructor(
                 // No safe-casting required anymore! Read the data property directly.
                 val usersCount = userStream.data
 
-                val summaryMessages = messageStream.data
+                val messageDomainModel = messageStream.data
+                val summaryMessages = "${messageDomainModel.unreadCount} / ${messageDomainModel.totalCount}"
 
                 // No safe-casting required anymore! Read the data property directly.
                 val bulletinsCount = bulletinStream.data
