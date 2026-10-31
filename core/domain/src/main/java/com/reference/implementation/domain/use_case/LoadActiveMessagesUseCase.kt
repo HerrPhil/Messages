@@ -4,6 +4,7 @@ import com.reference.implementation.domain.repository.MessageCacheRepository
 import javax.inject.Inject
 import javax.inject.Singleton
 
+@Deprecated("obsolete with offline-first Room-cached values")
 @Singleton
 open class LoadActiveMessagesUseCase @Inject constructor(
     private val repo: MessageCacheRepository

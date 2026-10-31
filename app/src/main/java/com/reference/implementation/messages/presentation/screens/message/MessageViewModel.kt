@@ -1,18 +1,17 @@
 package com.reference.implementation.messages.presentation.screens.message
 
-import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.reference.implementation.domain.model.MessageDomainModel
 import com.reference.implementation.domain.use_case.DeleteMessageUseCase
-import com.reference.implementation.domain.use_case.GetCachedMessagesUseCase
 import com.reference.implementation.domain.use_case.GetMessageEventsUseCase
-import com.reference.implementation.domain.use_case.LoadActiveMessagesUseCase
+import com.reference.implementation.domain.use_case.GetMessagesForActiveUserUseCase
 import com.reference.implementation.domain.use_case.MarkMessageAsImportantUseCase
 import com.reference.implementation.domain.use_case.MarkMessageAsNotImportantUseCase
 import com.reference.implementation.domain.use_case.MarkMessageAsReadUseCase
 import com.reference.implementation.domain.use_case.MarkMessageAsUnreadUseCase
+import com.reference.implementation.domain.use_case.RefreshMessagesUseCase
 import com.reference.implementation.domain.use_case.Resource
 import com.reference.implementation.domain.use_case.RestoreMessageUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -21,7 +20,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
@@ -32,8 +30,8 @@ import javax.inject.Inject
 @OptIn(ExperimentalCoroutinesApi::class)
 class MessageViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
-    private val loadActiveMessagesUseCase: LoadActiveMessagesUseCase,
-    getCachedMessagesUseCase: GetCachedMessagesUseCase,
+    private val refreshMessagesUseCase: RefreshMessagesUseCase,
+    getMessagesForActiveUserUseCase: GetMessagesForActiveUserUseCase,
     private val markMessageAsReadUseCase: MarkMessageAsReadUseCase,
     private val markMessageAsUnreadUseCase: MarkMessageAsUnreadUseCase,
     private val deleteMessageUseCase: DeleteMessageUseCase,
@@ -54,9 +52,6 @@ class MessageViewModel @Inject constructor(
         initialValue = ""
     )
 
-    // Tracks the active loading attempt reported by the repository's retryIO()
-    private val _loadTrigger = MutableStateFlow(0)
-
     // The _isRefreshing must stay private to the view model
     // Expose isRefreshing via MessageUiState.Success (e.g. AuthenticatedMainParameterHub)
     private val _isRefreshing = MutableStateFlow(false)
@@ -64,11 +59,7 @@ class MessageViewModel @Inject constructor(
     private val _isImportantOnly = MutableStateFlow(false)
 
     val uiState: StateFlow<MessageUiState> = combine(
-        // Subtle but important feature of flatMapLatest:
-        // if a new trigger value comes down _loadTrigger (e.g. attempt 1 ---> attempt 2),
-        // it cancels the previous database/network stream execution and starts a fresh one.
-        // Standard combine does not cancel in-flight work when values change!
-        _loadTrigger.flatMapLatest { getCachedMessagesUseCase() },
+        getMessagesForActiveUserUseCase(),
         _isRefreshing,
         searchQuery,
         _isImportantOnly
@@ -97,8 +88,6 @@ class MessageViewModel @Inject constructor(
                 if (isRefreshing && previousSuccess != null) {
                     // carry forward the previous Success state list, keeping the spinner alive
                     previousSuccess.copy(isRefreshing = true)
-                } else if (_loadTrigger.value > 0) {
-                    MessageUiState.Retrying(_loadTrigger.value)
                 } else {
                     MessageUiState.Loading
                 }
@@ -139,20 +128,8 @@ class MessageViewModel @Inject constructor(
         initialValue = MessageUiState.Loading
     )
 
-    val uiEvents = getMessageEventsUseCase().map { tttttt ->
-        tttttt.toMessageUiEvent()
-    }
-
-    init {
-        loadMessageData()
-    }
-
-    private fun loadMessageData() {
-        viewModelScope.launch {
-            loadActiveMessagesUseCase(onRetry = { attempt ->
-                _loadTrigger.value = attempt
-            })
-        }
+    val uiEvents = getMessageEventsUseCase().map { messageDomainEvent ->
+        messageDomainEvent.toMessageUiEvent()
     }
 
     fun onSearchChanged(newQuery: String) {
@@ -195,9 +172,7 @@ class MessageViewModel @Inject constructor(
         viewModelScope.launch {
             _isRefreshing.value = true // turn ON refreshing
             try {
-                loadActiveMessagesUseCase(onRetry = { attempt ->
-                    _loadTrigger.value = attempt
-                }) // suspending call - wait until done
+                refreshMessagesUseCase()
             } finally { // turn OFF refreshing
                 _isRefreshing.value = false
             }
@@ -205,9 +180,7 @@ class MessageViewModel @Inject constructor(
     }
 
     fun onImportantOnlyToggled(enabled: Boolean) {
-        Log.d("MessageViewModel", "start onImportantOnlyTogged")
         _isImportantOnly.value = enabled
-        Log.d("MessageViewModel", "end onImportantOnlyTogged")
     }
 
     fun onToggleImportantMessageClicked(messageId: Int, newIsImportant: Boolean) {

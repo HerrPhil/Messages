@@ -96,7 +96,7 @@ class AdminMessageViewModel @Inject constructor(
         userOptionQuery,
         isAdminSelected
     ) { search, important, userOption, isAdminSelected ->
-        UserFilterPreferences(search, important, userOption,  isAdminSelected)
+        UserFilterPreferences(search, important, userOption, isAdminSelected)
     }
 
     val uiState: StateFlow<AdminMessageUiState> = combine(
@@ -105,7 +105,7 @@ class AdminMessageViewModel @Inject constructor(
         // it cancels the previous database/network stream execution and starts a fresh one.
         // Standard combine does not cancel in-flight work when values change!
         _loadTrigger.flatMapLatest { getCachedMessagesUseCase() },
-         getAdminUserInformationUseCase(),
+        getAdminUserInformationUseCase(),
         _isRefreshing,
         filterPreferencesFlow
     ) { resourceResult, allUsersResult, isRefreshing, filterPreferences ->//, query, isImportantOnly ->

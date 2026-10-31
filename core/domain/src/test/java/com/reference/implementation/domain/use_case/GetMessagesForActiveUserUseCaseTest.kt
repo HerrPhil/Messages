@@ -1,32 +1,36 @@
 package com.reference.implementation.domain.use_case
 
 import app.cash.turbine.test
+import com.reference.implementation.domain.model.CachePayload
 import com.reference.implementation.domain.model.MessageDomainModel
-import com.reference.implementation.domain.repository.MessageCacheRepository
+import com.reference.implementation.domain.repository.MessageRepository
 import com.reference.implementation.domain.repository.UserPreferencesRepository
-import com.reference.implementation.domain.util.NetworkResult
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import retrofit2.HttpException
+import retrofit2.Response
 import java.io.IOException
 import java.time.Instant
 
-class GetCachedMessagesUseCaseTest {
+class GetMessagesForActiveUserUseCaseTest {
 
-    private val messageCacheRepository: MessageCacheRepository = mockk()
+    private val messageRepository: MessageRepository = mockk()
     private val userPreferencesRepository: UserPreferencesRepository = mockk()
-    private lateinit var useCase: GetCachedMessagesUseCase // under test
+    private lateinit var useCase: GetMessagesForActiveUserUseCase // under test
 
     @Before
     fun setUp() {
-        useCase = GetCachedMessagesUseCase(messageCacheRepository, userPreferencesRepository)
+        useCase = GetMessagesForActiveUserUseCase(messageRepository, userPreferencesRepository)
     }
 
     @Test
@@ -55,13 +59,17 @@ class GetCachedMessagesUseCaseTest {
                 isImportant = false
             )
 
-            val messagesFlow = MutableStateFlow<NetworkResult<List<MessageDomainModel>>>(
-                NetworkResult.Success(listOf(message1, message2))
+            val messagesFlow = MutableStateFlow<CachePayload<List<MessageDomainModel>>>(
+                value = CachePayload.ActiveStream(
+                    data = listOf(message1, message2),
+                    isSyncing = false,
+                    syncError = null
+                )
             )
 
             val importantIdsFlow = MutableStateFlow<Set<String>>(emptySet())
 
-            every { messageCacheRepository.getMessagesByUser() } returns messagesFlow
+            every { messageRepository.getMessagesForActiveUser() } returns messagesFlow
             every { userPreferencesRepository.getImportantMessageIds() } returns importantIdsFlow
 
             // Act & Assert
@@ -99,12 +107,16 @@ class GetCachedMessagesUseCaseTest {
     fun `invoke maps NetworkResult Error to Resource Error correctly`() = runTest {
 
         // Arrange
-        val messagesFlow = flowOf<NetworkResult<List<MessageDomainModel>>>(
-            NetworkResult.Exception(IOException("Network down"))
+        val messagesFlow = flowOf<CachePayload<List<MessageDomainModel>>>(
+            value = CachePayload.ActiveStream(
+                data = emptyList(),
+                isSyncing = false,
+                syncError = IOException("Network down")
+            )
         )
         val importantIdsFlow = flowOf(emptySet<String>())
 
-        every { messageCacheRepository.getMessagesByUser() } returns messagesFlow
+        every { messageRepository.getMessagesForActiveUser() } returns messagesFlow
         every { userPreferencesRepository.getImportantMessageIds() } returns importantIdsFlow
 
         // Act & Assert
@@ -115,7 +127,7 @@ class GetCachedMessagesUseCaseTest {
 
             val item = awaitItem()
             assertTrue(item is Resource.Error)
-            assertEquals("No internet connection", (item as Resource.Error).message)
+            assertEquals("Unable to load messages", (item as Resource.Error).message)
             awaitComplete()
         }
     }
@@ -124,12 +136,25 @@ class GetCachedMessagesUseCaseTest {
     fun `invoke maps NetworkResult not authorized Error to Resource Error correctly`() = runTest {
 
         // Arrange
-        val messagesFlow = flowOf<NetworkResult<List<MessageDomainModel>>>(
-            NetworkResult.Error(401,"not authorized")
+        val messagesFlow = flowOf<CachePayload<List<MessageDomainModel>>>(
+            value = CachePayload.ActiveStream(
+                data = emptyList(),
+                isSyncing = false,
+                syncError = HttpException(
+                    Response.error<Int>(
+                        401,
+                        "not authorized"
+                            .toResponseBody(
+                                "application/json".toMediaTypeOrNull()
+                            )
+                    )
+                )
+
+            )
         )
         val importantIdsFlow = flowOf(emptySet<String>())
 
-        every { messageCacheRepository.getMessagesByUser() } returns messagesFlow
+        every { messageRepository.getMessagesForActiveUser() } returns messagesFlow
         every { userPreferencesRepository.getImportantMessageIds() } returns importantIdsFlow
 
         // Act & Assert
@@ -140,7 +165,7 @@ class GetCachedMessagesUseCaseTest {
 
             val item = awaitItem()
             assertTrue(item is Resource.Error)
-            assertEquals("Message Details not authorized", (item as Resource.Error).message)
+            assertEquals("Unable to load messages", (item as Resource.Error).message)
             awaitComplete()
         }
     }

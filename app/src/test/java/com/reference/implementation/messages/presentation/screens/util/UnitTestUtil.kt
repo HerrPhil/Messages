@@ -1,12 +1,18 @@
 package com.reference.implementation.messages.presentation.screens.util
 
+import com.reference.implementation.domain.model.MessageDomainModel
+import com.reference.implementation.domain.use_case.GetMessagesForActiveUserUseCase
 import com.reference.implementation.domain.use_case.LoadActiveMessagesUseCase
 import com.reference.implementation.domain.use_case.LoadAllBulletinsUseCase
 import com.reference.implementation.domain.use_case.LoadSelectedMessagesUseCase
+import com.reference.implementation.domain.use_case.RefreshMessagesUseCase
+import com.reference.implementation.domain.use_case.Resource
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.TestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -79,6 +85,14 @@ class FakeLoadSelectedMessagesUseCase : LoadSelectedMessagesUseCase(repo = mockk
         invocationCount++
         capturedOnRetry = onRetry
         // Leave completely blank! Runs instantly in 0ms.
+        delay(1000.milliseconds)
+    }
+}
+
+class FakeRefreshMessagesUseCase : RefreshMessagesUseCase(repo = mockk(relaxed = true)) {
+    var invocationCount = 0
+    override suspend fun invoke() {
+        invocationCount++
         delay(1000.milliseconds)
     }
 }
