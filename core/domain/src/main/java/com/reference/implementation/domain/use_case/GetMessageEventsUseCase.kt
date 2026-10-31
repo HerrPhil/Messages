@@ -1,7 +1,6 @@
 package com.reference.implementation.domain.use_case
 
 import com.reference.implementation.domain.model.MessageDomainEvent
-import com.reference.implementation.domain.repository.MessageCacheRepository
 import com.reference.implementation.domain.repository.MessageRepository
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
