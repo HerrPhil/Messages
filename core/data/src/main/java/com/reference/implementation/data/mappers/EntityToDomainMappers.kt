@@ -42,3 +42,13 @@ fun MessageEntity.toDomainModel() =
         }
 
     )
+
+fun MessageDomainModel.toEntity() =
+    MessageEntity(
+        id = this.id,
+        subject = this.subject,
+        body = this.body,
+        read = this.read,
+        userId = this.userId,
+        createdAt = this.createdAt
+    )

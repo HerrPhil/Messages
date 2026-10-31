@@ -12,6 +12,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 // TODO remove 'open' reserved words after retryIO() code smell is fixed
+@Deprecated("obsolete with offline-first Room-cached values")
 @Singleton
 open class GetCachedMessagesUseCase @Inject constructor(
     private val messageCacheRepository: MessageCacheRepository,

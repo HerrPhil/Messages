@@ -101,7 +101,7 @@ class AdminMessageViewModelTest {
 
             // no selected user = active user = admin
 
-            // 2. Wake up WhileSubscribed - add active subscriber to mimic UI
+            // Wake up WhileSubscribed - add active subscriber to mimic UI
             backgroundScope.launch(testScheduler) {
                 adminMessageViewModel.uiState.collect {}
             }
@@ -327,6 +327,7 @@ class AdminMessageViewModelTest {
             }
             runCurrent() // Baseline Success Admin state is firmly established!
 
+            // Mimic the user clicking the important filter chip
             adminMessageViewModel.onImportantOnlyToggled(true)
             runCurrent() // Flush the combine/scan pipeline
 
@@ -345,6 +346,10 @@ class AdminMessageViewModelTest {
                 expected = expectedState,
                 actual = adminMessageViewModel.uiState.value
             )
+
+            coVerify(exactly = 1) {
+                loadActiveMessagesUseCase( any())
+            }
         }
 
     @Test
@@ -923,7 +928,7 @@ class AdminMessageViewModelTest {
             adminMessageViewModel.onRefresh()
             runCurrent() // Flushes the combine pipeline so the state machine registers isRefreshing = true
 
-            // Step 3: Now that isRefreshing is safely locked to true, drop the stream to Loading!
+            // Step 3: Now that isRefreshing is safely locked to true, drop the stream to Error!
             mockMessageRepositoryStream.value = Resource.Error("Network Timeout")
 
             // Step 4: Advance the clock slightly to process the composite stream mapping.
@@ -995,7 +1000,6 @@ class AdminMessageViewModelTest {
                 expected = AdminMessageUiState.Error("Cache Fail"),
                 actual = adminMessageViewModel.uiState.value,
             )
-
         }
 
     @Test
@@ -1251,7 +1255,6 @@ class AdminMessageViewModelTest {
             adminMessageViewModel.onToggleImportantMessageClicked(123456, true)
 
             coVerify(exactly = 1) { markMessageAsImportantUseCase(eq(123456)) }
-
         }
 
     @Test
