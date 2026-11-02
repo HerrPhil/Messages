@@ -41,7 +41,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.reference.implementation.messages.presentation.components.ErrorContent
 import com.reference.implementation.messages.presentation.components.LoadingContent
-import com.reference.implementation.messages.presentation.components.RetryingContent
 import com.reference.implementation.messages.presentation.components.Welcome
 import com.reference.implementation.messages.presentation.components.getRelativeTimeString
 import com.reference.implementation.messages.ui.theme.MessagesTheme
@@ -147,10 +146,9 @@ fun MessageDetailScreen(
                 LoadingContent()
             }
 
-            is MessageDetailUiState.Retrying -> {
-                val retryAttempt = "attempt #${currentState.attempt}"
-                RetryingContent(retryAttempt)
-            }
+            is MessageDetailUiState.MessageDeletedBackNavigate -> onNavigateBack()
+
+            is MessageDetailUiState.Retrying -> {} // TODO do nothing - remove when MonitorMessageDetailScreen is refactored
 
             is MessageDetailUiState.Error -> {
                 ErrorContent(currentState.message)
@@ -165,7 +163,6 @@ fun MessageDetailScreen(
             }
         }
     }
-
 
     // Dialog Placement: At the root level, right after Scaffold
     // Only enter if we actually have a Success state AND the dialog flag is true

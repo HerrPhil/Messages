@@ -20,6 +20,10 @@ interface MessageDao {
     @Query("SELECT * FROM messages WHERE userId = :userId")
     fun getMessagesForUserStream(userId: Int): Flow<List<MessageEntity>>
 
+    // THE SINGLE-ROW STREAM: Listens infinitely to exactly one message record!
+    @Query("SELECT * FROM messages WHERE id = :messageId LIMIT 1")
+    fun getMessageByIdStream(messageId: Int): Flow<MessageEntity?>
+
     // THE SNAPSHOT BACKUP  HOOK: A fast, one-shot suspend lookup tool
     // that fetches the exact entity record before execution of CRUD!
     // Called from Repository Implementation - not mapped to Repository interface.

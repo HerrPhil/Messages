@@ -156,6 +156,16 @@ class MessageRepositoryImpl @Inject constructor(
         return getMessagesForUser(userId)
     }
 
+    override fun getMessageByIdFlow(messageId: Int): Flow<CachePayload<MessageDomainModel?>> =
+        messageDao.getMessageByIdStream(messageId)
+            .combine(syncStatus) { entity, status ->
+                CachePayload.ActiveStream(
+                    data = entity?.toDomainModel(), // Map the single database row cleanly to a Domain model
+                    isSyncing = status is SyncState.Loading,
+                    syncError = (status as? SyncState.Error)?.exception
+                )
+            }.flowOn(ioDispatcher)
+
     override suspend fun markMessageAsRead(messageId: Int) {
 
         // 1. THE OPTIMISTIC UPDATE: Update local database state authority immediately!

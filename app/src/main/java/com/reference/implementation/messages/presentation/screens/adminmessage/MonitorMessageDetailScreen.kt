@@ -151,6 +151,8 @@ fun MonitorMessageDetailScreen(
                 LoadingContent()
             }
 
+            is MessageDetailUiState.MessageDeletedBackNavigate -> onNavigateBack()
+
             is MessageDetailUiState.Retrying -> {
                 val retryAttempt = "attempt #${currentState.attempt}"
                 RetryingContent(retryAttempt)

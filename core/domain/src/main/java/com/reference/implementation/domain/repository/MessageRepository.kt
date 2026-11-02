@@ -12,6 +12,7 @@ interface MessageRepository {
     fun getUserReadUnreadCounts(): Flow<CachePayload<UserMessageReadUnreadDomainModel>>
     fun getMessagesForActiveUser(): Flow<CachePayload<List<MessageDomainModel>>>
     fun getMessagesForSelectedUser(userId: Int): Flow<CachePayload<List<MessageDomainModel>>>
+    fun getMessageByIdFlow(messageId: Int): Flow<CachePayload<MessageDomainModel?>>
     suspend fun markMessageAsRead(messageId: Int)
     suspend fun markMessageAsUnread(messageId: Int)
     suspend fun deleteMessage(messageId: Int)

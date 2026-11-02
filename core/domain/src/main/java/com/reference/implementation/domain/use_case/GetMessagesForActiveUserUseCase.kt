@@ -26,11 +26,12 @@ open class GetMessagesForActiveUserUseCase @Inject constructor(
             // Extract the specific ActiveStream type natively using Kotlin smart-casting
             val messageStream = messageRes as CachePayload.ActiveStream
 
-            // Check for catastrophic hard error (e.g. if ALL streams failed)
-            // Like, server(s) down, internet down, etc.
-            val messagesFailed = messageStream.syncError != null
+            // THE RESILIENCE FIX: Only crash the UI if the sync task failed
+            // AND there is absolutely zero local cache data available to show!
+            val isCatastrophicFailure =
+                messageStream.syncError != null && messageStream.data.isEmpty()
 
-            if (messagesFailed) {
+            if (isCatastrophicFailure) {
                 Resource.Error("Unable to load messages")
             } else {
 
@@ -46,16 +47,6 @@ open class GetMessagesForActiveUserUseCase @Inject constructor(
 
                 Resource.Success(data = messages)
             }
-
-//            networkResult.toResource("Message Details") { messages ->
-//                // 3. Apply pure domain business logic transformations
-//                // (eg) show most recent messages first.
-//                messages.sortedByDescending { messageDomainModel ->
-//                    messageDomainModel.createdAtInstant
-//                }.map { message ->
-//                    message.copy(isImportant = message.id.toString() in importantIds)
-//                }
-//            }
         }
             .onStart { emit(Resource.Loading) }
             .flowOn(Dispatchers.Default)
