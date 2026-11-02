@@ -178,7 +178,6 @@ class MessageDetailViewModelTest {
         runTest {
             // Arrange
             val messageId = 999999 // look for a message that does not exist
-//            val mockActiveMessages = createActiveMessages()
             val mockMessageRepositoryStream = MutableStateFlow<Resource<MessageDomainModel?>>(
                 Resource.Error("Unable to load message details.") // mimic no repo data in use case
             )
@@ -249,7 +248,8 @@ class MessageDetailViewModelTest {
             runCurrent() // Flush the unconfined engine thread loop immediately!
 
             // Assert
-            val expectedState = MessageDetailUiState.Success(data = mockActiveMessages[0].toMessageUiDetail())
+            val expectedState =
+                MessageDetailUiState.Success(data = mockActiveMessages[0].toMessageUiDetail())
             assertEquals(
                 expected = expectedState,
                 actual = messageDetailViewModel.uiState.value,
@@ -264,7 +264,6 @@ class MessageDetailViewModelTest {
         runTest {
             // Arrange
             val messageId = 999999 // look for a message that does not exist
-            val mockActiveMessages = createActiveMessages()
             val mockMessageRepositoryStream = MutableStateFlow<Resource<MessageDomainModel?>>(
                 Resource.Success(data = null) // another process removed message from Room
             )
