@@ -147,10 +147,9 @@ fun MessageDetailScreen(
                 LoadingContent()
             }
 
-            is MessageDetailUiState.Retrying -> {
-                val retryAttempt = "attempt #${currentState.attempt}"
-                RetryingContent(retryAttempt)
-            }
+            is MessageDetailUiState.MessageDeletedBackNavigate -> onNavigateBack()
+
+            is MessageDetailUiState.Retrying -> {} // TODO do nothing - remove when MonitorMessageDetailScreen is refactored
 
             is MessageDetailUiState.Error -> {
                 ErrorContent(currentState.message)
@@ -165,7 +164,6 @@ fun MessageDetailScreen(
             }
         }
     }
-
 
     // Dialog Placement: At the root level, right after Scaffold
     // Only enter if we actually have a Success state AND the dialog flag is true

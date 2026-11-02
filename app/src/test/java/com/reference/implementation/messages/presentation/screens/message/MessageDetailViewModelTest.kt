@@ -4,7 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.navigation.toRoute
 import com.reference.implementation.domain.model.MessageDomainModel
 import com.reference.implementation.domain.use_case.DeleteMessageUseCase
-import com.reference.implementation.domain.use_case.GetCachedMessagesUseCase
+import com.reference.implementation.domain.use_case.GetMessageByIdUseCase
 import com.reference.implementation.domain.use_case.MarkMessageAsReadUseCase
 import com.reference.implementation.domain.use_case.MarkMessageAsUnreadUseCase
 import com.reference.implementation.domain.use_case.Resource
@@ -33,7 +33,7 @@ class MessageDetailViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
-    private val getCachedMessagesUseCase: GetCachedMessagesUseCase = mockk()
+    private val getMessageByIdUseCase: GetMessageByIdUseCase = mockk()
     private val markMessageAsReadUseCase: MarkMessageAsReadUseCase = mockk(relaxed = true)
     private val markMessageAsUnreadUseCase: MarkMessageAsUnreadUseCase = mockk(relaxed = true)
     private val deleteMessageUseCase: DeleteMessageUseCase = mockk(relaxed = true)
@@ -45,24 +45,24 @@ class MessageDetailViewModelTest {
     fun `init fetches message ID from SavedStateHandle and immediately collects success state`() =
         runTest {
             // Arrange
-            val testId = 678345
+            val messageId = 678345
             val mockActiveMessages = createActiveMessages()
-            val mockMessageRepositoryStream = MutableStateFlow<Resource<List<MessageDomainModel>>>(
-                Resource.Success(data = mockActiveMessages)
+            val mockMessageRepositoryStream = MutableStateFlow<Resource<MessageDomainModel?>>(
+                Resource.Success(data = mockActiveMessages[1]) // message with messageId 678345
             )
-            every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
+            every { getMessageByIdUseCase(messageId) } returns mockMessageRepositoryStream
 
             // 💡 THE ULTIMATE BYPASS FIX: Mock the static navigation extension file
             mockkStatic("androidx.navigation.SavedStateHandleKt")
             val savedStateHandle: SavedStateHandle = mockk(relaxed = true)
             // Explicitly force toRoute<Route.MessageDetail>() to return your mock route object!
-            val mockRoute = Route.MessageDetail(id = testId)
+            val mockRoute = Route.MessageDetail(id = messageId)
             every { savedStateHandle.toRoute<Route.MessageDetail>() } returns mockRoute
 
             // Act
             messageDetailViewModel = MessageDetailViewModel(
                 savedStateHandle = savedStateHandle,
-                getCachedMessagesUseCase = getCachedMessagesUseCase,
+                getMessageByIdUseCase = getMessageByIdUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
                 deleteMessageUseCase = deleteMessageUseCase
@@ -74,9 +74,7 @@ class MessageDetailViewModelTest {
             runCurrent() // Flush the unconfined engine thread loop immediately!
 
             // Assert
-            val expectedDetail = mockActiveMessages
-                .filter { it.id == testId }
-                .map { it.toMessageUiDetail() }[0]
+            val expectedDetail = mockActiveMessages[1].toMessageUiDetail()
             val expectedState = MessageDetailUiState.Success(data = expectedDetail)
             assertEquals(
                 expected = expectedState,
@@ -85,33 +83,33 @@ class MessageDetailViewModelTest {
             )
 
             // Business rule: when a user views a message then it is marked as read
-            coVerify(exactly = 1) { markMessageAsReadUseCase(eq(testId)) }
+            coVerify(exactly = 1) { markMessageAsReadUseCase(eq(messageId)) }
         }
 
     @Test
     fun `init immediately emits Loading UI state when use case is mid-flight`() =
         runTest {
-            val testId = 678345
+            val messageId = 678345
 
             // 💡 THE ULTIMATE BYPASS FIX: Mock the static navigation extension file
             mockkStatic("androidx.navigation.SavedStateHandleKt")
             val savedStateHandle: SavedStateHandle = mockk(relaxed = true)
             // Explicitly force toRoute<Route.MessageDetail>() to return your mock route object!
-            val mockRoute = Route.MessageDetail(id = testId)
+            val mockRoute = Route.MessageDetail(id = messageId)
             every { savedStateHandle.toRoute<Route.MessageDetail>() } returns mockRoute
 
             // THE TRICK: Use the flow {} builder to emit Loading,
             // then call awaitCancellation() to stall the stream in-flight!
-            val stallingFlow = flow<Resource<List<MessageDomainModel>>> {
+            val stallingFlow = flow<Resource<MessageDomainModel?>> {
                 emit(Resource.Loading)
                 kotlinx.coroutines.awaitCancellation()
             }
-            every { getCachedMessagesUseCase() } returns stallingFlow
+            every { getMessageByIdUseCase(messageId) } returns stallingFlow
 
             // Act
             messageDetailViewModel = MessageDetailViewModel(
                 savedStateHandle = savedStateHandle,
-                getCachedMessagesUseCase = getCachedMessagesUseCase,
+                getMessageByIdUseCase = getMessageByIdUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
                 deleteMessageUseCase = deleteMessageUseCase
@@ -129,7 +127,7 @@ class MessageDetailViewModelTest {
                 "Loading state matched"
             )
 
-            coVerify(exactly = 1) { markMessageAsReadUseCase(eq(testId)) }
+            coVerify(exactly = 1) { markMessageAsReadUseCase(eq(messageId)) }
         }
 
 
@@ -137,23 +135,23 @@ class MessageDetailViewModelTest {
     fun `when use case emits error resource, uiState transforms to Error state immediately`() =
         runTest {
             // Arrange
-            val testId = 678345
-            val mockMessageRepositoryStream = MutableStateFlow<Resource<List<MessageDomainModel>>>(
+            val messageId = 678345
+            val mockMessageRepositoryStream = MutableStateFlow<Resource<MessageDomainModel?>>(
                 Resource.Error("Messages failed to load")
             )
-            every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
+            every { getMessageByIdUseCase(messageId) } returns mockMessageRepositoryStream
 
             // 💡 THE ULTIMATE BYPASS FIX: Mock the static navigation extension file
             mockkStatic("androidx.navigation.SavedStateHandleKt")
             val savedStateHandle: SavedStateHandle = mockk(relaxed = true)
             // Explicitly force toRoute<Route.MessageDetail>() to return your mock route object!
-            val mockRoute = Route.MessageDetail(id = testId)
+            val mockRoute = Route.MessageDetail(id = messageId)
             every { savedStateHandle.toRoute<Route.MessageDetail>() } returns mockRoute
 
             // Act
             messageDetailViewModel = MessageDetailViewModel(
                 savedStateHandle = savedStateHandle,
-                getCachedMessagesUseCase = getCachedMessagesUseCase,
+                getMessageByIdUseCase = getMessageByIdUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
                 deleteMessageUseCase = deleteMessageUseCase
@@ -172,31 +170,31 @@ class MessageDetailViewModelTest {
                 "Error state matched"
             )
 
-            coVerify(exactly = 1) { markMessageAsReadUseCase(eq(testId)) }
+            coVerify(exactly = 1) { markMessageAsReadUseCase(eq(messageId)) }
         }
 
     @Test
-    fun `when use case emits error resource if ID not found, uiState transforms to Error state immediately`() =
+    fun `when use case emits error resource if ID not found and there is no Room cache data, uiState transforms to Error state immediately`() =
         runTest {
             // Arrange
-            val testId = 999999 // DOES NOT EXIST
-            val mockActiveMessages = createActiveMessages()
-            val mockMessageRepositoryStream = MutableStateFlow<Resource<List<MessageDomainModel>>>(
-                Resource.Success(data = mockActiveMessages)
+            val messageId = 999999 // look for a message that does not exist
+//            val mockActiveMessages = createActiveMessages()
+            val mockMessageRepositoryStream = MutableStateFlow<Resource<MessageDomainModel?>>(
+                Resource.Error("Unable to load message details.") // mimic no repo data in use case
             )
-            every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
+            every { getMessageByIdUseCase(messageId) } returns mockMessageRepositoryStream
 
             // 💡 THE ULTIMATE BYPASS FIX: Mock the static navigation extension file
             mockkStatic("androidx.navigation.SavedStateHandleKt")
             val savedStateHandle: SavedStateHandle = mockk(relaxed = true)
             // Explicitly force toRoute<Route.MessageDetail>() to return your mock route object!
-            val mockRoute = Route.MessageDetail(id = testId)
+            val mockRoute = Route.MessageDetail(id = messageId)
             every { savedStateHandle.toRoute<Route.MessageDetail>() } returns mockRoute
 
             // Act
             messageDetailViewModel = MessageDetailViewModel(
                 savedStateHandle = savedStateHandle,
-                getCachedMessagesUseCase = getCachedMessagesUseCase,
+                getMessageByIdUseCase = getMessageByIdUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
                 deleteMessageUseCase = deleteMessageUseCase
@@ -208,110 +206,196 @@ class MessageDetailViewModelTest {
             runCurrent() // Flush the unconfined engine thread loop immediately!
 
             // Assert
-            val expectedState = MessageDetailUiState.Error("Message not found")
+            val expectedState = MessageDetailUiState.Error("Unable to load message details.")
             assertEquals(
                 expected = expectedState,
                 actual = messageDetailViewModel.uiState.value,
                 "Error state matched"
             )
 
-            coVerify(exactly = 1) { markMessageAsReadUseCase(eq(testId)) }
+            coVerify(exactly = 1) { markMessageAsReadUseCase(eq(messageId)) }
+        }
+
+    @Test
+    fun `when use case emits error resource if ID not found and there is Room cache data, uiState transforms to Success of previous UI state`() =
+        runTest {
+            // Arrange
+            val messageId = 999999 // look for a message that does not exist
+            val mockActiveMessages = createActiveMessages()
+            val mockMessageRepositoryStream = MutableStateFlow<Resource<MessageDomainModel?>>(
+                Resource.Success(data = mockActiveMessages[0]) // any message <> 999999
+            )
+            every { getMessageByIdUseCase(messageId) } returns mockMessageRepositoryStream
+
+            // 💡 THE ULTIMATE BYPASS FIX: Mock the static navigation extension file
+            mockkStatic("androidx.navigation.SavedStateHandleKt")
+            val savedStateHandle: SavedStateHandle = mockk(relaxed = true)
+            // Explicitly force toRoute<Route.MessageDetail>() to return your mock route object!
+            val mockRoute = Route.MessageDetail(id = messageId)
+            every { savedStateHandle.toRoute<Route.MessageDetail>() } returns mockRoute
+
+            // Act
+            messageDetailViewModel = MessageDetailViewModel(
+                savedStateHandle = savedStateHandle,
+                getMessageByIdUseCase = getMessageByIdUseCase,
+                markMessageAsReadUseCase = markMessageAsReadUseCase,
+                markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
+                deleteMessageUseCase = deleteMessageUseCase
+            )
+            // 2. Wake up WhileSubscribed - add active subscriber to mimic UI
+            backgroundScope.launch(testScheduler) {
+                messageDetailViewModel.uiState.collect {}
+            }
+            runCurrent() // Flush the unconfined engine thread loop immediately!
+
+            // Assert
+            val expectedState = MessageDetailUiState.Success(data = mockActiveMessages[0].toMessageUiDetail())
+            assertEquals(
+                expected = expectedState,
+                actual = messageDetailViewModel.uiState.value,
+                "Error state matched"
+            )
+
+            coVerify(exactly = 1) { markMessageAsReadUseCase(eq(messageId)) }
+        }
+
+    @Test
+    fun `when use case emits success resource has null data from repo (Room), uiState transforms to message deleted back navigate`() =
+        runTest {
+            // Arrange
+            val messageId = 999999 // look for a message that does not exist
+            val mockActiveMessages = createActiveMessages()
+            val mockMessageRepositoryStream = MutableStateFlow<Resource<MessageDomainModel?>>(
+                Resource.Success(data = null) // another process removed message from Room
+            )
+            every { getMessageByIdUseCase(messageId) } returns mockMessageRepositoryStream
+
+            // 💡 THE ULTIMATE BYPASS FIX: Mock the static navigation extension file
+            mockkStatic("androidx.navigation.SavedStateHandleKt")
+            val savedStateHandle: SavedStateHandle = mockk(relaxed = true)
+            // Explicitly force toRoute<Route.MessageDetail>() to return your mock route object!
+            val mockRoute = Route.MessageDetail(id = messageId)
+            every { savedStateHandle.toRoute<Route.MessageDetail>() } returns mockRoute
+
+            // Act
+            messageDetailViewModel = MessageDetailViewModel(
+                savedStateHandle = savedStateHandle,
+                getMessageByIdUseCase = getMessageByIdUseCase,
+                markMessageAsReadUseCase = markMessageAsReadUseCase,
+                markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
+                deleteMessageUseCase = deleteMessageUseCase
+            )
+            // 2. Wake up WhileSubscribed - add active subscriber to mimic UI
+            backgroundScope.launch(testScheduler) {
+                messageDetailViewModel.uiState.collect {}
+            }
+            runCurrent() // Flush the unconfined engine thread loop immediately!
+
+            // Assert
+            val expectedState = MessageDetailUiState.MessageDeletedBackNavigate
+            assertEquals(
+                expected = expectedState,
+                actual = messageDetailViewModel.uiState.value,
+                "message deleted back navigate now"
+            )
+
+            coVerify(exactly = 1) { markMessageAsReadUseCase(eq(messageId)) }
         }
 
     @Test
     fun `on deleted message call the correct use case`() =
         runTest {
-            val testId = 789456 // DOES NOT EXIST
+            val messageId = 789456 // message to be deleted
             val mockActiveMessages = createActiveMessages()
-            val mockMessageRepositoryStream = MutableStateFlow<Resource<List<MessageDomainModel>>>(
-                Resource.Success(data = mockActiveMessages)
+            val mockMessageRepositoryStream = MutableStateFlow<Resource<MessageDomainModel?>>(
+                Resource.Success(data = mockActiveMessages[0]) // [0] = 789456
             )
-            every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
+            every { getMessageByIdUseCase(messageId) } returns mockMessageRepositoryStream
 
             // 💡 THE ULTIMATE BYPASS FIX: Mock the static navigation extension file
             mockkStatic("androidx.navigation.SavedStateHandleKt")
             val savedStateHandle: SavedStateHandle = mockk(relaxed = true)
             // Explicitly force toRoute<Route.MessageDetail>() to return your mock route object!
-            val mockRoute = Route.MessageDetail(id = testId)
+            val mockRoute = Route.MessageDetail(id = messageId)
             every { savedStateHandle.toRoute<Route.MessageDetail>() } returns mockRoute
 
             // Act
             messageDetailViewModel = MessageDetailViewModel(
                 savedStateHandle = savedStateHandle,
-                getCachedMessagesUseCase = getCachedMessagesUseCase,
+                getMessageByIdUseCase = getMessageByIdUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
                 deleteMessageUseCase = deleteMessageUseCase
             )
 
-            messageDetailViewModel.onDeleteMessage(testId)
+            messageDetailViewModel.onDeleteMessage(messageId)
 
-            coVerify(exactly = 1) { deleteMessageUseCase(eq(testId)) }
+            coVerify(exactly = 1) { deleteMessageUseCase(eq(messageId)) }
         }
 
     @Test
     fun `on toggle message as read call the correct use case`() =
         runTest {
-            val testId = 789456 // DOES NOT EXIST
+            val messageId = 789456 // message to be marked as READ
             val mockActiveMessages = createActiveMessages()
-            val mockMessageRepositoryStream = MutableStateFlow<Resource<List<MessageDomainModel>>>(
-                Resource.Success(data = mockActiveMessages)
+            val mockMessageRepositoryStream = MutableStateFlow<Resource<MessageDomainModel?>>(
+                Resource.Success(data = mockActiveMessages[0]) // [0] = 789456
             )
-            every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
+            every { getMessageByIdUseCase(messageId) } returns mockMessageRepositoryStream
 
             // 💡 THE ULTIMATE BYPASS FIX: Mock the static navigation extension file
             mockkStatic("androidx.navigation.SavedStateHandleKt")
             val savedStateHandle: SavedStateHandle = mockk(relaxed = true)
             // Explicitly force toRoute<Route.MessageDetail>() to return your mock route object!
-            val mockRoute = Route.MessageDetail(id = testId)
+            val mockRoute = Route.MessageDetail(id = messageId)
             every { savedStateHandle.toRoute<Route.MessageDetail>() } returns mockRoute
 
 
             // Act
             messageDetailViewModel = MessageDetailViewModel(
                 savedStateHandle = savedStateHandle,
-                getCachedMessagesUseCase = getCachedMessagesUseCase,
+                getMessageByIdUseCase = getMessageByIdUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
                 deleteMessageUseCase = deleteMessageUseCase
             )
 
-            messageDetailViewModel.onToggleReadStatus(testId, true)
+            messageDetailViewModel.onToggleReadStatus(messageId, true)
 
             // one for init, one for onToggleReadStatus
-            coVerify(exactly = 2) { markMessageAsReadUseCase(eq(testId)) }
+            coVerify(exactly = 2) { markMessageAsReadUseCase(eq(messageId)) }
         }
 
     @Test
     fun `on toggle message as unread call the correct use case`() =
         runTest {
-            val testId = 789456 // DOES NOT EXIST
+            val messageId = 789456 // DOES NOT EXIST
             val mockActiveMessages = createActiveMessages()
-            val mockMessageRepositoryStream = MutableStateFlow<Resource<List<MessageDomainModel>>>(
-                Resource.Success(data = mockActiveMessages)
+            val mockMessageRepositoryStream = MutableStateFlow<Resource<MessageDomainModel?>>(
+                Resource.Success(data = mockActiveMessages[0]) // [0] = 789456
             )
-            every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
+            every { getMessageByIdUseCase(messageId) } returns mockMessageRepositoryStream
 
             // 💡 THE ULTIMATE BYPASS FIX: Mock the static navigation extension file
             mockkStatic("androidx.navigation.SavedStateHandleKt")
             val savedStateHandle: SavedStateHandle = mockk(relaxed = true)
             // Explicitly force toRoute<Route.MessageDetail>() to return your mock route object!
-            val mockRoute = Route.MessageDetail(id = testId)
+            val mockRoute = Route.MessageDetail(id = messageId)
             every { savedStateHandle.toRoute<Route.MessageDetail>() } returns mockRoute
 
 
             // Act
             messageDetailViewModel = MessageDetailViewModel(
                 savedStateHandle = savedStateHandle,
-                getCachedMessagesUseCase = getCachedMessagesUseCase,
+                getMessageByIdUseCase = getMessageByIdUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
                 deleteMessageUseCase = deleteMessageUseCase
             )
 
-            messageDetailViewModel.onToggleReadStatus(testId, false)
+            messageDetailViewModel.onToggleReadStatus(messageId, false)
 
-            coVerify(exactly = 1) { markMessageAsUnreadUseCase(eq(testId)) }
+            coVerify(exactly = 1) { markMessageAsUnreadUseCase(eq(messageId)) }
         }
 
     private fun createActiveMessages(): List<MessageDomainModel> =

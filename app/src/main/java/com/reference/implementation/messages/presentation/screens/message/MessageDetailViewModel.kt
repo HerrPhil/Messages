@@ -1,12 +1,11 @@
 package com.reference.implementation.messages.presentation.screens.message
 
-import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.reference.implementation.domain.use_case.DeleteMessageUseCase
-import com.reference.implementation.domain.use_case.GetCachedMessagesUseCase
+import com.reference.implementation.domain.use_case.GetMessageByIdUseCase
 import com.reference.implementation.domain.use_case.MarkMessageAsReadUseCase
 import com.reference.implementation.domain.use_case.MarkMessageAsUnreadUseCase
 import com.reference.implementation.domain.use_case.Resource
@@ -24,7 +23,7 @@ import javax.inject.Inject
 @OptIn(ExperimentalCoroutinesApi::class)
 class MessageDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    getCachedMessagesUseCase: GetCachedMessagesUseCase,
+    getMessageByIdUseCase: GetMessageByIdUseCase,
     private val markMessageAsReadUseCase: MarkMessageAsReadUseCase,
     private val markMessageAsUnreadUseCase: MarkMessageAsUnreadUseCase,
     private val deleteMessageUseCase: DeleteMessageUseCase
@@ -34,20 +33,21 @@ class MessageDetailViewModel @Inject constructor(
     private val messageId: Int = checkNotNull(savedStateHandle.toRoute<Route.MessageDetail>().id)
 
     val uiState: StateFlow<MessageDetailUiState> =
-        getCachedMessagesUseCase().map { resourceResult ->
-            when (resourceResult) {
+        getMessageByIdUseCase(messageId).map { messageResource ->
+            when (messageResource) {
                 is Resource.Loading -> {
                     MessageDetailUiState.Loading
                 }
 
-                is Resource.Error -> MessageDetailUiState.Error(resourceResult.message)
+                is Resource.Error -> MessageDetailUiState.Error(messageResource.message)
                 is Resource.Success -> {
-                    Log.d("ViewModel", "messageId is $messageId")
-                    val message = resourceResult.data.find { it.id == messageId }
+                    val message = messageResource.data
                     if (message != null) {
                         MessageDetailUiState.Success(data = message.toMessageUiDetail())
                     } else {
-                        MessageDetailUiState.Error("Message not found")
+                        // THE TRAP-DOOR RESOLUTION: If the row is deleted, pass this
+                        // clean state token so your Composable pops back safely without flashing a red error screen!
+                        MessageDetailUiState.MessageDeletedBackNavigate
                     }
                 }
             }
@@ -59,10 +59,6 @@ class MessageDetailViewModel @Inject constructor(
             )
 
     init {
-        Log.d(
-            "MessageDetailViewModel",
-            "Hey, looks like the saved state handle delivered a message ID = $messageId"
-        )
         markMessageAsReadOnNavigate()
     }
 
