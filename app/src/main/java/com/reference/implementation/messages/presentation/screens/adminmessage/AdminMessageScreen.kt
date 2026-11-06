@@ -97,7 +97,6 @@ import com.reference.implementation.messages.presentation.components.DateTimeLab
 import com.reference.implementation.messages.presentation.components.EmptyListContent
 import com.reference.implementation.messages.presentation.components.ErrorContent
 import com.reference.implementation.messages.presentation.components.LoadingContent
-import com.reference.implementation.messages.presentation.components.RetryingContent
 import com.reference.implementation.messages.presentation.components.SkeletonText
 import com.reference.implementation.messages.presentation.components.Welcome
 import com.reference.implementation.messages.presentation.screens.message.MessageUiDetail
@@ -125,8 +124,7 @@ fun AdminMessageScreen(
     onDeleteMessage: (Int) -> Unit,
     onToggleReadStatus: (Int, Boolean) -> Unit,
     onUserOptionChanged: (String) -> Unit,
-    onUserOptionClicked: (Int, Boolean) -> Unit,
-    onLoadSelectedMessages: () -> Unit
+    onUserOptionClicked: (Int, Boolean) -> Unit
 ) {
 
     val snackbarHostState = remember { SnackbarHostState() }
@@ -179,11 +177,6 @@ fun AdminMessageScreen(
             LoadingContent()
         }
 
-        is AdminMessageUiState.Retrying -> {
-            val retryAttempt = "attempt #${currentState.attempt}"
-            RetryingContent(retryAttempt)
-        }
-
         is AdminMessageUiState.Error -> {
             ErrorContent(currentState.message)
         }
@@ -217,7 +210,6 @@ fun AdminMessageScreen(
                     onToggleImportantMessageClicked = onToggleImportantMessageClicked,
                     onUserOptionChanged = onUserOptionChanged,
                     onUserOptionClicked = onUserOptionClicked,
-                    onLoadSelectedMessages = onLoadSelectedMessages,
                     list = list,
                     userOptions = userList,
                     isRefreshing = isRefreshing,
@@ -273,7 +265,6 @@ fun AdminMessageDetailsPreview() {
                 onToggleImportantMessageClicked = { _, _ -> },
                 onUserOptionChanged = {},
                 onUserOptionClicked = { _, _ -> },
-                onLoadSelectedMessages = {},
                 list = list,
                 userOptions = userOptions,
                 isRefreshing = false,
@@ -317,7 +308,6 @@ fun AdminMessageDetailsEmptyPreview() {
                 onToggleImportantMessageClicked = { _, _ -> },
                 onUserOptionChanged = {},
                 onUserOptionClicked = { _, _ -> },
-                onLoadSelectedMessages = {},
                 list = emptyList(),
                 userOptions = userOptions,
                 isRefreshing = false,
@@ -342,7 +332,6 @@ fun AdminMessageDetails(
     onToggleImportantMessageClicked: (Int, Boolean) -> Unit,
     onUserOptionChanged: (String) -> Unit,
     onUserOptionClicked: (Int, Boolean) -> Unit,
-    onLoadSelectedMessages: () -> Unit,
     list: List<MessageUiDetail>,
     userOptions: List<UserUiDetail>?,
     isRefreshing: Boolean,
@@ -414,7 +403,6 @@ fun AdminMessageDetails(
                         userOptionQuery = userOptionQuery,
                         onUserOptionChanged = onUserOptionChanged,
                         onUserOptionClicked = onUserOptionClicked,
-                        onLoadSelectedMessages = onLoadSelectedMessages,
                         modifier = Modifier.padding(
                             start = 16.dp,
                             end = 16.dp,
@@ -562,7 +550,6 @@ fun UserSearchInputPreview() {
                 userOptionQuery = "test",
                 onUserOptionChanged = {},
                 onUserOptionClicked = { _, _ -> },
-                onLoadSelectedMessages = {},
                 modifier = Modifier.padding(start = 16.dp, end = 16.dp, top = 4.dp, bottom = 0.dp)
             )
         }
@@ -576,7 +563,6 @@ private fun UserSearchInput(
     userOptionQuery: String,
     onUserOptionChanged: (String) -> Unit,
     onUserOptionClicked: (Int, Boolean) -> Unit,
-    onLoadSelectedMessages: () -> Unit,
     modifier: Modifier = Modifier
 ) {
 
@@ -617,7 +603,6 @@ private fun UserSearchInput(
                             .clickable {
                                 onUserOptionClicked(userOption.id, userOption.isAdmin)
                                 onUserOptionChanged(userOption.name)
-                                onLoadSelectedMessages()
                                 onRememberExpandedChange(false)
                             }
                     )

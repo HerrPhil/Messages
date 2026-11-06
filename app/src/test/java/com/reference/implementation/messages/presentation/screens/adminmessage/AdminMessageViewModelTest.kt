@@ -5,19 +5,19 @@ import com.reference.implementation.domain.model.MessageDomainModel
 import com.reference.implementation.domain.model.UserOptionDomainModel
 import com.reference.implementation.domain.use_case.DeleteMessageUseCase
 import com.reference.implementation.domain.use_case.GetAdminUserInformationUseCase
-import com.reference.implementation.domain.use_case.GetCachedMessagesUseCase
 import com.reference.implementation.domain.use_case.GetMessageEventsUseCase
-import com.reference.implementation.domain.use_case.LoadActiveMessagesUseCase
-import com.reference.implementation.domain.use_case.LoadSelectedMessagesUseCase
+import com.reference.implementation.domain.use_case.GetMessagesForActiveUserUseCase
+import com.reference.implementation.domain.use_case.GetMessagesForAdminToViewUseCase
+import com.reference.implementation.domain.use_case.GetMessagesForSelectedUserUseCase
 import com.reference.implementation.domain.use_case.MarkMessageAsImportantUseCase
 import com.reference.implementation.domain.use_case.MarkMessageAsNotImportantUseCase
 import com.reference.implementation.domain.use_case.MarkMessageAsReadUseCase
 import com.reference.implementation.domain.use_case.MarkMessageAsUnreadUseCase
+import com.reference.implementation.domain.use_case.RefreshMessagesUseCase
 import com.reference.implementation.domain.use_case.Resource
 import com.reference.implementation.domain.use_case.RestoreMessageUseCase
 import com.reference.implementation.messages.presentation.screens.message.toMessageUiDetail
-import com.reference.implementation.messages.presentation.screens.util.FakeLoadActiveMessagesUseCase
-import com.reference.implementation.messages.presentation.screens.util.FakeLoadSelectedMessagesUseCase
+import com.reference.implementation.messages.presentation.screens.util.FakeRefreshMessagesUseCase
 import com.reference.implementation.messages.presentation.screens.util.MainDispatcherRule
 import io.mockk.coVerify
 import io.mockk.every
@@ -28,6 +28,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import java.time.Instant
@@ -41,9 +42,11 @@ class AdminMessageViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
-    private val loadActiveMessagesUseCase: LoadActiveMessagesUseCase = mockk(relaxed = true)
-    private val loadSelectedMessagesUseCase: LoadSelectedMessagesUseCase = mockk(relaxed = true)
-    private val getCachedMessagesUseCase: GetCachedMessagesUseCase = mockk()
+    private val refreshMessagesUseCase: RefreshMessagesUseCase = mockk(relaxed = true)
+    private val getMessagesForActiveUserUseCase: GetMessagesForActiveUserUseCase =
+        mockk(relaxed = true)
+    private val getMessagesForSelectedUserUseCase: GetMessagesForSelectedUserUseCase =
+        mockk(relaxed = true)
     private val getAdminUserInformationUseCase: GetAdminUserInformationUseCase = mockk()
     private val markMessageAsReadUseCase: MarkMessageAsReadUseCase = mockk(relaxed = true)
     private val markMessageAsUnreadUseCase: MarkMessageAsUnreadUseCase = mockk(relaxed = true)
@@ -52,7 +55,6 @@ class AdminMessageViewModelTest {
     private val markMessageAsImportantUseCase: MarkMessageAsImportantUseCase = mockk(relaxed = true)
     private val markMessageAsNotImportantUseCase: MarkMessageAsNotImportantUseCase =
         mockk(relaxed = true)
-    // do not care about events for combine/scan tests - can make it strict locally in event test
     private val getMessageEventsUseCase: GetMessageEventsUseCase = mockk(relaxed = true)
 
     private val adminUserId = 678345
@@ -61,16 +63,32 @@ class AdminMessageViewModelTest {
     private val regularUserName = "user"
 
     private lateinit var adminMessageViewModel: AdminMessageViewModel
+    private lateinit var getMessagesForAdminToViewUseCase: GetMessagesForAdminToViewUseCase
+
+    @Before
+    fun setUp() {
+        getMessagesForAdminToViewUseCase = GetMessagesForAdminToViewUseCase(
+            getMessagesForActiveUserUseCase,
+            getMessagesForSelectedUserUseCase
+        )
+    }
 
     @Test
     fun `init fetches active user messages from use case and immediately collects success data`() =
         runTest {
             // Arrange
             val mockActiveMessages = createActiveMessages()
-            val mockMessageRepositoryStream = MutableStateFlow<Resource<List<MessageDomainModel>>>(
-                Resource.Success(data = mockActiveMessages)
-            )
-            every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
+            val mockSelectedMessages = createSelectedMessages()
+            val mockActiveMessageRepositoryStream =
+                MutableStateFlow<Resource<List<MessageDomainModel>>>(
+                    Resource.Success(data = mockActiveMessages)
+                )
+            val mockSelectedMessageRepositoryStream =
+                MutableStateFlow<Resource<List<MessageDomainModel>>>(
+                    Resource.Success(data = mockSelectedMessages)
+                )
+            every { getMessagesForActiveUserUseCase() } returns mockActiveMessageRepositoryStream
+            every { getMessagesForSelectedUserUseCase(any()) } returns mockSelectedMessageRepositoryStream
 
             val mockUserInformation = createAllUsers()
             val mockUserRepositoryStream = MutableStateFlow<Resource<List<UserOptionDomainModel>>>(
@@ -86,9 +104,8 @@ class AdminMessageViewModelTest {
             // Act - calls init() inherently
             adminMessageViewModel = AdminMessageViewModel(
                 savedStateHandle = savedStateHandle,
-                loadActiveMessagesUseCase = loadActiveMessagesUseCase,
-                loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
-                getCachedMessagesUseCase = getCachedMessagesUseCase,
+                refreshMessagesUseCase = refreshMessagesUseCase,
+                getMessagesForAdminToViewUseCase = getMessagesForAdminToViewUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -100,6 +117,7 @@ class AdminMessageViewModelTest {
             )
 
             // no selected user = active user = admin
+            // StateFlow selectedUserId.value remains null!
 
             // Wake up WhileSubscribed - add active subscriber to mimic UI
             backgroundScope.launch(testScheduler) {
@@ -124,18 +142,27 @@ class AdminMessageViewModelTest {
                 actual = adminMessageViewModel.uiState.value
             )
 
-            coVerify(exactly = 1) { loadActiveMessagesUseCase(any())}
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 1) { getMessagesForActiveUserUseCase() }
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 0) { getMessagesForSelectedUserUseCase(any()) }
         }
 
     @Test
     fun `init fetches selected admin messages from use case and immediately collects success data`() =
         runTest {
             // Arrange
-            val mockActiveMessages = createActiveMessages()
-            val mockMessageRepositoryStream = MutableStateFlow<Resource<List<MessageDomainModel>>>(
-                Resource.Success(data = mockActiveMessages)
-            )
-            every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
+            val mockActiveMessages = createActiveMessages() // both active and selected messages
+            val mockActiveMessageRepositoryStream =
+                MutableStateFlow<Resource<List<MessageDomainModel>>>(
+                    Resource.Success(data = mockActiveMessages)
+                )
+            val mockSelectedMessageRepositoryStream =
+                MutableStateFlow<Resource<List<MessageDomainModel>>>(
+                    Resource.Success(data = mockActiveMessages)
+                )
+            every { getMessagesForActiveUserUseCase() } returns mockActiveMessageRepositoryStream
+            every { getMessagesForSelectedUserUseCase(any()) } returns mockSelectedMessageRepositoryStream
 
             val mockUserInformation = createAllUsers()
             val mockUserRepositoryStream = MutableStateFlow<Resource<List<UserOptionDomainModel>>>(
@@ -151,9 +178,8 @@ class AdminMessageViewModelTest {
             // Act - calls init() inherently
             adminMessageViewModel = AdminMessageViewModel(
                 savedStateHandle = savedStateHandle,
-                loadActiveMessagesUseCase = loadActiveMessagesUseCase,
-                loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
-                getCachedMessagesUseCase = getCachedMessagesUseCase,
+                refreshMessagesUseCase = refreshMessagesUseCase,
+                getMessagesForAdminToViewUseCase = getMessagesForAdminToViewUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -163,6 +189,9 @@ class AdminMessageViewModelTest {
                 markMessageAsNotImportantUseCase = markMessageAsNotImportantUseCase,
                 getMessageEventsUseCase = getMessageEventsUseCase
             )
+
+            // no selected user = active user = admin
+            // StateFlow selectedUserId.value remains null!
 
             // 2. Wake up WhileSubscribed - add active subscriber to mimic UI
             backgroundScope.launch(testScheduler) {
@@ -177,7 +206,7 @@ class AdminMessageViewModelTest {
             // simulate user selection in dropdown after landing on screen
             adminMessageViewModel.onUserOptionClicked(adminUserId, true)
             adminMessageViewModel.onUserOptionQueryChanged(adminUserName)
-            adminMessageViewModel.loadSelectedMessageData()
+            // Expect this to trigger selectedUserId.flatMapLatest {} to reload messages!
             runCurrent()
 
             // Assert: Verify that the list mapped to Success and matches our conversion expectation
@@ -200,7 +229,10 @@ class AdminMessageViewModelTest {
                 actual = adminMessageViewModel.uiState.value
             )
 
-            coVerify(exactly = 1) { loadSelectedMessagesUseCase(eq(adminUserId), any())}
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 1) { getMessagesForActiveUserUseCase() }
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 1) { getMessagesForSelectedUserUseCase(eq(adminUserId)) }
         }
 
     @Test
@@ -210,10 +242,17 @@ class AdminMessageViewModelTest {
             // Arrange
             val mockActiveMessages = createActiveMessages()
             val mockSelectedMessages = createSelectedMessages()
-            val mockMessageRepositoryStream = MutableStateFlow<Resource<List<MessageDomainModel>>>(
-                Resource.Success(data = mockActiveMessages)
-            )
-            every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
+            val mockActiveMessageRepositoryStream =
+                MutableStateFlow<Resource<List<MessageDomainModel>>>(
+                    Resource.Success(data = mockActiveMessages)
+                )
+            val mockSelectedMessageRepositoryStream =
+                MutableStateFlow<Resource<List<MessageDomainModel>>>(
+                    Resource.Success(data = mockSelectedMessages)
+                )
+            every { getMessagesForActiveUserUseCase() } returns mockActiveMessageRepositoryStream
+            every { getMessagesForSelectedUserUseCase(any()) } returns mockSelectedMessageRepositoryStream
+
             val mockUserInformation = createAllUsers()
             val mockUserRepositoryStream = MutableStateFlow<Resource<List<UserOptionDomainModel>>>(
                 Resource.Success(data = mockUserInformation)
@@ -228,9 +267,8 @@ class AdminMessageViewModelTest {
             // Act - calls init() inherently
             adminMessageViewModel = AdminMessageViewModel(
                 savedStateHandle = savedStateHandle,
-                loadActiveMessagesUseCase = loadActiveMessagesUseCase,
-                loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
-                getCachedMessagesUseCase = getCachedMessagesUseCase,
+                refreshMessagesUseCase = refreshMessagesUseCase,
+                getMessagesForAdminToViewUseCase = getMessagesForAdminToViewUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -240,6 +278,9 @@ class AdminMessageViewModelTest {
                 markMessageAsNotImportantUseCase = markMessageAsNotImportantUseCase,
                 getMessageEventsUseCase = getMessageEventsUseCase
             )
+
+            // no selected user = active user = admin
+            // StateFlow selectedUserId.value remains null!
 
             // 2. Wake up WhileSubscribed - add active subscriber to mimic UI
             backgroundScope.launch(testScheduler) {
@@ -251,11 +292,7 @@ class AdminMessageViewModelTest {
             // simulate user item onclick selection in dropdown after landing on screen
             adminMessageViewModel.onUserOptionClicked(regularUserId, false)
             adminMessageViewModel.onUserOptionQueryChanged("user")
-
-            // SWAP THE STREAM DATA: Push the new regular user payload down to the hot fake!
-            mockMessageRepositoryStream.value = Resource.Success(data = mockSelectedMessages)
-
-            adminMessageViewModel.loadSelectedMessageData()
+            // Expect this to trigger selectedUserId.flatMapLatest {} to reload messages!
             runCurrent() // Flush the combine/scan pipeline
 
             // Assert: Verify that the list mapped to Success and matches our conversion expectation
@@ -278,20 +315,30 @@ class AdminMessageViewModelTest {
                 actual = adminMessageViewModel.uiState.value
             )
 
-            coVerify(exactly = 1) {
-                loadSelectedMessagesUseCase(eq(regularUserId), any())
-            }
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 1) { getMessagesForActiveUserUseCase() }
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 1) { getMessagesForSelectedUserUseCase(eq(regularUserId)) }
         }
 
     @Test
     fun `init fetches important active user messages from use case and immediately collects success data`() =
         runTest {
+
             // Arrange
             val mockActiveMessages = createActiveMessages()
-            val mockMessageRepositoryStream = MutableStateFlow<Resource<List<MessageDomainModel>>>(
-                Resource.Success(data = mockActiveMessages)
-            )
-            every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
+            val mockSelectedMessages = createSelectedMessages()
+            val mockActiveMessageRepositoryStream =
+                MutableStateFlow<Resource<List<MessageDomainModel>>>(
+                    Resource.Success(data = mockActiveMessages)
+                )
+            val mockSelectedMessageRepositoryStream =
+                MutableStateFlow<Resource<List<MessageDomainModel>>>(
+                    Resource.Success(data = mockSelectedMessages)
+                )
+            every { getMessagesForActiveUserUseCase() } returns mockActiveMessageRepositoryStream
+            every { getMessagesForSelectedUserUseCase(any()) } returns mockSelectedMessageRepositoryStream
+
             val mockUserInformation = createAllUsers()
             val mockUserRepositoryStream = MutableStateFlow<Resource<List<UserOptionDomainModel>>>(
                 Resource.Success(data = mockUserInformation)
@@ -306,9 +353,8 @@ class AdminMessageViewModelTest {
             // Act - calls init() inherently
             adminMessageViewModel = AdminMessageViewModel(
                 savedStateHandle = savedStateHandle,
-                loadActiveMessagesUseCase = loadActiveMessagesUseCase,
-                loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
-                getCachedMessagesUseCase = getCachedMessagesUseCase,
+                refreshMessagesUseCase = refreshMessagesUseCase,
+                getMessagesForAdminToViewUseCase = getMessagesForAdminToViewUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -320,6 +366,7 @@ class AdminMessageViewModelTest {
             )
 
             // no selected user = active user = admin
+            // StateFlow selectedUserId.value remains null!
 
             // 2. Wake up WhileSubscribed - add active subscriber to mimic UI
             backgroundScope.launch(testScheduler) {
@@ -329,6 +376,7 @@ class AdminMessageViewModelTest {
 
             // Mimic the user clicking the important filter chip
             adminMessageViewModel.onImportantOnlyToggled(true)
+            // Expect this to trigger combine() {} to reload messages!
             runCurrent() // Flush the combine/scan pipeline
 
             // Assert: Verify that the list mapped to Success and matches our conversion expectation
@@ -347,9 +395,10 @@ class AdminMessageViewModelTest {
                 actual = adminMessageViewModel.uiState.value
             )
 
-            coVerify(exactly = 1) {
-                loadActiveMessagesUseCase( any())
-            }
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 1) { getMessagesForActiveUserUseCase() }
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 0) { getMessagesForSelectedUserUseCase(any()) }
         }
 
     @Test
@@ -359,10 +408,17 @@ class AdminMessageViewModelTest {
             // Arrange
             val mockActiveMessages = createActiveMessages()
             val mockSelectedMessages = createSelectedMessages()
-            val mockMessageRepositoryStream = MutableStateFlow<Resource<List<MessageDomainModel>>>(
-                Resource.Success(data = mockActiveMessages)
-            )
-            every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
+            val mockActiveMessageRepositoryStream =
+                MutableStateFlow<Resource<List<MessageDomainModel>>>(
+                    Resource.Success(data = mockActiveMessages)
+                )
+            val mockSelectedMessageRepositoryStream =
+                MutableStateFlow<Resource<List<MessageDomainModel>>>(
+                    Resource.Success(data = mockSelectedMessages)
+                )
+            every { getMessagesForActiveUserUseCase() } returns mockActiveMessageRepositoryStream
+            every { getMessagesForSelectedUserUseCase(any()) } returns mockSelectedMessageRepositoryStream
+
             val mockUserInformation = createAllUsers()
             val mockUserRepositoryStream = MutableStateFlow<Resource<List<UserOptionDomainModel>>>(
                 Resource.Success(data = mockUserInformation)
@@ -377,9 +433,8 @@ class AdminMessageViewModelTest {
             // Act - calls init() inherently
             adminMessageViewModel = AdminMessageViewModel(
                 savedStateHandle = savedStateHandle,
-                loadActiveMessagesUseCase = loadActiveMessagesUseCase,
-                loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
-                getCachedMessagesUseCase = getCachedMessagesUseCase,
+                refreshMessagesUseCase = refreshMessagesUseCase,
+                getMessagesForAdminToViewUseCase = getMessagesForAdminToViewUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -389,6 +444,9 @@ class AdminMessageViewModelTest {
                 markMessageAsNotImportantUseCase = markMessageAsNotImportantUseCase,
                 getMessageEventsUseCase = getMessageEventsUseCase
             )
+
+            // no selected user = active user = admin
+            // StateFlow selectedUserId.value remains null!
 
             // 2. Wake up WhileSubscribed - add active subscriber to mimic UI
             backgroundScope.launch(testScheduler) {
@@ -401,11 +459,7 @@ class AdminMessageViewModelTest {
             adminMessageViewModel.onUserOptionClicked(regularUserId, false)
             adminMessageViewModel.onUserOptionQueryChanged("user")
             adminMessageViewModel.onImportantOnlyToggled(true)
-
-            // SWAP THE STREAM DATA: Push the new regular user payload down to the hot fake!
-            mockMessageRepositoryStream.value = Resource.Success(data = mockSelectedMessages)
-
-            adminMessageViewModel.loadSelectedMessageData()
+            // Expect this to trigger selectedUserId.flatMapLatest {} to reload messages!
             runCurrent() // Flush the combine/scan pipeline
 
             // Assert: Verify that the list mapped to Success and matches our conversion expectation
@@ -430,9 +484,10 @@ class AdminMessageViewModelTest {
                 actual = adminMessageViewModel.uiState.value
             )
 
-            coVerify(exactly = 1) {
-                loadSelectedMessagesUseCase(eq(regularUserId), any())
-            }
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 1) { getMessagesForActiveUserUseCase() }
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 1) { getMessagesForSelectedUserUseCase(eq(regularUserId)) }
         }
 
     @Test
@@ -440,10 +495,17 @@ class AdminMessageViewModelTest {
         runTest {
             // Arrange
             val mockActiveMessages = createActiveMessages()
-            val mockMessageRepositoryStream = MutableStateFlow<Resource<List<MessageDomainModel>>>(
-                Resource.Success(data = mockActiveMessages)
-            )
-            every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
+            val mockSelectedMessages = createSelectedMessages()
+            val mockActiveMessageRepositoryStream =
+                MutableStateFlow<Resource<List<MessageDomainModel>>>(
+                    Resource.Success(data = mockActiveMessages)
+                )
+            val mockSelectedMessageRepositoryStream =
+                MutableStateFlow<Resource<List<MessageDomainModel>>>(
+                    Resource.Success(data = mockSelectedMessages)
+                )
+            every { getMessagesForActiveUserUseCase() } returns mockActiveMessageRepositoryStream
+            every { getMessagesForSelectedUserUseCase(any()) } returns mockSelectedMessageRepositoryStream
 
             val mockUserInformation = createAllUsers()
             val mockUserRepositoryStream = MutableStateFlow<Resource<List<UserOptionDomainModel>>>(
@@ -459,9 +521,8 @@ class AdminMessageViewModelTest {
             // Act - calls init() inherently
             adminMessageViewModel = AdminMessageViewModel(
                 savedStateHandle = savedStateHandle,
-                loadActiveMessagesUseCase = loadActiveMessagesUseCase,
-                loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
-                getCachedMessagesUseCase = getCachedMessagesUseCase,
+                refreshMessagesUseCase = refreshMessagesUseCase,
+                getMessagesForAdminToViewUseCase = getMessagesForAdminToViewUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -473,6 +534,7 @@ class AdminMessageViewModelTest {
             )
 
             // no selected user = active user = admin
+            // StateFlow selectedUserId.value remains null!
 
             // 2. Wake up WhileSubscribed - add active subscriber to mimic UI
             backgroundScope.launch(testScheduler) {
@@ -481,6 +543,7 @@ class AdminMessageViewModelTest {
             runCurrent() // Baseline Success Admin state is firmly established!
 
             adminMessageViewModel.onSearchChanged("upgrade")
+            // Expect this to trigger combine() {} to reload messages!
             runCurrent() // Flush the combine/scan pipeline
 
             // Assert: Verify that the list mapped to Success and matches our conversion expectation
@@ -498,6 +561,11 @@ class AdminMessageViewModelTest {
                 expected = expectedState,
                 actual = adminMessageViewModel.uiState.value
             )
+
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 1) { getMessagesForActiveUserUseCase() }
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 0) { getMessagesForSelectedUserUseCase(any()) }
         }
 
     @Test
@@ -507,10 +575,16 @@ class AdminMessageViewModelTest {
             // Arrange
             val mockActiveMessages = createActiveMessages()
             val mockSelectedMessages = createSelectedMessages()
-            val mockMessageRepositoryStream = MutableStateFlow<Resource<List<MessageDomainModel>>>(
-                Resource.Success(data = mockActiveMessages)
-            )
-            every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
+            val mockActiveMessageRepositoryStream =
+                MutableStateFlow<Resource<List<MessageDomainModel>>>(
+                    Resource.Success(data = mockActiveMessages)
+                )
+            val mockSelectedMessageRepositoryStream =
+                MutableStateFlow<Resource<List<MessageDomainModel>>>(
+                    Resource.Success(data = mockSelectedMessages)
+                )
+            every { getMessagesForActiveUserUseCase() } returns mockActiveMessageRepositoryStream
+            every { getMessagesForSelectedUserUseCase(any()) } returns mockSelectedMessageRepositoryStream
 
             val mockUserInformation = createAllUsers()
             val mockUserRepositoryStream = MutableStateFlow<Resource<List<UserOptionDomainModel>>>(
@@ -526,9 +600,8 @@ class AdminMessageViewModelTest {
             // Act - calls init() inherently
             adminMessageViewModel = AdminMessageViewModel(
                 savedStateHandle = savedStateHandle,
-                loadActiveMessagesUseCase = loadActiveMessagesUseCase,
-                loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
-                getCachedMessagesUseCase = getCachedMessagesUseCase,
+                refreshMessagesUseCase = refreshMessagesUseCase,
+                getMessagesForAdminToViewUseCase = getMessagesForAdminToViewUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -538,6 +611,9 @@ class AdminMessageViewModelTest {
                 markMessageAsNotImportantUseCase = markMessageAsNotImportantUseCase,
                 getMessageEventsUseCase = getMessageEventsUseCase
             )
+
+            // no selected user = active user = admin
+            // StateFlow selectedUserId.value remains null!
 
             // 2. Wake up WhileSubscribed - add active subscriber to mimic UI
             backgroundScope.launch(testScheduler) {
@@ -550,11 +626,7 @@ class AdminMessageViewModelTest {
             adminMessageViewModel.onUserOptionClicked(regularUserId, false)
             adminMessageViewModel.onUserOptionQueryChanged("user")
             adminMessageViewModel.onSearchChanged("meeting")
-
-            // SWAP THE STREAM DATA: Push the new regular user payload down to the hot fake!
-            mockMessageRepositoryStream.value = Resource.Success(data = mockSelectedMessages)
-
-            adminMessageViewModel.loadSelectedMessageData()
+            // Expect this to trigger combine() {} to reload messages!
             runCurrent() // Flush the combine/scan pipeline
 
             // Assert: Verify that the list mapped to Success and matches our conversion expectation
@@ -579,9 +651,10 @@ class AdminMessageViewModelTest {
                 actual = adminMessageViewModel.uiState.value
             )
 
-            coVerify(exactly = 1) {
-                loadSelectedMessagesUseCase(eq(regularUserId), any())
-            }
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 1) { getMessagesForActiveUserUseCase() }
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 1) { getMessagesForSelectedUserUseCase(any()) }
         }
 
     @Test
@@ -589,10 +662,17 @@ class AdminMessageViewModelTest {
         runTest {
             // 1. Arrange: Start with a populated lists in Success State
             val mockActiveMessages = createActiveMessages()
-            val mockMessageRepositoryStream = MutableStateFlow<Resource<List<MessageDomainModel>>>(
-                Resource.Success(data = mockActiveMessages)
-            )
-            every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
+            val mockSelectedMessages = createSelectedMessages()
+            val mockActiveMessageRepositoryStream =
+                MutableStateFlow<Resource<List<MessageDomainModel>>>(
+                    Resource.Success(data = mockActiveMessages)
+                )
+            val mockSelectedMessageRepositoryStream =
+                MutableStateFlow<Resource<List<MessageDomainModel>>>(
+                    Resource.Success(data = mockSelectedMessages)
+                )
+            every { getMessagesForActiveUserUseCase() } returns mockActiveMessageRepositoryStream
+            every { getMessagesForSelectedUserUseCase(any()) } returns mockSelectedMessageRepositoryStream
 
             val mockUserInformation = createAllUsers()
             val mockUserRepositoryStream = MutableStateFlow<Resource<List<UserOptionDomainModel>>>(
@@ -606,7 +686,7 @@ class AdminMessageViewModelTest {
             val savedStateHandle = SavedStateHandle()
 
             // Instantiate your handwritten fake contract
-            val fakeLoadActiveMessagesUseCase = FakeLoadActiveMessagesUseCase()
+            val fakeRefreshMessagesUseCase = FakeRefreshMessagesUseCase()
 
             // Prevent isRefreshing flapping
             // THE WHY: To capture the state while the pull-to-refresh action is actively in flight,
@@ -617,9 +697,8 @@ class AdminMessageViewModelTest {
             // Act Step 1: Initialize the ViewModel
             adminMessageViewModel = AdminMessageViewModel(
                 savedStateHandle = savedStateHandle,
-                loadActiveMessagesUseCase = fakeLoadActiveMessagesUseCase,
-                loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
-                getCachedMessagesUseCase = getCachedMessagesUseCase,
+                refreshMessagesUseCase = fakeRefreshMessagesUseCase,
+                getMessagesForAdminToViewUseCase = getMessagesForAdminToViewUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -629,6 +708,9 @@ class AdminMessageViewModelTest {
                 markMessageAsNotImportantUseCase = markMessageAsNotImportantUseCase,
                 getMessageEventsUseCase = getMessageEventsUseCase
             )
+
+            // no selected user = active user = admin
+            // StateFlow selectedUserId.value remains null!
 
             // 2. Wake up WhileSubscribed - add active subscriber to mimic UI
             backgroundScope.launch(testScheduler) {
@@ -642,7 +724,7 @@ class AdminMessageViewModelTest {
             runCurrent() // Flushes the combine pipeline so the state machine registers isRefreshing = true
 
             // Step 3: Now that isRefreshing is safely locked to true, drop the stream to Loading!
-            mockMessageRepositoryStream.value = Resource.Loading
+            mockActiveMessageRepositoryStream.value = Resource.Loading
 
             // Step 4: Advance the clock slightly to process the composite stream mapping.
             // Important: Advance less than 1000 milliseconds of the delay in the
@@ -663,173 +745,29 @@ class AdminMessageViewModelTest {
                 expected = expectedState,
                 actual = adminMessageViewModel.uiState.value
             )
+            assertEquals(1, fakeRefreshMessagesUseCase.invocationCount)
 
             // expect 2 calls - init {} and onRefresh()
-            assertEquals(2, fakeLoadActiveMessagesUseCase.invocationCount)
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 1) { getMessagesForActiveUserUseCase() }
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 0) { getMessagesForSelectedUserUseCase(any()) }
         }
-
-    @Test
-    fun `when pull to refresh activated on active user and use case emits Retrying`() =
-        runTest {
-            // 1. Arrange: Start with a populated lists in Success State
-            val mockActiveMessages = createActiveMessages()
-            val mockMessageRepositoryStream = MutableStateFlow<Resource<List<MessageDomainModel>>>(
-                Resource.Success(data = mockActiveMessages)
-            )
-            every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
-
-            val mockUserInformation = createAllUsers()
-            val mockUserRepositoryStream = MutableStateFlow<Resource<List<UserOptionDomainModel>>>(
-                Resource.Success(data = mockUserInformation)
-            )
-            every { getAdminUserInformationUseCase() } returns mockUserRepositoryStream
-
-            // This map mimics exactly what Compose Navigation build behind the scenes
-            // There is no navigation value passed in - this ViewModel uses SavedStateHandle
-            // as lifecycle-aware storage of user-selected values on the UI
-            val savedStateHandle = SavedStateHandle()
-
-            // Instantiate your handwritten fake contract
-            val fakeLoadActiveMessagesUseCase = FakeLoadActiveMessagesUseCase()
-
-            // Prevent isRefreshing flapping
-            // THE WHY: To capture the state while the pull-to-refresh action is actively in flight,
-            // we need to pause the loadAllBulletinsUseCase execution mid-flight inside the
-            // test body. This forces _isRefreshing to hold its true value open long enough
-            // for our scan assertion to capture it.
-
-            // Act Step 1: Initialize the ViewModel
-            adminMessageViewModel = AdminMessageViewModel(
-                savedStateHandle = savedStateHandle,
-                loadActiveMessagesUseCase = fakeLoadActiveMessagesUseCase,
-                loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
-                getCachedMessagesUseCase = getCachedMessagesUseCase,
-                getAdminUserInformationUseCase = getAdminUserInformationUseCase,
-                markMessageAsReadUseCase = markMessageAsReadUseCase,
-                markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
-                deleteMessageUseCase = deleteMessageUseCase,
-                restoreMessageUseCase = restoreMessageUseCase,
-                markMessageAsImportantUseCase = markMessageAsImportantUseCase,
-                markMessageAsNotImportantUseCase = markMessageAsNotImportantUseCase,
-                getMessageEventsUseCase = getMessageEventsUseCase
-            )
-
-            // 2. Wake up WhileSubscribed - add active subscriber to mimic UI
-            backgroundScope.launch(testScheduler) {
-                adminMessageViewModel.uiState.collect {}
-            }
-            runCurrent() // Success state is firmly established as 'previousState'
-
-            // 3. Act Part 2: Update the repository stream value to Loading
-            mockMessageRepositoryStream.value = Resource.Loading
-
-            // 4. Act Step 3: Trigger the manual refresh gesture
-            adminMessageViewModel.onRefresh()
-            runCurrent() // Flushes the combine pipeline so the state machine registers isRefreshing = true
-
-            // 5. Act Part 4: Manually fire your captured retry callback through the fake!
-            // This executes: _loadTrigger.value = 1, forcing flatMapLatest to transition streams!
-            val targetRetryCallback = checkNotNull(fakeLoadActiveMessagesUseCase.capturedOnRetry)
-            targetRetryCallback.invoke(1)
-
-            // 4. Assert: Verify your custom scan carrier rules!
-            // The state should be Success with refreshing = true, keeping the list completely visible!
-            val expectedState = AdminMessageUiState.Retrying(attempt = 1)
-
-            assertEquals(expectedState, adminMessageViewModel.uiState.value)
-
-            // expect 2 calls - init {} and onRefresh()
-            assertEquals(2, fakeLoadActiveMessagesUseCase.invocationCount)
-        }
-
-    @Test
-    fun `when pull to refresh activated on selected user and use case emits Retrying`() =
-        runTest {
-            // 1. Arrange: Start with a populated lists in Success State
-            val mockSelectedMessages = createSelectedMessages()
-            val mockMessageRepositoryStream = MutableStateFlow<Resource<List<MessageDomainModel>>>(
-                Resource.Success(data = mockSelectedMessages)
-            )
-            every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
-
-            val mockUserInformation = createAllUsers()
-            val mockUserRepositoryStream = MutableStateFlow<Resource<List<UserOptionDomainModel>>>(
-                Resource.Success(data = mockUserInformation)
-            )
-            every { getAdminUserInformationUseCase() } returns mockUserRepositoryStream
-
-            // This map mimics exactly what Compose Navigation build behind the scenes
-            // There is no navigation value passed in - this ViewModel uses SavedStateHandle
-            // as lifecycle-aware storage of user-selected values on the UI
-            val savedStateHandle = SavedStateHandle()
-
-            // Instantiate your handwritten fake contract
-            val fakeLoadSelectedMessagesUseCase = FakeLoadSelectedMessagesUseCase()
-
-            // Prevent isRefreshing flapping
-            // THE WHY: To capture the state while the pull-to-refresh action is actively in flight,
-            // we need to pause the loadAllBulletinsUseCase execution mid-flight inside the
-            // test body. This forces _isRefreshing to hold its true value open long enough
-            // for our scan assertion to capture it.
-
-            // Act Step 1: Initialize the ViewModel
-            adminMessageViewModel = AdminMessageViewModel(
-                savedStateHandle = savedStateHandle,
-                loadActiveMessagesUseCase = loadActiveMessagesUseCase,
-                loadSelectedMessagesUseCase = fakeLoadSelectedMessagesUseCase,
-                getCachedMessagesUseCase = getCachedMessagesUseCase,
-                getAdminUserInformationUseCase = getAdminUserInformationUseCase,
-                markMessageAsReadUseCase = markMessageAsReadUseCase,
-                markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
-                deleteMessageUseCase = deleteMessageUseCase,
-                restoreMessageUseCase = restoreMessageUseCase,
-                markMessageAsImportantUseCase = markMessageAsImportantUseCase,
-                markMessageAsNotImportantUseCase = markMessageAsNotImportantUseCase,
-                getMessageEventsUseCase = getMessageEventsUseCase
-            )
-
-            // 2. Wake up WhileSubscribed - add active subscriber to mimic UI
-            backgroundScope.launch(testScheduler) {
-                adminMessageViewModel.uiState.collect {}
-            }
-            runCurrent() // Success state is firmly established as 'previousState'
-
-            // configure selected user
-            adminMessageViewModel.onUserOptionClicked(regularUserId, false)
-            adminMessageViewModel.onUserOptionQueryChanged("user")
-
-            // 3. Act Part 2: Update the repository stream value to Loading
-            mockMessageRepositoryStream.value = Resource.Loading
-
-            // 4. Act Step 3: Trigger the manual refresh gesture
-            adminMessageViewModel.onRefresh()
-            runCurrent() // Flushes the combine pipeline so the state machine registers isRefreshing = true
-
-            // 5. Act Part 4: Manually fire your captured retry callback through the fake!
-            // This executes: _loadTrigger.value = 1, forcing flatMapLatest to transition streams!
-            val targetRetryCallback = checkNotNull(fakeLoadSelectedMessagesUseCase.capturedOnRetry)
-            targetRetryCallback.invoke(1)
-
-            // 4. Assert: Verify your custom scan carrier rules!
-            // The state should be Success with refreshing = true, keeping the list completely visible!
-            val expectedState = AdminMessageUiState.Retrying(attempt = 1)
-
-            assertEquals(expectedState, adminMessageViewModel.uiState.value)
-
-            // expect 2 calls - init {} and onRefresh()
-            coVerify(exactly = 1) { loadActiveMessagesUseCase(any()) }
-            assertEquals(1, fakeLoadSelectedMessagesUseCase.invocationCount)
-        }
-
 
     @Test
     fun `init emits Loading UI state when use case stream initializes with Loading resource`() =
         runTest {
             // 1. Arrange: Seed your hot stream directly with the Loading state token
-            val mockMessageRepositoryStream = MutableStateFlow<Resource<List<MessageDomainModel>>>(
-                Resource.Loading
-            )
-            every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
+            val mockActiveMessageRepositoryStream =
+                MutableStateFlow<Resource<List<MessageDomainModel>>>(
+                    Resource.Loading
+                )
+            val mockSelectedMessageRepositoryStream =
+                MutableStateFlow<Resource<List<MessageDomainModel>>>(
+                    Resource.Loading
+                )
+            every { getMessagesForActiveUserUseCase() } returns mockActiveMessageRepositoryStream
+            every { getMessagesForSelectedUserUseCase(any()) } returns mockSelectedMessageRepositoryStream
 
             val mockUserInformation = createAllUsers()
             val mockUserRepositoryStream = MutableStateFlow<Resource<List<UserOptionDomainModel>>>(
@@ -845,9 +783,8 @@ class AdminMessageViewModelTest {
             // Act: Initialize the ViewModel
             adminMessageViewModel = AdminMessageViewModel(
                 savedStateHandle = savedStateHandle,
-                loadActiveMessagesUseCase = loadActiveMessagesUseCase,
-                loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
-                getCachedMessagesUseCase = getCachedMessagesUseCase,
+                refreshMessagesUseCase = refreshMessagesUseCase,
+                getMessagesForAdminToViewUseCase = getMessagesForAdminToViewUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -857,6 +794,9 @@ class AdminMessageViewModelTest {
                 markMessageAsNotImportantUseCase = markMessageAsNotImportantUseCase,
                 getMessageEventsUseCase = getMessageEventsUseCase
             )
+
+            // no selected user = active user = admin
+            // StateFlow selectedUserId.value remains null!
 
             // 2. Wake up WhileSubscribed - add active subscriber to mimic UI
             backgroundScope.launch(testScheduler) {
@@ -869,6 +809,12 @@ class AdminMessageViewModelTest {
                 AdminMessageUiState.Loading,
                 adminMessageViewModel.uiState.value
             )
+
+            // expect 2 calls - init {} and onRefresh()
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 1) { getMessagesForActiveUserUseCase() }
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 0) { getMessagesForSelectedUserUseCase(any()) }
         }
 
     @Test
@@ -876,10 +822,17 @@ class AdminMessageViewModelTest {
         runTest {
             // 1. Arrange: Start with a populated lists in Success State
             val mockActiveMessages = createActiveMessages()
-            val mockMessageRepositoryStream = MutableStateFlow<Resource<List<MessageDomainModel>>>(
-                Resource.Success(data = mockActiveMessages)
-            )
-            every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
+            val mockSelectedMessages = createSelectedMessages()
+            val mockActiveMessageRepositoryStream =
+                MutableStateFlow<Resource<List<MessageDomainModel>>>(
+                    Resource.Success(data = mockActiveMessages)
+                )
+            val mockSelectedMessageRepositoryStream =
+                MutableStateFlow<Resource<List<MessageDomainModel>>>(
+                    Resource.Success(data = mockSelectedMessages)
+                )
+            every { getMessagesForActiveUserUseCase() } returns mockActiveMessageRepositoryStream
+            every { getMessagesForSelectedUserUseCase(any()) } returns mockSelectedMessageRepositoryStream
 
             val mockUserInformation = createAllUsers()
             val mockUserRepositoryStream = MutableStateFlow<Resource<List<UserOptionDomainModel>>>(
@@ -893,7 +846,7 @@ class AdminMessageViewModelTest {
             val savedStateHandle = SavedStateHandle()
 
             // Instantiate your handwritten fake contract
-            val fakeLoadActiveMessagesUseCase = FakeLoadActiveMessagesUseCase()
+            val fakeRefreshMessagesUseCase = FakeRefreshMessagesUseCase()
 
             // Prevent isRefreshing flapping
             // THE WHY: To capture the state while the pull-to-refresh action is actively in flight,
@@ -904,9 +857,8 @@ class AdminMessageViewModelTest {
             // Act Step 1: Initialize the ViewModel
             adminMessageViewModel = AdminMessageViewModel(
                 savedStateHandle = savedStateHandle,
-                loadActiveMessagesUseCase = fakeLoadActiveMessagesUseCase,
-                loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
-                getCachedMessagesUseCase = getCachedMessagesUseCase,
+                refreshMessagesUseCase = fakeRefreshMessagesUseCase,
+                getMessagesForAdminToViewUseCase = getMessagesForAdminToViewUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -916,6 +868,9 @@ class AdminMessageViewModelTest {
                 markMessageAsNotImportantUseCase = markMessageAsNotImportantUseCase,
                 getMessageEventsUseCase = getMessageEventsUseCase
             )
+
+            // no selected user = active user = admin
+            // StateFlow selectedUserId.value remains null!
 
             // 2. Wake up WhileSubscribed - add active subscriber to mimic UI
             backgroundScope.launch(testScheduler) {
@@ -929,7 +884,7 @@ class AdminMessageViewModelTest {
             runCurrent() // Flushes the combine pipeline so the state machine registers isRefreshing = true
 
             // Step 3: Now that isRefreshing is safely locked to true, drop the stream to Error!
-            mockMessageRepositoryStream.value = Resource.Error("Network Timeout")
+            mockActiveMessageRepositoryStream.value = Resource.Error("Network Timeout")
 
             // Step 4: Advance the clock slightly to process the composite stream mapping.
             // Important: Advance less than 1000 milliseconds of the delay in the
@@ -950,19 +905,28 @@ class AdminMessageViewModelTest {
                 expected = expectedState,
                 actual = adminMessageViewModel.uiState.value
             )
+            assertEquals(1, fakeRefreshMessagesUseCase.invocationCount)
 
-            // expect 2 calls - init {} and onRefresh()
-            assertEquals(2, fakeLoadActiveMessagesUseCase.invocationCount)
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 1) { getMessagesForActiveUserUseCase() }
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 0) { getMessagesForSelectedUserUseCase(any()) }
         }
 
     @Test
     fun `init emits Error UI state when use case stream initializes with Error resource`() =
         runTest {
             // 1. Arrange: Start with a populated lists in Success State
-            val mockMessageRepositoryStream = MutableStateFlow<Resource<List<MessageDomainModel>>>(
-                Resource.Error("Cache Fail")
-            )
-            every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
+            val mockActiveMessageRepositoryStream =
+                MutableStateFlow<Resource<List<MessageDomainModel>>>(
+                    Resource.Error("Cache Fail")
+                )
+            val mockSelectedMessageRepositoryStream =
+                MutableStateFlow<Resource<List<MessageDomainModel>>>(
+                    Resource.Error("Cache Fail")
+                )
+            every { getMessagesForActiveUserUseCase() } returns mockActiveMessageRepositoryStream
+            every { getMessagesForSelectedUserUseCase(any()) } returns mockSelectedMessageRepositoryStream
 
             val mockUserInformation = createAllUsers()
             val mockUserRepositoryStream = MutableStateFlow<Resource<List<UserOptionDomainModel>>>(
@@ -975,11 +939,11 @@ class AdminMessageViewModelTest {
             // as lifecycle-aware storage of user-selected values on the UI
             val savedStateHandle = SavedStateHandle()
             // Act Step 1: Initialize the ViewModel
+
             adminMessageViewModel = AdminMessageViewModel(
                 savedStateHandle = savedStateHandle,
-                loadActiveMessagesUseCase = loadActiveMessagesUseCase,
-                loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
-                getCachedMessagesUseCase = getCachedMessagesUseCase,
+                refreshMessagesUseCase = refreshMessagesUseCase,
+                getMessagesForAdminToViewUseCase = getMessagesForAdminToViewUseCase,
                 getAdminUserInformationUseCase = getAdminUserInformationUseCase,
                 markMessageAsReadUseCase = markMessageAsReadUseCase,
                 markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
@@ -989,6 +953,9 @@ class AdminMessageViewModelTest {
                 markMessageAsNotImportantUseCase = markMessageAsNotImportantUseCase,
                 getMessageEventsUseCase = getMessageEventsUseCase
             )
+
+            // no selected user = active user = admin
+            // StateFlow selectedUserId.value remains null!
 
             // 2. Wake up WhileSubscribed - add active subscriber to mimic UI
             backgroundScope.launch(testScheduler) {
@@ -1000,50 +967,22 @@ class AdminMessageViewModelTest {
                 expected = AdminMessageUiState.Error("Cache Fail"),
                 actual = adminMessageViewModel.uiState.value,
             )
+
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 1) { getMessagesForActiveUserUseCase() }
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 0) { getMessagesForSelectedUserUseCase(any()) }
+
         }
 
     @Test
     fun `on delete message calls a use case`() =
         runTest {
             // 1. Arrange: Start with a populated lists in Success State
-            val mockActiveMessages = createActiveMessages()
-            val mockMessageRepositoryStream = MutableStateFlow<Resource<List<MessageDomainModel>>>(
-                Resource.Success(data = mockActiveMessages)
-            )
-            every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
+            arrange()
 
-            val mockUserInformation = createAllUsers()
-            val mockUserRepositoryStream = MutableStateFlow<Resource<List<UserOptionDomainModel>>>(
-                Resource.Success(data = mockUserInformation)
-            )
-            every { getAdminUserInformationUseCase() } returns mockUserRepositoryStream
-
-            // This map mimics exactly what Compose Navigation build behind the scenes
-            // There is no navigation value passed in - this ViewModel uses SavedStateHandle
-            // as lifecycle-aware storage of user-selected values on the UI
-            val savedStateHandle = SavedStateHandle()
-
-            // Prevent isRefreshing flapping
-            // THE WHY: To capture the state while the pull-to-refresh action is actively in flight,
-            // we need to pause the loadAllBulletinsUseCase execution mid-flight inside the
-            // test body. This forces _isRefreshing to hold its true value open long enough
-            // for our scan assertion to capture it.
-
-            // Initialize the ViewModel
-            adminMessageViewModel = AdminMessageViewModel(
-                savedStateHandle = savedStateHandle,
-                loadActiveMessagesUseCase = loadActiveMessagesUseCase,
-                loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
-                getCachedMessagesUseCase = getCachedMessagesUseCase,
-                getAdminUserInformationUseCase = getAdminUserInformationUseCase,
-                markMessageAsReadUseCase = markMessageAsReadUseCase,
-                markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
-                deleteMessageUseCase = deleteMessageUseCase,
-                restoreMessageUseCase = restoreMessageUseCase,
-                markMessageAsImportantUseCase = markMessageAsImportantUseCase,
-                markMessageAsNotImportantUseCase = markMessageAsNotImportantUseCase,
-                getMessageEventsUseCase = getMessageEventsUseCase
-            )
+            // no selected user = active user = admin
+            // StateFlow selectedUserId.value remains null!
 
             // act
             adminMessageViewModel.onDeleteMessage(789456)
@@ -1055,45 +994,8 @@ class AdminMessageViewModelTest {
     @Test
     fun `on Restore message calls a use case`() =
         runTest {
-            // 1. Arrange: Start with a populated lists in Success State
-            val mockActiveMessages = createActiveMessages()
-            val mockMessageRepositoryStream = MutableStateFlow<Resource<List<MessageDomainModel>>>(
-                Resource.Success(data = mockActiveMessages)
-            )
-            every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
-
-            val mockUserInformation = createAllUsers()
-            val mockUserRepositoryStream = MutableStateFlow<Resource<List<UserOptionDomainModel>>>(
-                Resource.Success(data = mockUserInformation)
-            )
-            every { getAdminUserInformationUseCase() } returns mockUserRepositoryStream
-
-            // This map mimics exactly what Compose Navigation build behind the scenes
-            // There is no navigation value passed in - this ViewModel uses SavedStateHandle
-            // as lifecycle-aware storage of user-selected values on the UI
-            val savedStateHandle = SavedStateHandle()
-
-            // Prevent isRefreshing flapping
-            // THE WHY: To capture the state while the pull-to-refresh action is actively in flight,
-            // we need to pause the loadAllBulletinsUseCase execution mid-flight inside the
-            // test body. This forces _isRefreshing to hold its true value open long enough
-            // for our scan assertion to capture it.
-
-            // Initialize the ViewModel
-            adminMessageViewModel = AdminMessageViewModel(
-                savedStateHandle = savedStateHandle,
-                loadActiveMessagesUseCase = loadActiveMessagesUseCase,
-                loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
-                getCachedMessagesUseCase = getCachedMessagesUseCase,
-                getAdminUserInformationUseCase = getAdminUserInformationUseCase,
-                markMessageAsReadUseCase = markMessageAsReadUseCase,
-                markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
-                deleteMessageUseCase = deleteMessageUseCase,
-                restoreMessageUseCase = restoreMessageUseCase,
-                markMessageAsImportantUseCase = markMessageAsImportantUseCase,
-                markMessageAsNotImportantUseCase = markMessageAsNotImportantUseCase,
-                getMessageEventsUseCase = getMessageEventsUseCase
-            )
+            // Arrange
+            arrange()
 
             val messageDomainModel = MessageDomainModel(
                 id = 0,
@@ -1106,205 +1008,116 @@ class AdminMessageViewModelTest {
                 isImportant = false
             )
 
-            // act
+            // Act
             adminMessageViewModel.onRestoreMessage(messageDomainModel)
 
-            // assert
+            // Assert
             coVerify(exactly = 1) { restoreMessageUseCase(eq(messageDomainModel)) }
         }
 
     @Test
     fun `on toggle read status will mark message as read`() =
         runTest {
-            // 1. Arrange: Start with a populated lists in Success State
-            val mockActiveMessages = createActiveMessages()
-            val mockMessageRepositoryStream = MutableStateFlow<Resource<List<MessageDomainModel>>>(
-                Resource.Success(data = mockActiveMessages)
-            )
-            every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
+            // Arrange
+            arrange()
 
-            val mockUserInformation = createAllUsers()
-            val mockUserRepositoryStream = MutableStateFlow<Resource<List<UserOptionDomainModel>>>(
-                Resource.Success(data = mockUserInformation)
-            )
-            every { getAdminUserInformationUseCase() } returns mockUserRepositoryStream
-
-            // This map mimics exactly what Compose Navigation build behind the scenes
-            // There is no navigation value passed in - this ViewModel uses SavedStateHandle
-            // as lifecycle-aware storage of user-selected values on the UI
-            val savedStateHandle = SavedStateHandle()
-
-            // Prevent isRefreshing flapping
-            // THE WHY: To capture the state while the pull-to-refresh action is actively in flight,
-            // we need to pause the loadAllBulletinsUseCase execution mid-flight inside the
-            // test body. This forces _isRefreshing to hold its true value open long enough
-            // for our scan assertion to capture it.
-
-            // Initialize the ViewModel
-            adminMessageViewModel = AdminMessageViewModel(
-                savedStateHandle = savedStateHandle,
-                loadActiveMessagesUseCase = loadActiveMessagesUseCase,
-                loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
-                getCachedMessagesUseCase = getCachedMessagesUseCase,
-                getAdminUserInformationUseCase = getAdminUserInformationUseCase,
-                markMessageAsReadUseCase = markMessageAsReadUseCase,
-                markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
-                deleteMessageUseCase = deleteMessageUseCase,
-                restoreMessageUseCase = restoreMessageUseCase,
-                markMessageAsImportantUseCase = markMessageAsImportantUseCase,
-                markMessageAsNotImportantUseCase = markMessageAsNotImportantUseCase,
-                getMessageEventsUseCase = getMessageEventsUseCase
-            )
-
+            // Act
             adminMessageViewModel.onToggleReadStatus(567234, true)
 
+            // Assert
             coVerify(exactly = 1) { markMessageAsReadUseCase(eq(567234)) }
         }
 
     @Test
     fun `on toggle read status will mark message as unread`() =
         runTest {
-            // 1. Arrange: Start with a populated lists in Success State
-            val mockActiveMessages = createActiveMessages()
-            val mockMessageRepositoryStream = MutableStateFlow<Resource<List<MessageDomainModel>>>(
-                Resource.Success(data = mockActiveMessages)
-            )
-            every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
+            // Arrange
+            arrange()
 
-            val mockUserInformation = createAllUsers()
-            val mockUserRepositoryStream = MutableStateFlow<Resource<List<UserOptionDomainModel>>>(
-                Resource.Success(data = mockUserInformation)
-            )
-            every { getAdminUserInformationUseCase() } returns mockUserRepositoryStream
-
-            // This map mimics exactly what Compose Navigation build behind the scenes
-            // There is no navigation value passed in - this ViewModel uses SavedStateHandle
-            // as lifecycle-aware storage of user-selected values on the UI
-            val savedStateHandle = SavedStateHandle()
-
-            // Prevent isRefreshing flapping
-            // THE WHY: To capture the state while the pull-to-refresh action is actively in flight,
-            // we need to pause the loadAllBulletinsUseCase execution mid-flight inside the
-            // test body. This forces _isRefreshing to hold its true value open long enough
-            // for our scan assertion to capture it.
-
-            // Initialize the ViewModel
-            adminMessageViewModel = AdminMessageViewModel(
-                savedStateHandle = savedStateHandle,
-                loadActiveMessagesUseCase = loadActiveMessagesUseCase,
-                loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
-                getCachedMessagesUseCase = getCachedMessagesUseCase,
-                getAdminUserInformationUseCase = getAdminUserInformationUseCase,
-                markMessageAsReadUseCase = markMessageAsReadUseCase,
-                markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
-                deleteMessageUseCase = deleteMessageUseCase,
-                restoreMessageUseCase = restoreMessageUseCase,
-                markMessageAsImportantUseCase = markMessageAsImportantUseCase,
-                markMessageAsNotImportantUseCase = markMessageAsNotImportantUseCase,
-                getMessageEventsUseCase = getMessageEventsUseCase
-            )
-
+            // Act
             adminMessageViewModel.onToggleReadStatus(567234, false)
 
+            // Assert
             coVerify(exactly = 1) { markMessageAsUnreadUseCase(eq(567234)) }
         }
 
     @Test
     fun `on toggle important message click will mark message as important`() =
         runTest {
-            // 1. Arrange: Start with a populated lists in Success State
-            val mockActiveMessages = createActiveMessages()
-            val mockMessageRepositoryStream = MutableStateFlow<Resource<List<MessageDomainModel>>>(
-                Resource.Success(data = mockActiveMessages)
-            )
-            every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
+            // Arrange
+            arrange()
 
-            val mockUserInformation = createAllUsers()
-            val mockUserRepositoryStream = MutableStateFlow<Resource<List<UserOptionDomainModel>>>(
-                Resource.Success(data = mockUserInformation)
-            )
-            every { getAdminUserInformationUseCase() } returns mockUserRepositoryStream
-
-            // This map mimics exactly what Compose Navigation build behind the scenes
-            // There is no navigation value passed in - this ViewModel uses SavedStateHandle
-            // as lifecycle-aware storage of user-selected values on the UI
-            val savedStateHandle = SavedStateHandle()
-
-            // Prevent isRefreshing flapping
-            // THE WHY: To capture the state while the pull-to-refresh action is actively in flight,
-            // we need to pause the loadAllBulletinsUseCase execution mid-flight inside the
-            // test body. This forces _isRefreshing to hold its true value open long enough
-            // for our scan assertion to capture it.
-
-            // Initialize the ViewModel
-            adminMessageViewModel = AdminMessageViewModel(
-                savedStateHandle = savedStateHandle,
-                loadActiveMessagesUseCase = loadActiveMessagesUseCase,
-                loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
-                getCachedMessagesUseCase = getCachedMessagesUseCase,
-                getAdminUserInformationUseCase = getAdminUserInformationUseCase,
-                markMessageAsReadUseCase = markMessageAsReadUseCase,
-                markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
-                deleteMessageUseCase = deleteMessageUseCase,
-                restoreMessageUseCase = restoreMessageUseCase,
-                markMessageAsImportantUseCase = markMessageAsImportantUseCase,
-                markMessageAsNotImportantUseCase = markMessageAsNotImportantUseCase,
-                getMessageEventsUseCase = getMessageEventsUseCase
-            )
-
+            // Act
             adminMessageViewModel.onToggleImportantMessageClicked(123456, true)
 
+            // Assert
             coVerify(exactly = 1) { markMessageAsImportantUseCase(eq(123456)) }
         }
 
     @Test
     fun `on toggle important message click will mark message as not important`() =
         runTest {
-            // 1. Arrange: Start with a populated lists in Success State
-            val mockActiveMessages = createActiveMessages()
-            val mockMessageRepositoryStream = MutableStateFlow<Resource<List<MessageDomainModel>>>(
-                Resource.Success(data = mockActiveMessages)
-            )
-            every { getCachedMessagesUseCase() } returns mockMessageRepositoryStream
+            // Arrange
+            arrange()
 
-            val mockUserInformation = createAllUsers()
-            val mockUserRepositoryStream = MutableStateFlow<Resource<List<UserOptionDomainModel>>>(
-                Resource.Success(data = mockUserInformation)
-            )
-            every { getAdminUserInformationUseCase() } returns mockUserRepositoryStream
-
-            // This map mimics exactly what Compose Navigation build behind the scenes
-            // There is no navigation value passed in - this ViewModel uses SavedStateHandle
-            // as lifecycle-aware storage of user-selected values on the UI
-            val savedStateHandle = SavedStateHandle()
-
-            // Prevent isRefreshing flapping
-            // THE WHY: To capture the state while the pull-to-refresh action is actively in flight,
-            // we need to pause the loadAllBulletinsUseCase execution mid-flight inside the
-            // test body. This forces _isRefreshing to hold its true value open long enough
-            // for our scan assertion to capture it.
-
-            // Initialize the ViewModel
-            adminMessageViewModel = AdminMessageViewModel(
-                savedStateHandle = savedStateHandle,
-                loadActiveMessagesUseCase = loadActiveMessagesUseCase,
-                loadSelectedMessagesUseCase = loadSelectedMessagesUseCase,
-                getCachedMessagesUseCase = getCachedMessagesUseCase,
-                getAdminUserInformationUseCase = getAdminUserInformationUseCase,
-                markMessageAsReadUseCase = markMessageAsReadUseCase,
-                markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
-                deleteMessageUseCase = deleteMessageUseCase,
-                restoreMessageUseCase = restoreMessageUseCase,
-                markMessageAsImportantUseCase = markMessageAsImportantUseCase,
-                markMessageAsNotImportantUseCase = markMessageAsNotImportantUseCase,
-                getMessageEventsUseCase = getMessageEventsUseCase
-            )
-
+            // Act
             adminMessageViewModel.onToggleImportantMessageClicked(123456, false)
 
+            // Assert
             coVerify(exactly = 1) { markMessageAsNotImportantUseCase(eq(123456)) }
 
         }
+
+    private fun arrange() {
+        // 1. Arrange: Start with a populated lists in Success State
+        val mockActiveMessages = createActiveMessages()
+        val mockSelectedMessages = createSelectedMessages()
+        val mockActiveMessageRepositoryStream =
+            MutableStateFlow<Resource<List<MessageDomainModel>>>(
+                Resource.Success(data = mockActiveMessages)
+            )
+        val mockSelectedMessageRepositoryStream =
+            MutableStateFlow<Resource<List<MessageDomainModel>>>(
+                Resource.Success(data = mockSelectedMessages)
+            )
+        every { getMessagesForActiveUserUseCase() } returns mockActiveMessageRepositoryStream
+        every { getMessagesForSelectedUserUseCase(any()) } returns mockSelectedMessageRepositoryStream
+
+        val mockUserInformation = createAllUsers()
+        val mockUserRepositoryStream = MutableStateFlow<Resource<List<UserOptionDomainModel>>>(
+            Resource.Success(data = mockUserInformation)
+        )
+        every { getAdminUserInformationUseCase() } returns mockUserRepositoryStream
+
+        // This map mimics exactly what Compose Navigation build behind the scenes
+        // There is no navigation value passed in - this ViewModel uses SavedStateHandle
+        // as lifecycle-aware storage of user-selected values on the UI
+        val savedStateHandle = SavedStateHandle()
+
+        // Prevent isRefreshing flapping
+        // THE WHY: To capture the state while the pull-to-refresh action is actively in flight,
+        // we need to pause the loadAllBulletinsUseCase execution mid-flight inside the
+        // test body. This forces _isRefreshing to hold its true value open long enough
+        // for our scan assertion to capture it.
+
+        // Initialize the ViewModel
+        adminMessageViewModel = AdminMessageViewModel(
+            savedStateHandle = savedStateHandle,
+            refreshMessagesUseCase = refreshMessagesUseCase,
+            getMessagesForAdminToViewUseCase = getMessagesForAdminToViewUseCase,
+            getAdminUserInformationUseCase = getAdminUserInformationUseCase,
+            markMessageAsReadUseCase = markMessageAsReadUseCase,
+            markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
+            deleteMessageUseCase = deleteMessageUseCase,
+            restoreMessageUseCase = restoreMessageUseCase,
+            markMessageAsImportantUseCase = markMessageAsImportantUseCase,
+            markMessageAsNotImportantUseCase = markMessageAsNotImportantUseCase,
+            getMessageEventsUseCase = getMessageEventsUseCase
+        )
+
+        // no selected user = active user = admin
+        // StateFlow selectedUserId.value remains null!
+    }
 
     private fun createActiveMessages(): List<MessageDomainModel> =
         listOf(
@@ -1343,7 +1156,7 @@ class AdminMessageViewModelTest {
                 isImportant = true
             ),
             MessageDomainModel(
-                id = 789456,
+                id = 456123,
                 subject = "deploy app",
                 body = "there is an app deployment",
                 read = true,

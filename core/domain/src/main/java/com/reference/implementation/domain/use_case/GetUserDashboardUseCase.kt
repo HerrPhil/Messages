@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.onStart
 import javax.inject.Inject
 import javax.inject.Singleton
 
+// TODO use ported PermissionRepositoryImpl that uses CachePayload
 @Singleton
 open class GetUserDashboardUseCase @Inject constructor(
     private val userRepository: UserRepository,
