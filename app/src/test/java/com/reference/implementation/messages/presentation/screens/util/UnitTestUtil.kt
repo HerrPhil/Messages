@@ -1,8 +1,6 @@
 package com.reference.implementation.messages.presentation.screens.util
 
-import com.reference.implementation.domain.use_case.LoadActiveMessagesUseCase
 import com.reference.implementation.domain.use_case.LoadAllBulletinsUseCase
-import com.reference.implementation.domain.use_case.LoadSelectedMessagesUseCase
 import com.reference.implementation.domain.use_case.RefreshMessagesUseCase
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
