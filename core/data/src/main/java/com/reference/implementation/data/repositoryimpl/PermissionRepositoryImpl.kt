@@ -22,6 +22,7 @@ import retrofit2.HttpException
 import javax.inject.Inject
 import javax.inject.Singleton
 
+// TODO port over to use CachePayload
 @Singleton
 class PermissionRepositoryImpl @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher, // Hilt provides it

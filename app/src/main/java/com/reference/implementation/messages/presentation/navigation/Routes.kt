@@ -115,7 +115,12 @@ sealed class Route {
     data class AdminMessageDetail(val id: Int)
 
     @Serializable
-    data class AdminMonitorMessageDetail(val id: Int)
+    data class AdminMonitorMessageDetail(
+        val id: Int,
+        // THE ARCHITECTURAL BRIDGING KEY:
+        // Adding the "Monitor Mode" here with a default value makes it fully backwards-compatible!
+        val isMonitorMode: Boolean = false
+    )
 
     @Serializable
     data class BulletinDetail(val id: Int)

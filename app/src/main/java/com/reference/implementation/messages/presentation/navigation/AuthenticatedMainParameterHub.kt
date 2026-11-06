@@ -384,7 +384,10 @@ fun AuthenticatedMainParameterHub(
                                         )
                                     } else {
                                         childNavController.navigate(
-                                            Route.AdminMonitorMessageDetail(id = messageId)
+                                            Route.AdminMonitorMessageDetail(
+                                                id = messageId,
+                                                isMonitorMode = true // LOCKS IT TO MONITOR MODE
+                                            )
                                         )
                                     }
                                 }
@@ -447,15 +450,6 @@ fun AuthenticatedMainParameterHub(
                             }
                         }
 
-                    val onLoadSelectedMessages: () -> Unit =
-                        remember(isRefreshing) {
-                            {
-                                if (!isRefreshing) {
-                                    viewModel.loadSelectedMessageData()
-                                }
-                            }
-                        }
-
                     AdminMessageScreen(
                         uiState,
                         uiEvents,
@@ -471,8 +465,7 @@ fun AuthenticatedMainParameterHub(
                         onDeleteMessage,
                         onToggleReadStatus,
                         onUserOptionChanged,
-                        onUserOptionClicked,
-                        onLoadSelectedMessages
+                        onUserOptionClicked
                     )
                 }
 

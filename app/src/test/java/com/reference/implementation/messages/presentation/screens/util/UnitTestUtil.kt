@@ -51,39 +51,6 @@ class FakeLoadAllBulletinsUseCase : LoadAllBulletinsUseCase(repo = mockk(relaxed
     }
 }
 
-
-// 5. Create a handwritten Fake LoadAllBulletinsUseCase
-// Update the Fake to simulate actual operational latency
-class FakeLoadActiveMessagesUseCase : LoadActiveMessagesUseCase(repo = mockk(relaxed = true)) {
-    var invocationCount = 0
-
-    // A clean, type-safe property to catch the lambda reference when called
-    var capturedOnRetry: ((Int) -> Unit)? = null
-
-    override suspend fun invoke(onRetry: (Int) -> Unit) {
-        invocationCount++
-        capturedOnRetry = onRetry
-        // Leave completely blank! Runs instantly in 0ms.
-        delay(1000.milliseconds)
-    }
-}
-
-// 6. Create a handwritten Fake LoadAllBulletinsUseCase
-// Update the Fake to simulate actual operational latency
-class FakeLoadSelectedMessagesUseCase : LoadSelectedMessagesUseCase(repo = mockk(relaxed = true)) {
-    var invocationCount = 0
-
-    // A clean, type-safe property to catch the lambda reference when called
-    var capturedOnRetry: ((Int) -> Unit)? = null
-
-    override suspend fun invoke(userId: Int, onRetry: (Int) -> Unit) {
-        invocationCount++
-        capturedOnRetry = onRetry
-        // Leave completely blank! Runs instantly in 0ms.
-        delay(1000.milliseconds)
-    }
-}
-
 class FakeRefreshMessagesUseCase : RefreshMessagesUseCase(repo = mockk(relaxed = true)) {
     var invocationCount = 0
     override suspend fun invoke() {

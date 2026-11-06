@@ -31,6 +31,7 @@ class MessageDetailViewModel @Inject constructor(
 
     // Automatically extracts the 'id' from the strongly-typed MessageDetail route!
     private val messageId: Int = checkNotNull(savedStateHandle.toRoute<Route.MessageDetail>().id)
+    // TODO add try/catch block to handle AdminMessageDetail and AdminMonitorMessageDetail routes
 
     val uiState: StateFlow<MessageDetailUiState> =
         getMessageByIdUseCase(messageId).map { messageResource ->

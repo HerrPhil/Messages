@@ -5,7 +5,7 @@ import com.reference.implementation.messages.presentation.screens.message.Messag
 sealed interface AdminMessageUiState {
     object Idle : AdminMessageUiState
     object Loading : AdminMessageUiState
-    data class Retrying(val attempt: Int) : AdminMessageUiState
+//    data class Retrying(val attempt: Int) : AdminMessageUiState
     data class Success(
         val list: List<MessageUiDetail>,
         val userOptions: List<UserUiDetail>?,

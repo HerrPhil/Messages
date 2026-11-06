@@ -5,6 +5,7 @@ import com.reference.implementation.domain.model.CachePayload
 import com.reference.implementation.domain.model.MessageDomainModel
 import com.reference.implementation.domain.repository.MessageRepository
 import com.reference.implementation.domain.repository.UserPreferencesRepository
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -99,6 +100,62 @@ class GetMessagesForActiveUserUseCaseTest {
                 assertTrue(updatedList.first { it.id == 102 }.isImportant)
                 assertFalse(updatedList.first { it.id == 101 }.isImportant)
 
+                @Suppress("UnusedFlow")
+                coVerify(exactly = 1) {messageRepository.getMessagesForActiveUser()}
+                @Suppress("UnusedFlow")
+                coVerify(exactly = 1) {userPreferencesRepository.getImportantMessageIds()}
+
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
+
+    @Test
+    fun `invoke combines empty message stream and preferences stream into enriched Resource Success`() =
+        runTest {
+
+            // Arrange
+
+            val messagesFlow = MutableStateFlow<CachePayload<List<MessageDomainModel>>>(
+                value = CachePayload.ActiveStream(
+                    data = emptyList(),
+                    isSyncing = false,
+                    syncError = null
+                )
+            )
+
+            val importantIdsFlow = MutableStateFlow<Set<String>>(emptySet())
+
+            every { messageRepository.getMessagesForActiveUser() } returns messagesFlow
+            every { userPreferencesRepository.getImportantMessageIds() } returns importantIdsFlow
+
+            // Act & Assert
+            useCase().test {
+                // 1. Initial emission: onStart outputs Loading
+                val initialItem = awaitItem()
+                assertTrue(initialItem is Resource.Loading)
+
+                // 2. Initial emission: Neither message is important, list is sorted by date descending (message2 first)
+                val nextItem = awaitItem()
+                assertTrue(nextItem is Resource.Success)
+
+                val nextList = (nextItem as Resource.Success).data
+                assertEquals(0, nextList.size)
+
+                // 3. Simulate the user toggling 'Important' on message 102 in DataStore
+                importantIdsFlow.value = setOf("102")
+
+                // 4. Reactively await second emission
+                val updatedItem = awaitItem()
+                assertTrue(updatedItem is Resource.Success)
+
+                val updatedList = (updatedItem as Resource.Success).data
+                assertEquals(0, updatedList.size)
+
+                @Suppress("UnusedFlow")
+                coVerify(exactly = 1) {messageRepository.getMessagesForActiveUser()}
+                @Suppress("UnusedFlow")
+                coVerify(exactly = 1) {userPreferencesRepository.getImportantMessageIds()}
+
                 cancelAndIgnoreRemainingEvents()
             }
         }
@@ -128,6 +185,12 @@ class GetMessagesForActiveUserUseCaseTest {
             val item = awaitItem()
             assertTrue(item is Resource.Error)
             assertEquals("Unable to load messages", (item as Resource.Error).message)
+
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 1) {messageRepository.getMessagesForActiveUser()}
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 1) {userPreferencesRepository.getImportantMessageIds()}
+
             awaitComplete()
         }
     }
@@ -166,6 +229,12 @@ class GetMessagesForActiveUserUseCaseTest {
             val item = awaitItem()
             assertTrue(item is Resource.Error)
             assertEquals("Unable to load messages", (item as Resource.Error).message)
+
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 1) {messageRepository.getMessagesForActiveUser()}
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 1) {userPreferencesRepository.getImportantMessageIds()}
+
             awaitComplete()
         }
     }

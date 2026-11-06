@@ -8,14 +8,13 @@ import com.reference.implementation.domain.model.MessageDomainModel
 import com.reference.implementation.domain.model.UserOptionDomainModel
 import com.reference.implementation.domain.use_case.DeleteMessageUseCase
 import com.reference.implementation.domain.use_case.GetAdminUserInformationUseCase
-import com.reference.implementation.domain.use_case.GetCachedMessagesUseCase
 import com.reference.implementation.domain.use_case.GetMessageEventsUseCase
-import com.reference.implementation.domain.use_case.LoadActiveMessagesUseCase
-import com.reference.implementation.domain.use_case.LoadSelectedMessagesUseCase
+import com.reference.implementation.domain.use_case.GetMessagesForAdminToViewUseCase
 import com.reference.implementation.domain.use_case.MarkMessageAsImportantUseCase
 import com.reference.implementation.domain.use_case.MarkMessageAsNotImportantUseCase
 import com.reference.implementation.domain.use_case.MarkMessageAsReadUseCase
 import com.reference.implementation.domain.use_case.MarkMessageAsUnreadUseCase
+import com.reference.implementation.domain.use_case.RefreshMessagesUseCase
 import com.reference.implementation.domain.use_case.Resource
 import com.reference.implementation.domain.use_case.RestoreMessageUseCase
 import com.reference.implementation.messages.presentation.screens.message.toMessageUiDetail
@@ -37,9 +36,8 @@ import javax.inject.Inject
 @OptIn(ExperimentalCoroutinesApi::class)
 class AdminMessageViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
-    private val loadActiveMessagesUseCase: LoadActiveMessagesUseCase,
-    private val loadSelectedMessagesUseCase: LoadSelectedMessagesUseCase,
-    getCachedMessagesUseCase: GetCachedMessagesUseCase,
+    private val refreshMessagesUseCase: RefreshMessagesUseCase,
+    getMessagesForAdminToViewUseCase: GetMessagesForAdminToViewUseCase,
     getAdminUserInformationUseCase: GetAdminUserInformationUseCase,
     private val markMessageAsReadUseCase: MarkMessageAsReadUseCase,
     private val markMessageAsUnreadUseCase: MarkMessageAsUnreadUseCase,
@@ -77,9 +75,6 @@ class AdminMessageViewModel @Inject constructor(
         key = KEY_IS_ADMIN_SELECTED, initialValue = true
     )
 
-    // Tracks the active loading attempt reported by the repository's retryIO()
-    private val _loadTrigger = MutableStateFlow(0)
-
     // The _isRefreshing must stay private to the view model
     // Expose isRefreshing via MessageUiState.Success (e.g. AuthenticatedMainParameterHub)
     private val _isRefreshing = MutableStateFlow(false)
@@ -99,141 +94,114 @@ class AdminMessageViewModel @Inject constructor(
         UserFilterPreferences(search, important, userOption, isAdminSelected)
     }
 
-    val uiState: StateFlow<AdminMessageUiState> = combine(
-        // Subtle but important feature of flatMapLatest:
-        // if a new trigger value comes down _loadTrigger (e.g. attempt 1 ---> attempt 2),
-        // it cancels the previous database/network stream execution and starts a fresh one.
-        // Standard combine does not cancel in-flight work when values change!
-        _loadTrigger.flatMapLatest { getCachedMessagesUseCase() },
-        getAdminUserInformationUseCase(),
-        _isRefreshing,
-        filterPreferencesFlow
-    ) { resourceResult, allUsersResult, isRefreshing, filterPreferences ->//, query, isImportantOnly ->
-        // 1. Bundle up the raw values as they emit
-        MessageInput(
-            resourceResult,
-            allUsersResult,
-            isRefreshing,
-            filterPreferences.searchQuery,
-            filterPreferences.userOptionQuery,
-            filterPreferences.isImportantOnly,
-            filterPreferences.isAdminSelected
-        )
-    }.scan<MessageInput, AdminMessageUiState>(
-        // 2. Set the initial state before any emission occurs
-        initial = AdminMessageUiState.Loading
-    ) // trailing Slot API accumulator operation of scan()
-    { previousState, input ->
-
-        // smart-cast variables to individual values
-        val (
-            resourceResult,
-            allUsersResult,
-            isRefreshing,
-            query,
-            userOptionQuery,
-            isImportantOnly,
-            isAdminSelected
-        ) = input
-
-        // ViewModel only worries about user text filtering on top of the clean data!
-        when (resourceResult) {
-            is Resource.Loading -> {
-                // IF we are refreshing, do NOT drop back to full-screen Loading!
-                // Preserve the existing list (if available) or keep Success state active.
-                val previousSuccess = previousState as? AdminMessageUiState.Success
-                if (isRefreshing && previousSuccess != null) {
-                    // carry forward the previous Success state list, keeping the spinner alive
-                    previousSuccess.copy(isRefreshing = true)
-                } else if (_loadTrigger.value > 0) {
-                    AdminMessageUiState.Retrying(_loadTrigger.value)
-                } else {
-                    AdminMessageUiState.Loading
-                }
-            }
-
-            is Resource.Error -> {
-                // Preserve the existing list (if available) or keep Success state active.
-                val previousSuccess = previousState as? AdminMessageUiState.Success
-                if (isRefreshing && previousSuccess != null) {
-                    // carry forward the previous Success state list, keeping the spinner alive
-                    previousSuccess.copy(isRefreshing = true)
-                } else {
-                    AdminMessageUiState.Error(resourceResult.message)
-                }
-            }
-
-            is Resource.Success -> {
-                val filteredList =
-                    resourceResult.data
-                        .filter { message ->
-                            !isImportantOnly || message.isImportant
-                        }
-                        .map { messageDomainModel -> messageDomainModel.toMessageUiDetail() }
-                        .filter {
-                            it.body.contains(query, ignoreCase = true) ||
-                                    it.subject.contains(query, ignoreCase = true)
-                        }
-
-                val allUserList = (allUsersResult as? Resource.Success)?.data
-                var userOptions: List<UserUiDetail>? = null
-                if (allUserList != null) {
-                    userOptions = allUserList
-                        .filter { userOption ->
-                            userOption.name.contains(userOptionQuery, ignoreCase = true)
-                        }
-                        .map { userOptionDomainModel ->
-                            userOptionDomainModel.toUserUiDetail()
-                        }
-                }
-
-                AdminMessageUiState.Success(
-                    list = filteredList,
-                    userOptions = userOptions,
-                    isRefreshing = isRefreshing,
-                    isImportantOnly = isImportantOnly,
-                    isAdminSelected = isAdminSelected
+    val uiState: StateFlow<AdminMessageUiState> = selectedUserId
+        // THE REACTIVE BRIDGE: Every time selectedUserId changes (or initializes),
+        // flatMapLatest tears down the old repository collection
+        // and spins up the correct new use case!
+        .flatMapLatest { userId ->
+            combine(
+                getMessagesForAdminToViewUseCase(userId),
+                getAdminUserInformationUseCase(),
+                _isRefreshing,
+                filterPreferencesFlow
+            ) { resourceResult, allUsersResult, isRefreshing, filterPreferences ->
+                // 1. Bundle up the raw values as they emit
+                MessageInput(
+                    resourceResult,
+                    allUsersResult,
+                    isRefreshing,
+                    filterPreferences.searchQuery,
+                    filterPreferences.userOptionQuery,
+                    filterPreferences.isImportantOnly,
+                    filterPreferences.isAdminSelected
                 )
             }
         }
-    }.stateIn(
-        scope = viewModelScope,
-        started = SharingStarted.WhileSubscribed(5000),
-        initialValue = AdminMessageUiState.Loading
-    )
+        .scan<MessageInput, AdminMessageUiState>(
+            // 2. Set the initial state before any emission occurs
+            initial = AdminMessageUiState.Loading
+        ) // trailing Slot API accumulator operation of scan()
+        { previousState, input ->
+
+            // smart-cast variables to individual values
+            val (
+                resourceResult,
+                allUsersResult,
+                isRefreshing,
+                query,
+                userOptionQuery,
+                isImportantOnly,
+                isAdminSelected
+            ) = input
+
+            // ViewModel only worries about user text filtering on top of the clean data!
+            when (resourceResult) {
+                is Resource.Loading -> {
+                    // IF we are refreshing, do NOT drop back to full-screen Loading!
+                    // Preserve the existing list (if available) or keep Success state active.
+                    val previousSuccess = previousState as? AdminMessageUiState.Success
+                    if (isRefreshing && previousSuccess != null) {
+                        // carry forward the previous Success state list, keeping the spinner alive
+                        previousSuccess.copy(isRefreshing = true)
+                    } else {
+                        AdminMessageUiState.Loading
+                    }
+                }
+
+                is Resource.Error -> {
+                    // Preserve the existing list (if available) or keep Success state active.
+                    val previousSuccess = previousState as? AdminMessageUiState.Success
+                    if (isRefreshing && previousSuccess != null) {
+                        // carry forward the previous Success state list, keeping the spinner alive
+                        previousSuccess.copy(isRefreshing = true)
+                    } else {
+                        AdminMessageUiState.Error(resourceResult.message)
+                    }
+                }
+
+                is Resource.Success -> {
+                    val filteredList =
+                        resourceResult.data
+                            .filter { message ->
+                                !isImportantOnly || message.isImportant
+                            }
+                            .map { messageDomainModel -> messageDomainModel.toMessageUiDetail() }
+                            .filter {
+                                it.body.contains(query, ignoreCase = true) ||
+                                        it.subject.contains(query, ignoreCase = true)
+                            }
+
+                    val allUserList = (allUsersResult as? Resource.Success)?.data
+                    var userOptions: List<UserUiDetail>? = null
+                    if (allUserList != null) {
+                        userOptions = allUserList
+                            .filter { userOption ->
+                                userOption.name.contains(userOptionQuery, ignoreCase = true)
+                            }
+                            .map { userOptionDomainModel ->
+                                userOptionDomainModel.toUserUiDetail()
+                            }
+                    }
+
+                    AdminMessageUiState.Success(
+                        list = filteredList,
+                        userOptions = userOptions,
+                        isRefreshing = isRefreshing,
+                        isImportantOnly = isImportantOnly,
+                        isAdminSelected = isAdminSelected
+                    )
+                }
+            }
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = AdminMessageUiState.Loading
+        )
 
     val uiEvents = getMessageEventsUseCase()
         .map { messageDomainEvent ->
             messageDomainEvent.toMessageUiEvent()
         }
-
-    init {
-        // Initialize messages
-        if (selectedUserId.value == null) {
-            loadAdminMessageData()
-        } else {
-            loadSelectedMessageData()
-        }
-    }
-
-    private fun loadAdminMessageData() {
-        viewModelScope.launch {
-            loadActiveMessagesUseCase(onRetry = { attempt ->
-                _loadTrigger.value = attempt
-            })
-        }
-    }
-
-    fun loadSelectedMessageData() {
-        val newUserId: Int = savedStateHandle[KEY_SELECTED_USER_ID] ?: return
-        viewModelScope.launch {
-            loadSelectedMessagesUseCase(
-                newUserId,
-                onRetry = { attempt ->
-                    _loadTrigger.value = attempt
-                })
-        }
-    }
 
     fun onSearchChanged(newQuery: String) {
         savedStateHandle[KEY_SEARCH_QUERY] = newQuery
@@ -275,20 +243,7 @@ class AdminMessageViewModel @Inject constructor(
         viewModelScope.launch {
             _isRefreshing.value = true // turn ON refreshing
             try {
-
-                val currentUserId: Int? = selectedUserId.value
-
-                if (currentUserId == null) {
-                    loadActiveMessagesUseCase(onRetry = { attempt ->
-                        _loadTrigger.value = attempt
-                    }) // suspending call - wait until done
-                } else {
-                    loadSelectedMessagesUseCase(
-                        currentUserId,
-                        onRetry = { attempt ->
-                            _loadTrigger.value = attempt
-                        })
-                }
+                refreshMessagesUseCase()
             } finally { // turn OFF refreshing
                 _isRefreshing.value = false
             }
