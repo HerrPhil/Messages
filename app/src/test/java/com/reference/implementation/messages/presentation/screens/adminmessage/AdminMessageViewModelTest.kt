@@ -728,7 +728,7 @@ class AdminMessageViewModelTest {
 
             // Step 4: Advance the clock slightly to process the composite stream mapping.
             // Important: Advance less than 1000 milliseconds of the delay in the
-            // fakeLoadActiveMessagesUseCase, called by onRefresh()!
+            // fakeRefreshMessagesUseCase, called by onRefresh()!
             advanceTimeBy(500.milliseconds)
 
             // Step 5. Assert: The scan block looks back at history, catches Success,
@@ -888,7 +888,7 @@ class AdminMessageViewModelTest {
 
             // Step 4: Advance the clock slightly to process the composite stream mapping.
             // Important: Advance less than 1000 milliseconds of the delay in the
-            // fakeLoadActiveMessagesUseCase, called by onRefresh()!
+            // fakeRefreshMessagesUseCase, called by onRefresh()!
             advanceTimeBy(500.milliseconds)
 
             // Step 5. Assert: The scan block looks back at history, catches Success,
