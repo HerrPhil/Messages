@@ -55,9 +55,10 @@ class MessageDetailViewModelTest {
             // 💡 THE ULTIMATE BYPASS FIX: Mock the static navigation extension file
             mockkStatic("androidx.navigation.SavedStateHandleKt")
             val savedStateHandle: SavedStateHandle = mockk(relaxed = true)
-            // Explicitly force toRoute<Route.MessageDetail>() to return your mock route object!
-            val mockRoute = Route.MessageDetail(id = messageId)
-            every { savedStateHandle.toRoute<Route.MessageDetail>() } returns mockRoute
+            // To make the test pass, the saved state handle toRoute() is mocked in the context
+            // after Jetpack Navigation has sent a Route.MessageDetail bundle.
+            val mockRoute = Route.AdminMonitorMessageDetail(id = messageId)
+            every { savedStateHandle.toRoute<Route.AdminMonitorMessageDetail>() } returns mockRoute
 
             // Act
             messageDetailViewModel = MessageDetailViewModel(
@@ -87,6 +88,117 @@ class MessageDetailViewModelTest {
         }
 
     @Test
+    fun `init fetches message ID and default isMonitorMode from regular user message detail route and marks message as read`() =
+        runTest {
+            val messageId = 678345
+            val mockActiveMessages = createActiveMessages()
+            val mockMessageRepositoryStream = MutableStateFlow<Resource<MessageDomainModel?>>(
+                Resource.Success(data = mockActiveMessages[1]) // message with messageId 678345
+            )
+            every { getMessageByIdUseCase(messageId) } returns mockMessageRepositoryStream
+
+            // 💡 THE ULTIMATE BYPASS FIX: Mock the static navigation extension file
+            mockkStatic("androidx.navigation.SavedStateHandleKt")
+            val savedStateHandle: SavedStateHandle = mockk(relaxed = true)
+            // To make the test pass, the saved state handle toRoute() is mocked in the context
+            // after Jetpack Navigation has sent a Route.MessageDetail bundle.
+            val mockRoute = Route.AdminMonitorMessageDetail(id = messageId)
+            every { savedStateHandle.toRoute<Route.AdminMonitorMessageDetail>() } returns mockRoute
+
+            // Act
+            messageDetailViewModel = MessageDetailViewModel(
+                savedStateHandle = savedStateHandle,
+                getMessageByIdUseCase = getMessageByIdUseCase,
+                markMessageAsReadUseCase = markMessageAsReadUseCase,
+                markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
+                deleteMessageUseCase = deleteMessageUseCase
+            )
+            // 2. Wake up WhileSubscribed - add active subscriber to mimic UI
+            backgroundScope.launch(testScheduler) {
+                messageDetailViewModel.uiState.collect {}
+            }
+            runCurrent() // Flush the unconfined engine thread loop immediately!
+
+            // Assert
+            // Business rule: when a regular user views a message then it is marked as read
+            coVerify(exactly = 1) { markMessageAsReadUseCase(eq(messageId)) }
+        }
+
+    @Test
+    fun `init fetches message ID and default isMonitorMode from admin user message detail route and marks message as read`() =
+        runTest {
+            val messageId = 678345
+            val mockActiveMessages = createActiveMessages()
+            val mockMessageRepositoryStream = MutableStateFlow<Resource<MessageDomainModel?>>(
+                Resource.Success(data = mockActiveMessages[1]) // message with messageId 678345
+            )
+            every { getMessageByIdUseCase(messageId) } returns mockMessageRepositoryStream
+
+            // 💡 THE ULTIMATE BYPASS FIX: Mock the static navigation extension file
+            mockkStatic("androidx.navigation.SavedStateHandleKt")
+            val savedStateHandle: SavedStateHandle = mockk(relaxed = true)
+            // To make the test pass, the saved state handle toRoute() is mocked in the context
+            // after Jetpack Navigation has sent a Route.AdminMessageDetail bundle.
+            val mockRoute = Route.AdminMonitorMessageDetail(id = messageId)
+            every { savedStateHandle.toRoute<Route.AdminMonitorMessageDetail>() } returns mockRoute
+
+            // Act
+            messageDetailViewModel = MessageDetailViewModel(
+                savedStateHandle = savedStateHandle,
+                getMessageByIdUseCase = getMessageByIdUseCase,
+                markMessageAsReadUseCase = markMessageAsReadUseCase,
+                markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
+                deleteMessageUseCase = deleteMessageUseCase
+            )
+            // 2. Wake up WhileSubscribed - add active subscriber to mimic UI
+            backgroundScope.launch(testScheduler) {
+                messageDetailViewModel.uiState.collect {}
+            }
+            runCurrent() // Flush the unconfined engine thread loop immediately!
+
+            // Assert
+            // Business rule: when a regular user views a message then it is marked as read
+            coVerify(exactly = 1) { markMessageAsReadUseCase(eq(messageId)) }
+        }
+
+    @Test
+    fun `init fetches message ID and isMonitorMode ON from admin user monitor message detail route and does not mark message as read`() =
+        runTest {
+            val messageId = 678345
+            val mockActiveMessages = createActiveMessages()
+            val mockMessageRepositoryStream = MutableStateFlow<Resource<MessageDomainModel?>>(
+                Resource.Success(data = mockActiveMessages[1]) // message with messageId 678345
+            )
+            every { getMessageByIdUseCase(messageId) } returns mockMessageRepositoryStream
+
+            // 💡 THE ULTIMATE BYPASS FIX: Mock the static navigation extension file
+            mockkStatic("androidx.navigation.SavedStateHandleKt")
+            val savedStateHandle: SavedStateHandle = mockk(relaxed = true)
+            // To make the test pass, the saved state handle toRoute() is mocked in the context
+            // after Jetpack Navigation has sent a Route.AdminMonitorMessageDetail bundle.
+            val mockRoute = Route.AdminMonitorMessageDetail(id = messageId, isMonitorMode = true)
+            every { savedStateHandle.toRoute<Route.AdminMonitorMessageDetail>() } returns mockRoute
+
+            // Act
+            messageDetailViewModel = MessageDetailViewModel(
+                savedStateHandle = savedStateHandle,
+                getMessageByIdUseCase = getMessageByIdUseCase,
+                markMessageAsReadUseCase = markMessageAsReadUseCase,
+                markMessageAsUnreadUseCase = markMessageAsUnreadUseCase,
+                deleteMessageUseCase = deleteMessageUseCase
+            )
+            // 2. Wake up WhileSubscribed - add active subscriber to mimic UI
+            backgroundScope.launch(testScheduler) {
+                messageDetailViewModel.uiState.collect {}
+            }
+            runCurrent() // Flush the unconfined engine thread loop immediately!
+
+            // Assert
+            // Business rule: when a regular user views a message then it is marked as read
+            coVerify(exactly = 0) { markMessageAsReadUseCase(eq(messageId)) }
+        }
+
+    @Test
     fun `init immediately emits Loading UI state when use case is mid-flight`() =
         runTest {
             val messageId = 678345
@@ -94,9 +206,10 @@ class MessageDetailViewModelTest {
             // 💡 THE ULTIMATE BYPASS FIX: Mock the static navigation extension file
             mockkStatic("androidx.navigation.SavedStateHandleKt")
             val savedStateHandle: SavedStateHandle = mockk(relaxed = true)
-            // Explicitly force toRoute<Route.MessageDetail>() to return your mock route object!
-            val mockRoute = Route.MessageDetail(id = messageId)
-            every { savedStateHandle.toRoute<Route.MessageDetail>() } returns mockRoute
+            // To make the test pass, the saved state handle toRoute() is mocked in the context
+            // after Jetpack Navigation has sent a Route.MessageDetail bundle.
+            val mockRoute = Route.AdminMonitorMessageDetail(id = messageId)
+            every { savedStateHandle.toRoute<Route.AdminMonitorMessageDetail>() } returns mockRoute
 
             // THE TRICK: Use the flow {} builder to emit Loading,
             // then call awaitCancellation() to stall the stream in-flight!
@@ -144,9 +257,10 @@ class MessageDetailViewModelTest {
             // 💡 THE ULTIMATE BYPASS FIX: Mock the static navigation extension file
             mockkStatic("androidx.navigation.SavedStateHandleKt")
             val savedStateHandle: SavedStateHandle = mockk(relaxed = true)
-            // Explicitly force toRoute<Route.MessageDetail>() to return your mock route object!
-            val mockRoute = Route.MessageDetail(id = messageId)
-            every { savedStateHandle.toRoute<Route.MessageDetail>() } returns mockRoute
+            // To make the test pass, the saved state handle toRoute() is mocked in the context
+            // after Jetpack Navigation has sent a Route.MessageDetail bundle.
+            val mockRoute = Route.AdminMonitorMessageDetail(id = messageId)
+            every { savedStateHandle.toRoute<Route.AdminMonitorMessageDetail>() } returns mockRoute
 
             // Act
             messageDetailViewModel = MessageDetailViewModel(
@@ -186,9 +300,10 @@ class MessageDetailViewModelTest {
             // 💡 THE ULTIMATE BYPASS FIX: Mock the static navigation extension file
             mockkStatic("androidx.navigation.SavedStateHandleKt")
             val savedStateHandle: SavedStateHandle = mockk(relaxed = true)
-            // Explicitly force toRoute<Route.MessageDetail>() to return your mock route object!
-            val mockRoute = Route.MessageDetail(id = messageId)
-            every { savedStateHandle.toRoute<Route.MessageDetail>() } returns mockRoute
+            // To make the test pass, the saved state handle toRoute() is mocked in the context
+            // after Jetpack Navigation has sent a Route.MessageDetail bundle.
+            val mockRoute = Route.AdminMonitorMessageDetail(id = messageId)
+            every { savedStateHandle.toRoute<Route.AdminMonitorMessageDetail>() } returns mockRoute
 
             // Act
             messageDetailViewModel = MessageDetailViewModel(
@@ -229,9 +344,10 @@ class MessageDetailViewModelTest {
             // 💡 THE ULTIMATE BYPASS FIX: Mock the static navigation extension file
             mockkStatic("androidx.navigation.SavedStateHandleKt")
             val savedStateHandle: SavedStateHandle = mockk(relaxed = true)
-            // Explicitly force toRoute<Route.MessageDetail>() to return your mock route object!
-            val mockRoute = Route.MessageDetail(id = messageId)
-            every { savedStateHandle.toRoute<Route.MessageDetail>() } returns mockRoute
+            // To make the test pass, the saved state handle toRoute() is mocked in the context
+            // after Jetpack Navigation has sent a Route.MessageDetail bundle.
+            val mockRoute = Route.AdminMonitorMessageDetail(id = messageId)
+            every { savedStateHandle.toRoute<Route.AdminMonitorMessageDetail>() } returns mockRoute
 
             // Act
             messageDetailViewModel = MessageDetailViewModel(
@@ -272,9 +388,10 @@ class MessageDetailViewModelTest {
             // 💡 THE ULTIMATE BYPASS FIX: Mock the static navigation extension file
             mockkStatic("androidx.navigation.SavedStateHandleKt")
             val savedStateHandle: SavedStateHandle = mockk(relaxed = true)
-            // Explicitly force toRoute<Route.MessageDetail>() to return your mock route object!
-            val mockRoute = Route.MessageDetail(id = messageId)
-            every { savedStateHandle.toRoute<Route.MessageDetail>() } returns mockRoute
+            // To make the test pass, the saved state handle toRoute() is mocked in the context
+            // after Jetpack Navigation has sent a Route.MessageDetail bundle.
+            val mockRoute = Route.AdminMonitorMessageDetail(id = messageId)
+            every { savedStateHandle.toRoute<Route.AdminMonitorMessageDetail>() } returns mockRoute
 
             // Act
             messageDetailViewModel = MessageDetailViewModel(
@@ -314,9 +431,10 @@ class MessageDetailViewModelTest {
             // 💡 THE ULTIMATE BYPASS FIX: Mock the static navigation extension file
             mockkStatic("androidx.navigation.SavedStateHandleKt")
             val savedStateHandle: SavedStateHandle = mockk(relaxed = true)
-            // Explicitly force toRoute<Route.MessageDetail>() to return your mock route object!
-            val mockRoute = Route.MessageDetail(id = messageId)
-            every { savedStateHandle.toRoute<Route.MessageDetail>() } returns mockRoute
+            // To make the test pass, the saved state handle toRoute() is mocked in the context
+            // after Jetpack Navigation has sent a Route.MessageDetail bundle.
+            val mockRoute = Route.AdminMonitorMessageDetail(id = messageId)
+            every { savedStateHandle.toRoute<Route.AdminMonitorMessageDetail>() } returns mockRoute
 
             // Act
             messageDetailViewModel = MessageDetailViewModel(
@@ -345,10 +463,10 @@ class MessageDetailViewModelTest {
             // 💡 THE ULTIMATE BYPASS FIX: Mock the static navigation extension file
             mockkStatic("androidx.navigation.SavedStateHandleKt")
             val savedStateHandle: SavedStateHandle = mockk(relaxed = true)
-            // Explicitly force toRoute<Route.MessageDetail>() to return your mock route object!
-            val mockRoute = Route.MessageDetail(id = messageId)
-            every { savedStateHandle.toRoute<Route.MessageDetail>() } returns mockRoute
-
+            // To make the test pass, the saved state handle toRoute() is mocked in the context
+            // after Jetpack Navigation has sent a Route.MessageDetail bundle.
+            val mockRoute = Route.AdminMonitorMessageDetail(id = messageId)
+            every { savedStateHandle.toRoute<Route.AdminMonitorMessageDetail>() } returns mockRoute
 
             // Act
             messageDetailViewModel = MessageDetailViewModel(
@@ -378,10 +496,10 @@ class MessageDetailViewModelTest {
             // 💡 THE ULTIMATE BYPASS FIX: Mock the static navigation extension file
             mockkStatic("androidx.navigation.SavedStateHandleKt")
             val savedStateHandle: SavedStateHandle = mockk(relaxed = true)
-            // Explicitly force toRoute<Route.MessageDetail>() to return your mock route object!
-            val mockRoute = Route.MessageDetail(id = messageId)
-            every { savedStateHandle.toRoute<Route.MessageDetail>() } returns mockRoute
-
+            // To make the test pass, the saved state handle toRoute() is mocked in the context
+            // after Jetpack Navigation has sent a Route.MessageDetail bundle.
+            val mockRoute = Route.AdminMonitorMessageDetail(id = messageId)
+            every { savedStateHandle.toRoute<Route.AdminMonitorMessageDetail>() } returns mockRoute
 
             // Act
             messageDetailViewModel = MessageDetailViewModel(
