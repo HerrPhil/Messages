@@ -4,10 +4,12 @@ import com.reference.implementation.data.audit.auditLog
 import com.reference.implementation.data.di.ApplicationScope
 import com.reference.implementation.data.di.AuthNetwork
 import com.reference.implementation.data.di.IoDispatcher
+import com.reference.implementation.data.mappers.toDomainModel
 import com.reference.implementation.data.model.SyncState
 import com.reference.implementation.data.sources.ApiService
 import com.reference.implementation.database.dao.BulletinDao
 import com.reference.implementation.database.model.BulletinEntity
+import com.reference.implementation.domain.model.BulletinDomainModel
 import com.reference.implementation.domain.model.CachePayload
 import com.reference.implementation.domain.repository.BulletinRepository
 import kotlinx.coroutines.CancellationException
@@ -67,7 +69,44 @@ class BulletinRepositoryImpl @Inject constructor(
             }
         }.flowOn(ioDispatcher) // Note: Dispatchers.IO is better suited for Network/API calls!
 
-    private suspend fun syncBulletins() {
+    override fun getBulletins(): Flow<CachePayload<List<BulletinDomainModel>>> =
+        flow {
+            // THE CONFLUENCE ENGINE:
+            // We combine Room's infinite stream with our private background sync status flow!
+            bulletinDao.getBulletinsStream()
+                .combine(syncStatus) { entities, status ->
+                    val filteredData = entities.map { it.toDomainModel() }
+                    CachePayload.ActiveStream(
+                        data = filteredData,
+                        isSyncing = status is SyncState.Loading,
+                        syncError = (status as? SyncState.Error)?.exception // propagates 4xx/5xx errors
+                    )
+                }
+                .collect { unifiedPayload ->
+                    // Emit the combined model down your existing public pipeline channels!
+                    emit(unifiedPayload)
+                }
+
+        }.onStart {
+            // Emitters documentation says:
+            // This action is called before the upstream flow is started.
+            // Trigger background sync exactly once on collection entry
+            externalScope.launch {
+                syncBulletins()
+            }
+        }.flowOn(ioDispatcher)
+
+    override fun getBulletinByIdFlow(bulletinId: Int): Flow<CachePayload<BulletinDomainModel?>> =
+        bulletinDao.getBulletinByIdStream(bulletinId)
+            .combine(syncStatus) { entity, status ->
+                CachePayload.ActiveStream(
+                    data = entity?.toDomainModel(), // Map the single database row cleanly to a Domain model
+                    isSyncing = status is SyncState.Loading,
+                    syncError = (status as? SyncState.Error)?.exception
+                )
+            }
+
+    override suspend fun syncBulletins() {
 
         val onRetry: (Int) -> Unit =
             { attempt -> auditLog("getSummaryMessages has retry attempt # $attempt.") }
@@ -91,10 +130,6 @@ class BulletinRepositoryImpl @Inject constructor(
             val body = response.body()
             if (response.isSuccessful && body != null) { // 200 response
 
-                // STRATEGY 1 RESOLUTION: Fetch bookmarked IDs
-                // to prevent overriding local flag data!
-                val currentlyBookmarkedIds = bulletinDao.getBookmarkedIds().toSet()
-
                 // Map incoming cloud DTOs straight to the physical BulletinEntity rows.
                 val localEntities = body.map { dto ->
                     BulletinEntity(
@@ -102,8 +137,7 @@ class BulletinRepositoryImpl @Inject constructor(
                         userId = dto.userId,
                         title = dto.title,
                         post = dto.post,
-                        timestamp = dto.timestamp,
-                        isBookmark = currentlyBookmarkedIds.contains(dto.id) // Preserves local user choices!
+                        timestamp = dto.timestamp
                     )
                 }
 

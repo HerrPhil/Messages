@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "390f56f2e312516b874316fbcca3bde9",
+    "identityHash": "b2e4d45a672fd8c68f6108117959a6fa",
     "entities": [
       {
         "tableName": "bulletins",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `userId` INTEGER NOT NULL, `title` TEXT NOT NULL, `post` TEXT NOT NULL, `timestamp` TEXT NOT NULL, `isBookmark` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER NOT NULL, `userId` INTEGER NOT NULL, `title` TEXT NOT NULL, `post` TEXT NOT NULL, `timestamp` TEXT NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -36,12 +36,6 @@
             "fieldPath": "timestamp",
             "columnName": "timestamp",
             "affinity": "TEXT",
-            "notNull": true
-          },
-          {
-            "fieldPath": "isBookmark",
-            "columnName": "isBookmark",
-            "affinity": "INTEGER",
             "notNull": true
           }
         ],
@@ -139,7 +133,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '390f56f2e312516b874316fbcca3bde9')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'b2e4d45a672fd8c68f6108117959a6fa')"
     ]
   }
 }

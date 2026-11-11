@@ -9,6 +9,5 @@ data class BulletinEntity(
     val userId: Int,
     val title: String,
     val post: String,
-    val timestamp: String,
-    val isBookmark: Boolean
+    val timestamp: String
 )

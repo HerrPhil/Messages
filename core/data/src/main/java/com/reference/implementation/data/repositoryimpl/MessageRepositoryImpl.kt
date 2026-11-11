@@ -392,13 +392,11 @@ class MessageRepositoryImpl @Inject constructor(
 
             // THE CONFLUENCE ENGINE
             // We combine Room's infinite stream with our private background sync status flow!
-            messageDao.getMessagesForUserStream(userId)
+            messageDao.getMessagesForUserStream(userId) // filtering done in DAO query
                 .combine(syncStatus) { result, status ->
-                    val filteredData = result
-                        .filter { it.userId == userId }
-                        .map { it.toDomainModel() }
+                    val mappedData = result.map { it.toDomainModel() } // dto-to-domain
                     CachePayload.ActiveStream(
-                        data = filteredData,
+                        data = mappedData,
                         isSyncing = status is SyncState.Loading,
                         syncError = (status as? SyncState.Error)?.exception
                     )

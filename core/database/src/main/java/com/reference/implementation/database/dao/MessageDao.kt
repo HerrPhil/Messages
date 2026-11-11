@@ -35,10 +35,10 @@ interface MessageDao {
     @Query("DELETE FROM messages WHERE id = :messageId")
     suspend fun deleteMessageById(messageId: Int)
 
-    // THE CONTRACT: Accepts a list of entities and executes an atomic SQLite transaction loop
+    // THE CONTRACT: Accepts a list of entities and executes an atomic SQLite transaction loop.
     // Called from Repository Implementation - not mapped to Repository interface.
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertMessages(users: List<MessageEntity>)
+    suspend fun insertMessages(messages: List<MessageEntity>)
 
     // THE TOGGLE READ STATUS CONTRACT
     // Support the markMessageAsRead/markMessageAsUnread functions in the MessageRepositoryImpl.
