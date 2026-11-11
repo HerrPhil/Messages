@@ -6,7 +6,6 @@ import com.reference.implementation.data.sources.ApiService
 import com.reference.implementation.database.dao.BulletinDao
 import com.reference.implementation.database.model.BulletinEntity
 import com.reference.implementation.domain.model.CachePayload
-import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
@@ -116,8 +115,14 @@ class BulletinRepositoryResilienceTest {
                 // Turbine cleanly intercepts the intermediate network error update frame.
                 val errorStateItem = awaitItem()
                 assertIs<CachePayload.ActiveStream<Int>>(errorStateItem)
-                assertFalse(errorStateItem.isSyncing, "The background network synchronization has ended")
-                assertIs<HttpException>(errorStateItem.syncError, "Exposes the HttpException payload info")
+                assertFalse(
+                    errorStateItem.isSyncing,
+                    "The background network synchronization has ended"
+                )
+                assertIs<HttpException>(
+                    errorStateItem.syncError,
+                    "Exposes the HttpException payload info"
+                )
                 assertEquals(0, errorStateItem.data, "Cache count remains clean at 0 rows")
 
                 // 💡 CLOCK STEP 2: Trigger an on-demand database write mutation!
@@ -143,8 +148,15 @@ class BulletinRepositoryResilienceTest {
                 val resilientCacheEmission = awaitItem()
                 assertIs<CachePayload.ActiveStream<Int>>(resilientCacheEmission)
                 assertFalse(resilientCacheEmission.isSyncing)
-                assertEquals(1, resilientCacheEmission.data, "Stream successfully caught the mutation post-crash!")
-                assertIs<HttpException>(resilientCacheEmission.syncError, "The background network error info persists")
+                assertEquals(
+                    1,
+                    resilientCacheEmission.data,
+                    "Stream successfully caught the mutation post-crash!"
+                )
+                assertIs<HttpException>(
+                    resilientCacheEmission.syncError,
+                    "The background network error info persists"
+                )
 
                 cancelAndIgnoreRemainingEvents()
             }
