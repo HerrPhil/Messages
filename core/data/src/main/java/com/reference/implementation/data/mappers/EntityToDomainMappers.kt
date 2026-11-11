@@ -16,7 +16,7 @@ fun BulletinEntity.toDomainModel(): BulletinDomainModel =
         post = this.post,
         timestamp = this.timestamp,
         timestampInstant = Instant.parse(this.timestamp),
-        isBookmark = this.isBookmark
+        // isBookmark will be set in GetAllBulletinsUseCase with UserPreferencesRepository results
     )
 
 fun UserEntity.toDomainModel() =

@@ -1,8 +1,10 @@
 package com.reference.implementation.data.repositoryimpl
 
 import com.reference.implementation.data.audit.auditLog
+import com.reference.implementation.data.dtos.BulletinDto
 import com.reference.implementation.data.dtos.MessageDto
 import com.reference.implementation.data.dtos.UserDto
+import com.reference.implementation.database.model.BulletinEntity
 import com.reference.implementation.database.model.MessageEntity
 import com.reference.implementation.database.model.UserEntity
 import kotlinx.coroutines.currentCoroutineContext
@@ -108,3 +110,11 @@ fun MessageDto.toEntity() =
         createdAt = this.createdAt
     )
 
+fun BulletinDto.toEntity() =
+    BulletinEntity(
+        id = this.id,
+        userId = this.userId,
+        title = this.title,
+        post = this.post,
+        timestamp = this.timestamp
+    )

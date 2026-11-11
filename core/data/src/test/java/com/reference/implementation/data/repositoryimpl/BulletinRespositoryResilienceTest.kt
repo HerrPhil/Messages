@@ -61,7 +61,6 @@ class BulletinRepositoryResilienceTest {
         daoMockStream = MutableStateFlow(emptyList())
 
         every { bulletinDao.getBulletinsStream() } returns daoMockStream
-        coEvery { bulletinDao.getBookmarkedIds() } returns emptyList()
 
         mockWebServer = MockWebServer()
         mockWebServer.start()
@@ -131,7 +130,6 @@ class BulletinRepositoryResilienceTest {
                             title = "Local Addition",
                             post = "Testing stream resilience.",
                             timestamp = "2026-10-10T12:00:00Z",
-                            isBookmark = false
                         )
                     )
                     daoMockStream.value = sampleEntityList

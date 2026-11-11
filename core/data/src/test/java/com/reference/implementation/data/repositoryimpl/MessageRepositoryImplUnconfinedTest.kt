@@ -5,6 +5,7 @@ import app.cash.turbine.test
 import com.reference.implementation.data.dtos.MessageDto
 import com.reference.implementation.data.manager.SessionManager
 import com.reference.implementation.data.manager.SessionResult
+import com.reference.implementation.data.mappers.toMessageDomainModel
 import com.reference.implementation.data.sources.ApiService
 import com.reference.implementation.database.dao.MessageDao
 import com.reference.implementation.database.model.AdminMessageUnreadTotalQueryResult
@@ -12,6 +13,7 @@ import com.reference.implementation.database.model.MessageEntity
 import com.reference.implementation.database.model.MessageReadUnreadQueryResult
 import com.reference.implementation.domain.model.AdminMessageUnreadTotalDomainModel
 import com.reference.implementation.domain.model.CachePayload
+import com.reference.implementation.domain.model.MessageDomainModel
 import com.reference.implementation.domain.model.UserMessageReadUnreadDomainModel
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -55,12 +57,22 @@ class MessageRepositoryImplUnconfinedTest {
     private lateinit var testDispatcher: TestDispatcher
     private lateinit var mockWebServer: MockWebServer
     private lateinit var api: ApiService
+
     // THE IMMUTABLE FIX: Mock the DAO contract interfaces natively!
     private lateinit var messageDao: MessageDao
+
     // A hot stream placeholder that perfectly mimics Room's active table emissions
     private lateinit var daoAdminAggregationMockStream: MutableStateFlow<AdminMessageUnreadTotalQueryResult>
+
     // 💡 THE CHRONOLOGICAL REMEDY: Add a hot stream placeholder matching your custom query model!
     private lateinit var daoUserAggregationMockStream: MutableStateFlow<MessageReadUnreadQueryResult>
+
+    // A hot stream placeholder that perfectly mimics Room's active table emissions
+    private lateinit var daoMessagesForUserMockStream: MutableStateFlow<List<MessageEntity>>
+
+    // A hot stream placeholder that perfectly mimics Room's active table emission of 1 entity
+    private lateinit var daoMessageByIdMockStream: MutableStateFlow<MessageEntity?>
+
     private val sessionManager: SessionManager = mockk(relaxed = true)
     private lateinit var repository: MessageRepositoryImpl
     private val json = Json { ignoreUnknownKeys = true }
@@ -89,11 +101,23 @@ class MessageRepositoryImplUnconfinedTest {
         daoUserAggregationMockStream =
             MutableStateFlow(MessageReadUnreadQueryResult(unreadCount = 0, readCount = 0))
 
-        // Bind the mock use case getter to pipe our StateFlow records natively!
+        // Initialize your list data class stream baseline (empty list aka empty SQLite table)
+        daoMessagesForUserMockStream = MutableStateFlow(emptyList())
+
+        // Initialize your entity data class stream baseline (null entity)
+        daoMessageByIdMockStream = MutableStateFlow(null)
+
+        // Bind the mock DAO getter to pipe our StateFlow records natively!
         every { messageDao.getAdminMessageUnreadTotalStream() } returns daoAdminAggregationMockStream
 
         // THE RESOLUTION: Instruct MockK exactly how to satisfy your custom query call!
         every { messageDao.getUserMessageReadUnreadStream(any()) } returns daoUserAggregationMockStream
+
+        // Bind the mock DAO getter to pipe our StateFlow list natively!
+        every { messageDao.getMessagesForUserStream(any()) } returns daoMessagesForUserMockStream
+
+        // Bind the mock DAO getter to pipe our StateFlow entity natively!
+        every { messageDao.getMessageByIdStream(any()) } returns daoMessageByIdMockStream
 
         mockWebServer = MockWebServer()
         mockWebServer.start() // automated tests should always use port 0 to avoid flakiness
@@ -135,7 +159,7 @@ class MessageRepositoryImplUnconfinedTest {
                 MockResponse()
                     .setResponseCode(200)
                     .setHeader("Content-Type", "application/json")
-                    .setBody(createSampleDtoMessages()) // creates 3 sample messages
+                    .setBody(createSampleDtoMessagesEncodedString()) // creates 3 sample messages
             )
 
             // 2. Intercept your repository's transactional writes to manually feed our mock channel!
@@ -573,7 +597,7 @@ class MessageRepositoryImplUnconfinedTest {
                 MockResponse()
                     .setResponseCode(200)
                     .setHeader("Content-Type", "application/json")
-                    .setBody(createSampleDtoMessages())
+                    .setBody(createSampleDtoMessagesEncodedString())
             )
 
             // 2. Intercept your repository's transactional writes to manually feed our mock channel!
@@ -894,19 +918,20 @@ class MessageRepositoryImplUnconfinedTest {
             // 1. Mock session returns Authenticated user with ID = 42
             coEvery { sessionManager.getSessionUserId() } returns SessionResult.Authenticated(42)
 
-            // 1. Enqueue MockWebServer responses (e.g., 2 HTTP 500s then 1 HTTP 200)
+            // 2. Enqueue MockWebServer responses (e.g., 2 HTTP 500s then 1 HTTP 200)
             mockWebServer.enqueue(MockResponse().setResponseCode(500))
             mockWebServer.enqueue(MockResponse().setResponseCode(500))
             mockWebServer.enqueue(
                 MockResponse()
                     .setResponseCode(200)
                     .setHeader("Content-Type", "application/json")
-                    .setBody(createSampleDtoMessages()) // creates 3 sample messages
+                    .setBody(createSampleDtoMessagesEncodedString()) // creates 3 sample messages
             )
 
-            // 2. Intercept your repository's transactional writes to manually feed our mock channel!
+            // 3. Intercept your repository's transactional writes to manually feed our mock channel!
             coEvery { messageDao.insertMessages(any()) } answers {
                 val incomingList = firstArg<List<MessageEntity>>()
+                assertIs<List<MessageEntity>>(incomingList) // dto-to-entity successful
                 daoUserAggregationMockStream.value = MessageReadUnreadQueryResult(
                     readCount = incomingList.count { it.read },
                     unreadCount = incomingList.count { !it.read }
@@ -915,7 +940,7 @@ class MessageRepositoryImplUnconfinedTest {
 
             repository.getUserReadUnreadCounts().test {
 
-                // 3. Immediate emission must be Loading baseline
+                // 4. Immediate emission must be Loading baseline
                 val loadingItem = awaitItem()
                 assertIs<CachePayload.ActiveStream<UserMessageReadUnreadDomainModel>>(loadingItem)
                 val initialDomainModel = UserMessageReadUnreadDomainModel(0, 0)
@@ -927,16 +952,16 @@ class MessageRepositoryImplUnconfinedTest {
                 assertTrue(loadingItem.isSyncing)
                 assertEquals(null, loadingItem.syncError) // no problems for successful syncs!
 
-                // 4. Pump the virtual clock frame to execute the retryIO delayer blocks completely
+                // 5. Pump the virtual clock frame to execute the retryIO delayer blocks completely
                 testScheduler.advanceUntilIdle()
 
-                // 5. Modern Data Sync Success!
+                // 6. Modern Data Sync Success!
                 // The sync task hits the 200 payload.
                 // DAO updates the list.
                 // Room fills infinite pipeline with new messages.
                 val successItem = awaitItem()
 
-                // 6. Assert CachePayload state
+                // 7. Assert CachePayload state
                 assertIs<CachePayload.ActiveStream<UserMessageReadUnreadDomainModel>>(successItem)
                 assertFalse(
                     successItem.isSyncing,
@@ -950,7 +975,7 @@ class MessageRepositoryImplUnconfinedTest {
                 )
                 assertEquals(null, successItem.syncError) // no problems for successful syncs!
 
-                // 7. Assert retry callbacks and HTTP request counts
+                // 8. Assert retry callbacks and HTTP request counts
                 assertEquals(3, mockWebServer.requestCount, "called api 3 times")
 
                 // Clean up Turbine collection
@@ -959,7 +984,7 @@ class MessageRepositoryImplUnconfinedTest {
 
             coVerify(exactly = 1) { messageDao.insertMessages(any()) }
 
-            // 7. Verify request payload contract on MockWebServer
+            // 9. Verify request payload contract on MockWebServer
             val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
             assertEquals("GET", recordedRequest?.method)
             assertEquals("/messages", recordedRequest?.path)
@@ -973,20 +998,20 @@ class MessageRepositoryImplUnconfinedTest {
             // 1. Mock session returns Authenticated user with ID = 42
             coEvery { sessionManager.getSessionUserId() } returns SessionResult.Authenticated(42)
 
-            // 1. Enqueue MockWebServer response (e.g., 1 HTTP 200)
+            // 2. Enqueue MockWebServer response (e.g., 1 HTTP 200)
             mockWebServer.enqueue(
                 MockResponse()
                     .setResponseCode(200)
                     .setHeader("Content-Type", "application/json")
-                    .setBody("""{"oranges":789}""") // malformed JSON string
+                    .setBody("""{ "oranges" : 789 }""") // malformed JSON string
             )
 
-            // 2. Do not intercept your repository's transactional writes
+            // 3. Do not intercept your repository's transactional writes
             // to manually feed our mock channel - retryIO limit was reached (no data)!
 
             repository.getUserReadUnreadCounts().test {
 
-                // 3. Immediate emission must be Loading baseline
+                // 4. Immediate emission must be Loading baseline
                 val loadingItem = awaitItem()
                 assertIs<CachePayload.ActiveStream<UserMessageReadUnreadDomainModel>>(loadingItem)
                 val initialDomainModel = UserMessageReadUnreadDomainModel(0, 0)
@@ -998,10 +1023,10 @@ class MessageRepositoryImplUnconfinedTest {
                 assertTrue(loadingItem.isSyncing)
                 assertEquals(null, loadingItem.syncError) // no problems for successful syncs!
 
-                // 4. Pump the virtual clock frame to execute the retryIO delayer blocks completely
+                // 5. Pump the virtual clock frame to execute the retryIO delayer blocks completely!
                 testScheduler.advanceUntilIdle()
 
-                // 5. Background Data Sync Failure Execution Block!
+                // 6. Background Data Sync Failure Execution Block!
                 // The sync task hits 1 JSON decoding exception - no payload.
                 // Combine consolidates baseline 0 entities with syncError
                 // Synchronization of messages updates syncError.
@@ -1016,18 +1041,18 @@ class MessageRepositoryImplUnconfinedTest {
                     actual = errorItem.data,
                     "Room counts 0 messages"
                 )
-                assertIs<JsonDecodingException>(errorItem.syncError) // different exception
+                assertIs<JsonDecodingException>(errorItem.syncError)
                 val errorMessage = errorItem.syncError?.message
                 if (errorMessage != null) {
                     assertTrue(
-                        actual = errorMessage
-                            .startsWith("Unexpected JSON token at offset 0")
+                        actual =
+                            errorMessage.startsWith("Unexpected JSON token at offset 0")
                     )
                 } else {
                     fail("expected an error message")
                 }
 
-                // 6. Assert NO retry callbacks and 1 HTTP request count
+                // 7. Assert NO retry callbacks and 1 HTTP request count
                 assertEquals(1, mockWebServer.requestCount)
 
                 // Clean up Turbine collection
@@ -1037,7 +1062,7 @@ class MessageRepositoryImplUnconfinedTest {
             // Never reached when retryIO response is NOT successful!
             coVerify(exactly = 0) { messageDao.insertMessages(any()) }
 
-            // 7. Verify request payload contract on MockWebServer
+            // 8. Verify request payload contract on MockWebServer
             val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
             assertEquals("GET", recordedRequest?.method)
             assertEquals("/messages", recordedRequest?.path)
@@ -1051,7 +1076,7 @@ class MessageRepositoryImplUnconfinedTest {
             // 1. Mock session returns Authenticated user with ID = 42
             coEvery { sessionManager.getSessionUserId() } returns SessionResult.Authenticated(42)
 
-            // 1. Enqueue MockWebServer responses (e.g., 2 HTTP 500s then 1 HTTP 200)
+            // 2. Enqueue MockWebServer responses (e.g., 2 HTTP 500s then 1 HTTP 200)
             mockWebServer.enqueue(
                 MockResponse()
                     .setResponseCode(200)
@@ -1059,12 +1084,12 @@ class MessageRepositoryImplUnconfinedTest {
                     .setBody("""[]""") // ZERO messages from API getMessages()
             )
 
-            // 2. Do not intercept your repository's transactional writes
+            // 3. Do not intercept your repository's transactional writes
             // to manually feed our mock channel - retryIO limit was reached (no data)!
 
             repository.getUserReadUnreadCounts().test {
 
-                // 3. Immediate emission must be Loading baseline
+                // 4. Immediate emission must be Loading baseline
                 val loadingItem = awaitItem()
                 assertIs<CachePayload.ActiveStream<UserMessageReadUnreadDomainModel>>(loadingItem)
                 val initialDomainModel = UserMessageReadUnreadDomainModel(0, 0)
@@ -1076,10 +1101,10 @@ class MessageRepositoryImplUnconfinedTest {
                 assertTrue(loadingItem.isSyncing)
                 assertEquals(null, loadingItem.syncError) // no problems for successful syncs!
 
-                // 4. Pump the virtual clock frame to execute the retryIO delayer blocks completely
+                // 5. Pump the virtual clock frame to execute the retryIO delayer blocks completely
                 testScheduler.advanceUntilIdle()
 
-                // 5. Background Data Sync Failure Execution Block!
+                // 6. Background Data Sync Failure Execution Block!
                 // The sync task hits 1 401 exception - no payload.
                 // Combine consolidates baseline 0 entities with syncError
                 // Synchronization of messages updates syncError.
@@ -1096,7 +1121,7 @@ class MessageRepositoryImplUnconfinedTest {
                 )
                 assertNull(noResultItem.syncError)
 
-                // 6. Assert NO retry callbacks and 1 HTTP request count
+                // 7. Assert NO retry callbacks and 1 HTTP request count
                 assertEquals(1, mockWebServer.requestCount)
 
                 // Clean up Turbine collection
@@ -1106,7 +1131,7 @@ class MessageRepositoryImplUnconfinedTest {
             // Never reached when retryIO response is NOT successful!
             coVerify(exactly = 1) { messageDao.insertMessages(any()) }
 
-            // 7. Verify request payload contract on MockWebServer
+            // 8. Verify request payload contract on MockWebServer
             val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
             assertEquals("GET", recordedRequest?.method)
             assertEquals("/messages", recordedRequest?.path)
@@ -1120,7 +1145,7 @@ class MessageRepositoryImplUnconfinedTest {
             // 1. Mock session returns Authenticated user with ID = 42
             coEvery { sessionManager.getSessionUserId() } returns SessionResult.Authenticated(42)
 
-            // 1. Enqueue MockWebServer response (HTTP 200 with empty body)
+            // 2. Enqueue MockWebServer response (HTTP 200 with empty body)
             mockWebServer.enqueue(
                 MockResponse()
                     .setResponseCode(200)
@@ -1128,12 +1153,12 @@ class MessageRepositoryImplUnconfinedTest {
                     .setBody("")
             )
 
-            // 2. Do not intercept your repository's transactional writes
+            // 3. Do not intercept your repository's transactional writes
             // to manually feed our mock channel - retryIO limit was reached (no data)!
 
             repository.getUserReadUnreadCounts().test {
 
-                // 3. Immediate emission must be Loading baseline
+                // 4. Immediate emission must be Loading baseline
                 val loadingItem = awaitItem()
                 assertIs<CachePayload.ActiveStream<UserMessageReadUnreadDomainModel>>(loadingItem)
                 val initialDomainModel = UserMessageReadUnreadDomainModel(0, 0)
@@ -1145,10 +1170,10 @@ class MessageRepositoryImplUnconfinedTest {
                 assertTrue(loadingItem.isSyncing)
                 assertEquals(null, loadingItem.syncError) // no problems for successful syncs!
 
-                // 4. Pump the virtual clock frame to execute the retryIO delayer blocks completely
+                // 5. Pump the virtual clock frame to execute the retryIO delayer blocks completely
                 testScheduler.advanceUntilIdle()
 
-                // 5. Background Data Sync Failure Execution Block!
+                // 6. Background Data Sync Failure Execution Block!
                 // The sync task hits 1 401 exception - no payload.
                 // Combine consolidates baseline 0 entities with syncError
                 // Synchronization of messages updates syncError.
@@ -1174,7 +1199,7 @@ class MessageRepositoryImplUnconfinedTest {
                     fail("expected an error message")
                 }
 
-                // 6. Assert NO retry callbacks and 1 HTTP request count
+                // 7. Assert NO retry callbacks and 1 HTTP request count
                 assertEquals(1, mockWebServer.requestCount)
 
                 // Clean up Turbine collection
@@ -1198,7 +1223,7 @@ class MessageRepositoryImplUnconfinedTest {
             // 1. Mock session returns Authenticated user with ID = 42
             coEvery { sessionManager.getSessionUserId() } returns SessionResult.Authenticated(42)
 
-            // 1. Enqueue MockWebServer response (HTTP 200 with empty body)
+            // 2. Enqueue MockWebServer response (HTTP 200 with empty body)
             mockWebServer.enqueue(
                 MockResponse()
                     .setResponseCode(200)
@@ -1206,12 +1231,12 @@ class MessageRepositoryImplUnconfinedTest {
                 // no body() set
             )
 
-            // 2. Do not intercept your repository's transactional writes
+            // 3. Do not intercept your repository's transactional writes
             // to manually feed our mock channel - retryIO limit was reached (no data)!
 
             repository.getUserReadUnreadCounts().test {
 
-                // 3. Immediate emission must be Loading baseline
+                // 4. Immediate emission must be Loading baseline
                 val loadingItem = awaitItem()
                 assertIs<CachePayload.ActiveStream<UserMessageReadUnreadDomainModel>>(loadingItem)
                 val initialDomainModel = UserMessageReadUnreadDomainModel(0, 0)
@@ -1223,10 +1248,10 @@ class MessageRepositoryImplUnconfinedTest {
                 assertTrue(loadingItem.isSyncing)
                 assertEquals(null, loadingItem.syncError) // no problems for successful syncs!
 
-                // 4. Pump the virtual clock frame to execute the retryIO delayer blocks completely
+                // 5. Pump the virtual clock frame to execute the retryIO delayer blocks completely
                 testScheduler.advanceUntilIdle()
 
-                // 5. Background Data Sync Failure Execution Block!
+                // 6. Background Data Sync Failure Execution Block!
                 // The sync task hits 1 401 exception - no payload.
                 // Combine consolidates baseline 0 entities with syncError
                 // Synchronization of messages updates syncError.
@@ -1252,7 +1277,7 @@ class MessageRepositoryImplUnconfinedTest {
                     fail("expected an error message")
                 }
 
-                // 6. Assert NO retry callbacks and 1 HTTP request count
+                // 7. Assert NO retry callbacks and 1 HTTP request count
                 assertEquals(1, mockWebServer.requestCount)
 
                 // Clean up Turbine collection
@@ -1262,7 +1287,7 @@ class MessageRepositoryImplUnconfinedTest {
             // Never reached when retryIO response is NOT successful!
             coVerify(exactly = 0) { messageDao.insertMessages(any()) }
 
-            // 7. Verify request payload contract on MockWebServer
+            // 8. Verify request payload contract on MockWebServer
             val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
             assertEquals("GET", recordedRequest?.method)
             assertEquals("/messages", recordedRequest?.path)
@@ -1275,17 +1300,17 @@ class MessageRepositoryImplUnconfinedTest {
             // 1. Mock session returns Authenticated user with ID = 42
             coEvery { sessionManager.getSessionUserId() } returns SessionResult.Authenticated(42)
 
-            // 1. Enqueue MockWebServer responses (e.g., 3 HTTP 500s)
+            // 2. Enqueue MockWebServer responses (e.g., 3 HTTP 500s)
             repeat(3) {
                 mockWebServer.enqueue(MockResponse().setResponseCode(500))
             }
 
-            // 2. Do not intercept your repository's transactional writes
+            // 3. Do not intercept your repository's transactional writes
             // to manually feed our mock channel - retryIO limit was reached (no data)!
 
             repository.getUserReadUnreadCounts().test {
 
-                // 3. Immediate emission must be Loading baseline
+                // 4. Immediate emission must be Loading baseline
                 val loadingItem = awaitItem()
                 assertIs<CachePayload.ActiveStream<UserMessageReadUnreadDomainModel>>(loadingItem)
                 val initialDomainModel = UserMessageReadUnreadDomainModel(0, 0)
@@ -1297,10 +1322,10 @@ class MessageRepositoryImplUnconfinedTest {
                 assertTrue(loadingItem.isSyncing)
                 assertEquals(null, loadingItem.syncError) // no problems for successful syncs!
 
-                // 4. Pump the virtual clock frame to execute the retryIO delayer blocks completely
+                // 5. Pump the virtual clock frame to execute the retryIO delayer blocks completely
                 testScheduler.advanceUntilIdle()
 
-                // 5. Background Data Sync Failure Execution Block!
+                // 6. Background Data Sync Failure Execution Block!
                 // The sync task hits 3 500 - no payload.
                 // Combine consolidates baseline 0 entities with syncError
                 // Synchronization of messages updates syncError.
@@ -1318,7 +1343,7 @@ class MessageRepositoryImplUnconfinedTest {
                 assertIs<HttpException>(errorItem.syncError)
                 assertEquals("HTTP 500 Server Error", errorItem.syncError?.message)
 
-                // 6. Assert retry callbacks and HTTP request counts
+                // 7. Assert retry callbacks and HTTP request counts
                 assertEquals(3, mockWebServer.requestCount, "called api 3 times")
 
                 // Clean up Turbine collection
@@ -1328,7 +1353,7 @@ class MessageRepositoryImplUnconfinedTest {
             // Never reached when retryIO response is NOT successful!
             coVerify(exactly = 0) { messageDao.insertMessages(any()) }
 
-            // 7. Verify request payload contract on MockWebServer
+            // 8. Verify request payload contract on MockWebServer
 
             // Pop the 2 failed socket attempts
             mockWebServer.takeRequest()
@@ -1346,17 +1371,17 @@ class MessageRepositoryImplUnconfinedTest {
             // 1. Mock session returns Authenticated user with ID = 42
             coEvery { sessionManager.getSessionUserId() } returns SessionResult.Authenticated(42)
 
-            // 1. Enqueue MockWebServer responses (e.g., 2 HTTP IOExceptions  then 1 HTTP 200)
+            // 2. Enqueue MockWebServer responses (e.g., 2 HTTP IOExceptions  then 1 HTTP 200)
             mockWebServer.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
             mockWebServer.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
             mockWebServer.enqueue(
                 MockResponse()
                     .setResponseCode(200)
                     .setHeader("Content-Type", "application/json")
-                    .setBody(createSampleDtoMessages())
+                    .setBody(createSampleDtoMessagesEncodedString())
             )
 
-            // 2. Intercept your repository's transactional writes to manually feed our mock channel!
+            // 3. Intercept your repository's transactional writes to manually feed our mock channel!
             coEvery { messageDao.insertMessages(any()) } answers {
                 val incomingList = firstArg<List<MessageEntity>>()
                 daoUserAggregationMockStream.value = MessageReadUnreadQueryResult(
@@ -1368,7 +1393,7 @@ class MessageRepositoryImplUnconfinedTest {
 
             repository.getUserReadUnreadCounts().test {
 
-                // 3. Immediate emission must be Loading baseline
+                // 4. Immediate emission must be Loading baseline
                 val loadingItem = awaitItem()
                 assertIs<CachePayload.ActiveStream<UserMessageReadUnreadDomainModel>>(loadingItem)
                 val initialDomainModel = UserMessageReadUnreadDomainModel(0, 0)
@@ -1380,16 +1405,16 @@ class MessageRepositoryImplUnconfinedTest {
                 assertTrue(loadingItem.isSyncing)
                 assertEquals(null, loadingItem.syncError) // no problems for successful syncs!
 
-                // 4. Pump the virtual clock frame to execute the retryIO delayer blocks completely
+                // 5. Pump the virtual clock frame to execute the retryIO delayer blocks completely
                 testScheduler.advanceUntilIdle()
 
-                // 5. Modern Data Sync Success!
+                // 6. Modern Data Sync Success!
                 // The sync task hits the 200 payload.
                 // DAO updates the list.
                 // Room fills infinite pipeline with new messages.
                 val successItem = awaitItem()
 
-                // 6. Assert CachePayload state
+                // 7. Assert CachePayload state
                 assertIs<CachePayload.ActiveStream<UserMessageReadUnreadDomainModel>>(successItem)
                 assertFalse(
                     successItem.isSyncing,
@@ -1403,7 +1428,7 @@ class MessageRepositoryImplUnconfinedTest {
                 )
                 assertEquals(null, successItem.syncError) // no problems for successful syncs!
 
-                // 7. Assert retry callbacks and HTTP request counts
+                // 8. Assert retry callbacks and HTTP request counts
                 assertEquals(3, mockWebServer.requestCount, "called api 3 times")
 
                 // Clean up Turbine collection
@@ -1412,7 +1437,7 @@ class MessageRepositoryImplUnconfinedTest {
 
             coVerify(exactly = 1) { messageDao.insertMessages(any()) }
 
-            // 7. Verify request payload contract on MockWebServer
+            // 9. Verify request payload contract on MockWebServer
 
             // Pop the 2 failed socket attempts
             mockWebServer.takeRequest()
@@ -1421,7 +1446,6 @@ class MessageRepositoryImplUnconfinedTest {
             val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
             assertEquals("GET", recordedRequest?.method)
             assertEquals("/messages", recordedRequest?.path)
-
         }
 
     @Test
@@ -1431,17 +1455,17 @@ class MessageRepositoryImplUnconfinedTest {
             // 1. Mock session returns Authenticated user with ID = 42
             coEvery { sessionManager.getSessionUserId() } returns SessionResult.Authenticated(42)
 
-            // 1. Enqueue MockWebServer responses (e.g., 2 HTTP 500s then 1 HTTP 200)
-            mockWebServer.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
-            mockWebServer.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
-            mockWebServer.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
+            // 2. Enqueue MockWebServer responses (e.g., 2 HTTP 500s then 1 HTTP 200)
+            repeat(3) {
+                mockWebServer.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
+            }
 
-            // 2. Do not intercept your repository's transactional writes
+            // 3. Do not intercept your repository's transactional writes
             // to manually feed our mock channel - retryIO limit was reached (no data)!
 
             repository.getUserReadUnreadCounts().test {
 
-                // 3. Immediate emission must be Loading baseline
+                // 4. Immediate emission must be Loading baseline
                 val loadingItem = awaitItem()
                 assertIs<CachePayload.ActiveStream<UserMessageReadUnreadDomainModel>>(loadingItem)
                 val initialDomainModel = UserMessageReadUnreadDomainModel(0, 0)
@@ -1453,10 +1477,10 @@ class MessageRepositoryImplUnconfinedTest {
                 assertTrue(loadingItem.isSyncing)
                 assertEquals(null, loadingItem.syncError) // no problems for successful syncs!
 
-                // 4. Pump the virtual clock frame to execute the retryIO delayer blocks completely
+                // 5. Pump the virtual clock frame to execute the retryIO delayer blocks completely
                 testScheduler.advanceUntilIdle()
 
-                // 5. Background Data Sync Failure Execution Block!
+                // 6. Background Data Sync Failure Execution Block!
                 // The sync task hits 3 IO exceptions - no payload.
                 // Combine consolidates baseline 0 entities with syncError
                 // Synchronization of messages updates syncError.
@@ -1480,7 +1504,7 @@ class MessageRepositoryImplUnconfinedTest {
                     )
                 }
 
-                // 6. Assert retry callbacks and HTTP request counts
+                // 7. Assert retry callbacks and HTTP request counts
                 assertEquals(3, mockWebServer.requestCount, "called api 3 times")
 
                 // Clean up Turbine collection
@@ -1490,7 +1514,7 @@ class MessageRepositoryImplUnconfinedTest {
             // Never reached when retryIO response is NOT successful!
             coVerify(exactly = 0) { messageDao.insertMessages(any()) }
 
-            // 7. Verify request payload contract on MockWebServer
+            // 8. Verify request payload contract on MockWebServer
 
             // Pop the 2 failed socket attempts
             mockWebServer.takeRequest()
@@ -1499,7 +1523,6 @@ class MessageRepositoryImplUnconfinedTest {
             val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
             assertEquals("GET", recordedRequest?.method)
             assertEquals("/messages", recordedRequest?.path)
-
         }
 
     @Test
@@ -1561,6 +1584,8 @@ class MessageRepositoryImplUnconfinedTest {
 
             // Never reached when retryIO response is NOT successful!
             coVerify(exactly = 0) { messageDao.insertMessages(any()) }
+
+            // 8. Verify request payload contract on MockWebServer
 
             val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
             assertEquals("GET", recordedRequest?.method)
@@ -1628,6 +1653,7 @@ class MessageRepositoryImplUnconfinedTest {
             coVerify(exactly = 0) { messageDao.insertMessages(any()) }
 
             // 7. Verify request payload contract on MockWebServer
+
             val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
             assertEquals("GET", recordedRequest?.method)
             assertEquals("/messages", recordedRequest?.path)
@@ -1640,7 +1666,7 @@ class MessageRepositoryImplUnconfinedTest {
             // 1. Mock session returns Authenticated user with ID = 42
             coEvery { sessionManager.getSessionUserId() } returns SessionResult.Authenticated(42)
 
-            // 1. Enqueue a delayed response so the call stays suspended on the server
+            // 2. Enqueue a delayed response so the call stays suspended on the server
             mockWebServer.enqueue(
                 MockResponse()
                     .setResponseCode(200)
@@ -1648,16 +1674,16 @@ class MessageRepositoryImplUnconfinedTest {
                     .setBody("""[{"id":"1"}]""")
             )
 
-            // 2. Observe the flow with Turbine
+            // 3. Observe the flow with Turbine
             repository.getUserReadUnreadCounts().test {
 
-                // 3. Immediate emission must be Loading baseline
+                // 4. Immediate emission must be Loading baseline
                 val loadingItem = awaitItem()
                 assertIs<CachePayload.ActiveStream<UserMessageReadUnreadDomainModel>>(loadingItem)
                 assertTrue(loadingItem.isSyncing)
                 assertEquals(null, loadingItem.syncError) // no problems for successful syncs!
 
-                // 4. Cancel the flow subscriber while suspended on the network call
+                // 5. Cancel the flow subscriber while suspended on the network call
                 cancelAndIgnoreRemainingEvents()
             }
 
@@ -1667,6 +1693,930 @@ class MessageRepositoryImplUnconfinedTest {
             // NetworkResult.Exception, Turbine would have thrown an unconsumed event error above!
         }
 
+    // ############################################################################################
+    // ############################################################################################
+    // ############################################################################################
+    // ############################################################################################
+
+    @Test
+    fun `getMessagesForActiveUser emits Loading and sees 2 HTTP 500s then fetches from the network and updates local cache query stream`() =
+        runTest(testDispatcher) {
+
+            // 1. Mock session returns Authenticated user with ID = 42
+            coEvery { sessionManager.getSessionUserId() } returns SessionResult.Authenticated(42)
+
+            // 2. Enqueue MockWebServer responses (e.g., 2 HTTP 500s then 1 HTTP 200)
+            mockWebServer.enqueue(MockResponse().setResponseCode(500))
+            mockWebServer.enqueue(MockResponse().setResponseCode(500))
+            mockWebServer.enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setHeader("Content-Type", "application/json")
+                    .setBody(createSampleDtoMessagesEncodedString()) // create 3 sample messages
+            )
+
+            // 3. Intercept your repository's transactional writes to manually feed our mock channel!
+            coEvery { messageDao.insertMessages(any()) } answers {
+                val incomingList = firstArg<List<MessageEntity>>()
+                assertIs<List<MessageEntity>>(incomingList) // dto-to-entity successful
+                daoMessagesForUserMockStream.value = incomingList // mimic stream of fake dao query
+            }
+
+            repository.getMessagesForActiveUser().test {
+
+                // 4. Immediate emission must be Loading baseline
+                val loadingItem = awaitItem()
+                assertIs<CachePayload.ActiveStream<List<MessageDomainModel>>>(loadingItem)
+                val initialList = emptyList<MessageDomainModel>()
+                assertEquals(
+                    initialList,
+                    loadingItem.data,
+                    "Room cache contains nothing"
+                )
+                assertTrue(loadingItem.isSyncing)
+                assertEquals(null, loadingItem.syncError) // no problems for successful syncs!
+
+                // 5. Pump the virtual clock frame to execute the retryIO delayer blocks completely
+                testScheduler.advanceUntilIdle()
+
+                // 6. Modern Data Sync Success!
+                // The sync task hits the 200 payload
+                // DAO updates the list.
+                // Room fills infinite pipeline with new messages.
+                val successItem = awaitItem()
+
+                // 7. Assert CachePayload state
+                assertIs<CachePayload.ActiveStream<List<MessageDomainModel>>>(successItem)
+                assertFalse(
+                    successItem.isSyncing,
+                    "onStart() successfully synchronized messages"
+                )
+                val expectedListOfDomainModels =
+                    createSampleDtoMessages().map { it.toMessageDomainModel() }
+                assertEquals(
+                    expected = expectedListOfDomainModels,
+                    actual = successItem.data,
+                    message = "Room gets 3 messages"
+                )
+                assertEquals(null, successItem.syncError) // no problems for successful syncs!
+
+                // 8. Assert retry callbacks and HTTP request counts
+                assertEquals(3, mockWebServer.requestCount, "called api 3 times")
+
+                // Clean up Turbine collection
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            coVerify(exactly = 1) { messageDao.insertMessages(any()) }
+
+            // 9. Verify request payload contract on MockWebServer
+            val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
+            assertEquals("GET", recordedRequest?.method)
+            assertEquals("/messages", recordedRequest?.path)
+        }
+
+    @OptIn(ExperimentalSerializationApi::class)
+    @Test
+    fun `getMessagesForActiveUser handles malformed JSON string`() =
+        runTest(testDispatcher) {
+
+            // 1. Mock session returns Authenticated user with ID = 42
+            coEvery { sessionManager.getSessionUserId() } returns SessionResult.Authenticated(42)
+
+            // 2. Enqueue MockWebServer response (e.g., 1 HTTP 200)
+            mockWebServer.enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setHeader("Content-Type", "application/json")
+                    .setBody("""{ "oranges" : 789 }""")
+            )
+
+            // 3. Do not intercept your repository's transactional writes
+            // to manually feed our mock channel - retryIO limit was reached (no data)!
+
+            repository.getMessagesForActiveUser().test {
+
+                // 4. Immediate emission must be Loading baseline
+                val loadingItem = awaitItem()
+                assertIs<CachePayload.ActiveStream<List<MessageDomainModel>>>(loadingItem)
+                val initialDomainModel = emptyList<MessageDomainModel>()
+                assertEquals(
+                    expected = initialDomainModel,
+                    actual = loadingItem.data,
+                    message = "Room cache contains nothing"
+                )
+                assertTrue(loadingItem.isSyncing)
+                assertEquals(null, loadingItem.syncError)
+
+                // 5. Pump the virtual clock frame to execute the retryIO delayer block completely!
+                testScheduler.advanceUntilIdle()
+
+                // 6. Background Data Sync Failure Execution Block!
+                // The sync task hits 1 JSON decoding exception - no payload.
+                // Combine consolidates baseline 0 entities with syncError
+                // Synchronization of messages updates syncError.
+                val errorItem = awaitItem()
+                assertIs<CachePayload.ActiveStream<List<MessageDomainModel>>>(errorItem)
+                assertFalse(
+                    errorItem.isSyncing,
+                    "onStart() tried to synchronize messages"
+                )
+                assertEquals(
+                    expected = initialDomainModel,
+                    actual = errorItem.data,
+                    message = "Room counts 0 messages"
+                )
+                assertIs<JsonDecodingException>(errorItem.syncError)
+                val errorMessage = errorItem.syncError?.message
+                if (errorMessage != null) {
+                    assertTrue(
+                        actual =
+                            errorMessage.startsWith(("Unexpected JSON token at offset 0"))
+                    )
+                } else {
+                    fail("expected an error message")
+                }
+
+                // 7. Assert NO retry callbacks and 1 HTTP request count
+                assertEquals(1, mockWebServer.requestCount)
+
+                // Clean up Turbine collection
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            // Never reached when retryIO response is NOT successful!
+            coVerify(exactly = 0) { messageDao.insertMessages(any()) }
+
+            // 8. Verify request payload contract on MockWebServer
+            val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
+            assertEquals("GET", recordedRequest?.method)
+            assertEquals("/messages", recordedRequest?.path)
+        }
+
+    @OptIn(ExperimentalSerializationApi::class)
+    @Test
+    fun `getMessagesForActiveUser emits Loading then emits correct message for no messages when API returns HTTP 200`() =
+        runTest(testDispatcher) {
+
+            // 1. Mock session returns Authenticated user with ID = 42
+            coEvery { sessionManager.getSessionUserId() } returns SessionResult.Authenticated(42)
+
+            // 2. Enqueue MockWebServer responses (e.g., 2 HTTP 500s then 1 HTTP 200)
+            mockWebServer.enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setHeader("Content-Type", "application/json")
+                    .setBody("""[]""") // ZERO messages from API getMessages()
+            )
+
+            // 3. Do not intercept your repository's transactional writes
+            // to manually feed our mock channel - retryIO limit was reached (no data)!
+
+            repository.getMessagesForActiveUser().test {
+
+                // 4. Immediate emission must be Loading baseline
+                val loadingItem = awaitItem()
+                assertIs<CachePayload.ActiveStream<List<MessageDomainModel>>>(loadingItem)
+                val initialDomainModel = emptyList<MessageDomainModel>()
+                assertEquals(
+                    initialDomainModel,
+                    loadingItem.data,
+                    "Room cache contains nothing"
+                )
+                assertTrue(loadingItem.isSyncing)
+                assertEquals(null, loadingItem.syncError) // no problems for successful syncs!
+
+                // 5. Pump the virtual clock frame to execute the retryIO delayer blocks completely
+                testScheduler.advanceUntilIdle()
+
+                // 6. Background Data Sync Failure Execution Block!
+                // The sync task hits 1 401 exception - no payload.
+                // Combine consolidates baseline 0 entities with syncError
+                // Synchronization of messages updates syncError.
+                val noResultItem = awaitItem()
+                assertIs<CachePayload.ActiveStream<List<MessageDomainModel>>>(noResultItem)
+                assertFalse(
+                    noResultItem.isSyncing,
+                    "onStart() tried to synchronize messages"
+                )
+                assertEquals(
+                    expected = initialDomainModel,
+                    actual = noResultItem.data,
+                    "Room counts 0 messages"
+                )
+                assertNull(noResultItem.syncError)
+
+                // 7. Assert NO retry callbacks and 1 HTTP request count
+                assertEquals(1, mockWebServer.requestCount)
+
+                // Clean up Turbine collection
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            // Never reached when retryIO response is NOT successful!
+            coVerify(exactly = 1) { messageDao.insertMessages(any()) }
+
+            // 8. Verify request payload contract on MockWebServer
+            val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
+            assertEquals("GET", recordedRequest?.method)
+            assertEquals("/messages", recordedRequest?.path)
+        }
+
+    @OptIn(ExperimentalSerializationApi::class)
+    @Test
+    fun `getMessagesForActiveUser handles empty 200 OK body safely`() =
+        runTest(testDispatcher) {
+
+            // 1. Mock session returns Authenticated user with ID = 42
+            coEvery { sessionManager.getSessionUserId() } returns SessionResult.Authenticated(42)
+
+            // 2. Enqueue MockWebServer response (HTTP 200 with empty body)
+            mockWebServer.enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setHeader("Content-Type", "application/json")
+                    .setBody("")
+            )
+
+            // 3. Do not intercept your repository's transactional writes
+            // to manually feed our mock channel - retryIO limit was reached (no data)!
+
+            repository.getMessagesForActiveUser().test {
+
+                // 4. Immediate emission must be Loading baseline
+                val loadingItem = awaitItem()
+                assertIs<CachePayload.ActiveStream<List<MessageDomainModel>>>(loadingItem)
+                val initialDomainModel = emptyList<MessageDomainModel>()
+                assertEquals(
+                    initialDomainModel,
+                    loadingItem.data,
+                    "Room cache contains nothing"
+                )
+                assertTrue(loadingItem.isSyncing)
+                assertEquals(null, loadingItem.syncError) // no problems for successful syncs!
+
+                // 5. Pump the virtual clock frame to execute the retryIO delayer blocks completely
+                testScheduler.advanceUntilIdle()
+
+                // 6. Background Data Sync Failure Execution Block!
+                // The sync task hits 1 401 exception - no payload.
+                // Combine consolidates baseline 0 entities with syncError
+                // Synchronization of messages updates syncError.
+                val errorItem = awaitItem()
+                assertIs<CachePayload.ActiveStream<List<MessageDomainModel>>>(errorItem)
+                assertFalse(
+                    errorItem.isSyncing,
+                    "onStart() tried to synchronize messages"
+                )
+                assertEquals(
+                    initialDomainModel,
+                    errorItem.data,
+                    "Room counts 0 messages"
+                )
+                assertIs<JsonDecodingException>(errorItem.syncError) // different exception
+                val errorMessage = errorItem.syncError?.message
+                if (errorMessage != null) {
+                    assertTrue(
+                        actual = errorMessage
+                            .startsWith("Expected start of the array '['") // might break
+                    )
+                } else {
+                    fail("expected an error message")
+                }
+
+                // 7. Assert NO retry callbacks and 1 HTTP request count
+                assertEquals(1, mockWebServer.requestCount)
+
+                // Clean up Turbine collection
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            // Never reached when retryIO response is NOT successful!
+            coVerify(exactly = 0) { messageDao.insertMessages(any()) }
+
+            // 7. Verify request payload contract on MockWebServer
+            val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
+            assertEquals("GET", recordedRequest?.method)
+            assertEquals("/messages", recordedRequest?.path)
+        }
+
+    @OptIn(ExperimentalSerializationApi::class)
+    @Test
+    fun `getMessagesForActiveUser handles no 200 OK body safely`() =
+        runTest(testDispatcher) {
+
+            // 1. Mock session returns Authenticated user with ID = 42
+            coEvery { sessionManager.getSessionUserId() } returns SessionResult.Authenticated(42)
+
+            // 2. Enqueue MockWebServer response (HTTP 200 with empty body)
+            mockWebServer.enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setHeader("Content-Type", "application/json")
+                // no body() set
+            )
+
+            // 3. Do not intercept your repository's transactional writes
+            // to manually feed our mock channel - retryIO limit was reached (no data)!
+
+            repository.getMessagesForActiveUser().test {
+
+                // 4. Immediate emission must be Loading baseline
+                val loadingItem = awaitItem()
+                assertIs<CachePayload.ActiveStream<List<MessageDomainModel>>>(loadingItem)
+                val initialDomainModel = emptyList<MessageDomainModel>()
+                assertEquals(
+                    initialDomainModel,
+                    loadingItem.data,
+                    "Room cache contains nothing"
+                )
+                assertTrue(loadingItem.isSyncing)
+                assertEquals(null, loadingItem.syncError) // no problems for successful syncs!
+
+                // 5. Pump the virtual clock frame to execute the retryIO delayer blocks completely
+                testScheduler.advanceUntilIdle()
+
+                // 6. Background Data Sync Failure Execution Block!
+                // The sync task hits 1 401 exception - no payload.
+                // Combine consolidates baseline 0 entities with syncError
+                // Synchronization of messages updates syncError.
+                val errorItem = awaitItem()
+                assertIs<CachePayload.ActiveStream<List<MessageDomainModel>>>(errorItem)
+                assertFalse(
+                    errorItem.isSyncing,
+                    "onStart() tried to synchronize messages"
+                )
+                assertEquals(
+                    expected = initialDomainModel,
+                    actual = errorItem.data,
+                    "Room counts 0 messages"
+                )
+                assertIs<JsonDecodingException>(errorItem.syncError) // different exception
+                val errorMessage = errorItem.syncError?.message
+                if (errorMessage != null) {
+                    assertTrue(
+                        actual = errorMessage
+                            .startsWith("Expected start of the array '['") // might break
+                    )
+                } else {
+                    fail("expected an error message")
+                }
+
+                // 7. Assert NO retry callbacks and 1 HTTP request count
+                assertEquals(1, mockWebServer.requestCount)
+
+                // Clean up Turbine collection
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            // Never reached when retryIO response is NOT successful!
+            coVerify(exactly = 0) { messageDao.insertMessages(any()) }
+
+            // 8. Verify request payload contract on MockWebServer
+            val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
+            assertEquals("GET", recordedRequest?.method)
+            assertEquals("/messages", recordedRequest?.path)
+        }
+
+    @Test
+    fun `getMessagesForActiveUser emits Loading then returns Error when API returns HTTP 500 3x`() =
+        runTest(testDispatcher) {
+
+            // 1. Mock session returns Authenticated user with ID = 42
+            coEvery { sessionManager.getSessionUserId() } returns SessionResult.Authenticated(42)
+
+            // 2. Enqueue MockWebServer responses (e.g., 3 HTTP 500s)
+            repeat(3) {
+                mockWebServer.enqueue(MockResponse().setResponseCode(500))
+            }
+
+            // 3. Do not intercept your repository's transactional writes
+            // to manually feed our mock channel - retryIO limit was reached (no data)!
+
+            repository.getMessagesForActiveUser().test {
+
+                // 4. Immediate emission must be Loading baseline
+                val loadingItem = awaitItem()
+                assertIs<CachePayload.ActiveStream<List<MessageDomainModel>>>(loadingItem)
+                val initialDomainModel = emptyList<MessageDomainModel>()
+                assertEquals(
+                    initialDomainModel,
+                    loadingItem.data,
+                    "Room cache contains nothing"
+                )
+                assertTrue(loadingItem.isSyncing)
+                assertEquals(null, loadingItem.syncError) // no problems for successful syncs!
+
+                // 5. Pump the virtual clock frame to execute the retryIO delayer blocks completely
+                testScheduler.advanceUntilIdle()
+
+                // 6. Background Data Sync Failure Execution Block!
+                // The sync task hits 3 500 - no payload.
+                // Combine consolidates baseline 0 entities with syncError
+                // Synchronization of messages updates syncError.
+                val errorItem = awaitItem()
+                assertIs<CachePayload.ActiveStream<List<MessageDomainModel>>>(errorItem)
+                assertFalse(
+                    errorItem.isSyncing,
+                    "onStart() tried to synchronize messages"
+                )
+                assertEquals(
+                    initialDomainModel,
+                    errorItem.data,
+                    "Room counts 0 messages"
+                )
+                assertIs<HttpException>(errorItem.syncError)
+                assertEquals("HTTP 500 Server Error", errorItem.syncError?.message)
+
+                // 7. Assert retry callbacks and HTTP request counts
+                assertEquals(3, mockWebServer.requestCount, "called api 3 times")
+
+                // Clean up Turbine collection
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            // Never reached when retryIO response is NOT successful!
+            coVerify(exactly = 0) { messageDao.insertMessages(any()) }
+
+            // 8. Verify request payload contract on MockWebServer
+
+            // Pop the 2 failed socket attempts
+            mockWebServer.takeRequest()
+            mockWebServer.takeRequest()
+
+            val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
+            assertEquals("GET", recordedRequest?.method)
+            assertEquals("/messages", recordedRequest?.path)
+        }
+
+    @Test
+    fun `getMessagesForActiveUser emits Loading then retries IOException and recovers to add Success to the cache when API returns HTTP 200`() =
+        runTest(testDispatcher) {
+
+            // 1. Mock session returns Authenticated user with ID = 42
+            coEvery { sessionManager.getSessionUserId() } returns SessionResult.Authenticated(42)
+
+            // 2. Enqueue MockWebServer responses (e.g., 2 HTTP IOExceptions  then 1 HTTP 200)
+            mockWebServer.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
+            mockWebServer.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AT_START))
+            mockWebServer.enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setHeader("Content-Type", "application/json")
+                    .setBody(createSampleDtoMessagesEncodedString())
+            )
+
+            // 3. Intercept your repository's transactional writes to manually feed our mock channel!
+            coEvery { messageDao.insertMessages(any()) } answers {
+                val incomingList = firstArg<List<MessageEntity>>()
+                assertIs<List<MessageEntity>>(incomingList) // dto-to-entity successful
+                daoMessagesForUserMockStream.value = incomingList // mimic stream of fake dao query
+            }
+
+            repository.getMessagesForActiveUser().test {
+
+                // 4. Immediate emission must be Loading baseline
+                val loadingItem = awaitItem()
+                assertIs<CachePayload.ActiveStream<List<MessageDomainModel>>>(loadingItem)
+                val initialDomainModel = emptyList<MessageDomainModel>()
+                assertEquals(
+                    initialDomainModel,
+                    loadingItem.data,
+                    "Room cache contains nothing"
+                )
+                assertTrue(loadingItem.isSyncing)
+                assertEquals(null, loadingItem.syncError) // no problems for successful syncs!
+
+                // 5. Pump the virtual clock frame to execute the retryIO delayer blocks completely
+                testScheduler.advanceUntilIdle()
+
+                // 6. Modern Data Sync Success!
+                // The sync task hits the 200 payload.
+                // DAO updates the list.
+                // Room fills infinite pipeline with new messages.
+                val successItem = awaitItem()
+
+                // 7. Assert CachePayload state
+                assertIs<CachePayload.ActiveStream<List<MessageDomainModel>>>(successItem)
+                assertFalse(
+                    successItem.isSyncing,
+                    "onStart() successfully synchronized bulletins"
+                )
+                val expectedDomainModel =
+                    createSampleDtoMessages().map { it.toMessageDomainModel() }
+                assertEquals(
+                    expectedDomainModel,
+                    successItem.data,
+                    "Room gets 3 messages"
+                )
+                assertEquals(null, successItem.syncError) // no problems for successful syncs!
+
+                // 8. Assert retry callbacks and HTTP request counts
+                assertEquals(3, mockWebServer.requestCount, "called api 3 times")
+
+                // Clean up Turbine collection
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            coVerify(exactly = 1) { messageDao.insertMessages(any()) }
+
+            // 9. Verify request payload contract on MockWebServer
+
+            // Pop the 2 failed socket attempts
+            mockWebServer.takeRequest()
+            mockWebServer.takeRequest()
+
+            val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
+            assertEquals("GET", recordedRequest?.method)
+            assertEquals("/messages", recordedRequest?.path)
+        }
+
+    @Test
+    fun `getMessagesForActiveUser emits Loading then retries IOException and returns Exception when API returns IOException 3x`() =
+        runTest(testDispatcher) {
+
+            // 1. Mock session returns Authenticated user with ID = 42
+            coEvery { sessionManager.getSessionUserId() } returns SessionResult.Authenticated(42)
+
+            // 2. Enqueue MockWebServer responses (e.g., 2 HTTP 500s then 1 HTTP 200)
+            repeat(3) {
+                mockWebServer.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
+            }
+
+            // 3. Do not intercept your repository's transactional writes
+            // to manually feed our mock channel - retryIO limit was reached (no data)!
+
+            repository.getMessagesForActiveUser().test {
+
+                // 4. Immediate emission must be Loading baseline
+                val loadingItem = awaitItem()
+                assertIs<CachePayload.ActiveStream<List<MessageDomainModel>>>(loadingItem)
+                val initialDomainModel = emptyList<MessageDomainModel>()
+                assertEquals(
+                    initialDomainModel,
+                    loadingItem.data,
+                    "Room cache contains nothing"
+                )
+                assertTrue(loadingItem.isSyncing)
+                assertEquals(null, loadingItem.syncError) // no problems for successful syncs!
+
+                // 5. Pump the virtual clock frame to execute the retryIO delayer blocks completely
+                testScheduler.advanceUntilIdle()
+
+                // 6. Background Data Sync Failure Execution Block!
+                // The sync task hits 3 IO exceptions - no payload.
+                // Combine consolidates baseline 0 entities with syncError
+                // Synchronization of messages updates syncError.
+                val errorItem = awaitItem()
+                assertIs<CachePayload.ActiveStream<List<MessageDomainModel>>>(errorItem)
+                assertFalse(
+                    errorItem.isSyncing,
+                    "onStart() tried to synchronize messages"
+                )
+                assertEquals(
+                    initialDomainModel,
+                    errorItem.data,
+                    "Room counts 0 messages"
+                )
+                assertIs<IOException>(errorItem.syncError)
+                val errorMessage = errorItem.syncError?.message
+                if (errorMessage != null) {
+                    assertTrue(
+                        errorMessage.startsWith("Connection reset") ||
+                                errorMessage.startsWith("unexpected end of stream")
+                    )
+                }
+
+                // 7. Assert retry callbacks and HTTP request counts
+                assertEquals(3, mockWebServer.requestCount, "called api 3 times")
+
+                // Clean up Turbine collection
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            // Never reached when retryIO response is NOT successful!
+            coVerify(exactly = 0) { messageDao.insertMessages(any()) }
+
+            // 8. Verify request payload contract on MockWebServer
+
+            // Pop the 2 failed socket attempts
+            mockWebServer.takeRequest()
+            mockWebServer.takeRequest()
+
+            val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
+            assertEquals("GET", recordedRequest?.method)
+            assertEquals("/messages", recordedRequest?.path)
+        }
+
+    @Test
+    fun `getMessagesForActiveUser fails fast on HTTP 401 without retrying`() =
+        runTest(testDispatcher) {
+
+            // 1. Mock session returns Authenticated user with ID = 42
+            coEvery { sessionManager.getSessionUserId() } returns SessionResult.Authenticated(42)
+
+            // 2. Enqueue MockWebServer responses (e.g., 1 HTTP 401)
+            mockWebServer.enqueue(MockResponse().setResponseCode(401).setBody("Unauthorized"))
+
+            // 3. Do not intercept your repository's transactional writes
+            // to manually feed our mock channel - retryIO limit was reached (no data)!
+
+            repository.getMessagesForActiveUser().test {
+
+                // 4. Immediate emission must be Loading baseline
+                val loadingItem = awaitItem()
+                assertIs<CachePayload.ActiveStream<List<MessageDomainModel>>>(loadingItem)
+                val initialDomainModel = emptyList<MessageDomainModel>()
+                assertEquals(
+                    initialDomainModel,
+                    loadingItem.data,
+                    "Room cache contains nothing"
+                )
+                assertTrue(loadingItem.isSyncing)
+                assertEquals(null, loadingItem.syncError) // no problems for successful syncs!
+
+                // 5. Pump the virtual clock frame to execute the retryIO delayer blocks completely
+                testScheduler.advanceUntilIdle()
+
+                // 6. Background Data Sync Failure Execution Block!
+                // The sync task hits 1 401 exception - no payload.
+                // Combine consolidates baseline 0 entities with syncError
+                // Synchronization of messages updates syncError.
+                val errorItem = awaitItem()
+                assertIs<CachePayload.ActiveStream<List<MessageDomainModel>>>(errorItem)
+                assertFalse(
+                    errorItem.isSyncing,
+                    "onStart() tried to synchronize messages"
+                )
+                assertEquals(
+                    initialDomainModel,
+                    errorItem.data,
+                    "Room counts 0 messages"
+                )
+                assertIs<HttpException>(errorItem.syncError)
+                val errorMessage = errorItem.syncError?.message
+                val errorCode = (errorItem.syncError as? HttpException)?.code()
+                if (errorMessage != null) {
+                    assertEquals("HTTP 401 Client Error", errorMessage)
+                    assertEquals(401, errorCode)
+                }
+
+                // 7. Assert NO retry callbacks and 1 HTTP request count
+                assertEquals(1, mockWebServer.requestCount)
+
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            // Never reached when retryIO response is NOT successful!
+            coVerify(exactly = 0) { messageDao.insertMessages(any()) }
+
+            // 8. Verify request payload contract on MockWebServer
+
+            val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
+            assertEquals("GET", recordedRequest?.method)
+            assertEquals("/messages", recordedRequest?.path)
+        }
+
+    @Test
+    fun `getMessagesForActiveUser fails fast on HTTP 403 without retrying`() =
+        runTest(testDispatcher) {
+
+            // 1. Mock session returns Authenticated user with ID = 42
+            coEvery { sessionManager.getSessionUserId() } returns SessionResult.Authenticated(42)
+
+            // 2. Enqueue MockWebServer responses (e.g., 1 HTTP 401)
+            mockWebServer.enqueue(MockResponse().setResponseCode(403).setBody("Forbidden"))
+
+            // 3. Do not intercept your repository's transactional writes
+            // to manually feed our mock channel - retryIO limit was reached (no data)!
+
+            repository.getMessagesForActiveUser().test {
+
+                // 4. Immediate emission must be Loading baseline
+                val loadingItem = awaitItem()
+                assertIs<CachePayload.ActiveStream<List<MessageDomainModel>>>(loadingItem)
+                val initialDomainModel = emptyList<MessageDomainModel>()
+                assertEquals(
+                    initialDomainModel,
+                    loadingItem.data,
+                    "Room cache contains nothing"
+                )
+                assertTrue(loadingItem.isSyncing)
+                assertEquals(null, loadingItem.syncError) // no problems for successful syncs!
+
+                // 5. Pump the virtual clock frame to execute the retryIO delayer blocks completely
+                testScheduler.advanceUntilIdle()
+
+                // 6. Background Data Sync Failure Execution Block!
+                // The sync task hits 1 403 exception - no payload.
+                // Combine consolidates baseline 0 entities with syncError
+                // Synchronization of messages updates syncError.
+                val errorItem = awaitItem()
+                assertIs<CachePayload.ActiveStream<List<MessageDomainModel>>>(errorItem)
+                assertFalse(
+                    errorItem.isSyncing,
+                    "onStart() tried to synchronize messages"
+                )
+                assertEquals(
+                    initialDomainModel,
+                    errorItem.data,
+                    "Room counts 0 messages"
+                )
+                assertIs<HttpException>(errorItem.syncError)
+                val errorMessage = errorItem.syncError?.message
+                val errorCode = (errorItem.syncError as? HttpException)?.code()
+                if (errorMessage != null) {
+                    assertEquals("HTTP 403 Client Error", errorMessage)
+                    assertEquals(403, errorCode)
+                }
+
+                // 7. Assert NO retry callbacks and 1 HTTP request count
+                assertEquals(1, mockWebServer.requestCount)
+
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            // Never reached when retryIO response is NOT successful!
+            coVerify(exactly = 0) { messageDao.insertMessages(any()) }
+
+            // 8. Verify request payload contract on MockWebServer
+
+            val recordedRequest = mockWebServer.takeRequest(1, TimeUnit.MILLISECONDS)
+            assertEquals("GET", recordedRequest?.method)
+            assertEquals("/messages", recordedRequest?.path)
+        }
+
+    @Test
+    fun `getMessagesForActiveUser cancels cleanly without emitting NetworkResult Exception`() =
+        runTest(testDispatcher) {
+
+            // 1. Mock session returns Authenticated user with ID = 42
+            coEvery { sessionManager.getSessionUserId() } returns SessionResult.Authenticated(42)
+
+            // 2. Enqueue a delayed response so the call stays suspended on the server
+            mockWebServer.enqueue(
+                MockResponse()
+                    .setResponseCode(200)
+                    .setHeadersDelay(5, TimeUnit.SECONDS) // indicate cancellation (timeout)
+                    .setBody("""[{"id":"1"}]""")
+            )
+
+            // 3. Observe the flow with Turbine
+            repository.getMessagesForActiveUser().test {
+
+                // 4. Immediate emission must be Loading baseline
+                val loadingItem = awaitItem()
+                assertIs<CachePayload.ActiveStream<List<MessageDomainModel>>>(loadingItem)
+                assertTrue(loadingItem.isSyncing)
+                assertEquals(null, loadingItem.syncError) // no problems for successful syncs!
+
+                // 5. Cancel the flow subscriber while suspended on the network call
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            testScheduler.advanceUntilIdle()
+
+            // If the repository mistakenly swallowed CancellationException and emitted
+            // NetworkResult.Exception, Turbine would have thrown an unconsumed event error above!
+        }
+
+    // FYI: Tests for getMessagesForSelectedUser are essentially the same as
+    //      tests for getMessagesForActiveUser and differ only by one input parameter
+
+    // ############################################################################################
+    // ############################################################################################
+    // ############################################################################################
+    // ############################################################################################
+
+    @Test
+    fun `getMessageByIdFlow finds the loaded message by ID`() =
+        runTest(testDispatcher) {
+            // Arrange
+            val messageId = 101
+            val testEntity = createSampleDtoMessage(messageId, true).toEntity()
+            daoMessageByIdMockStream.value = testEntity
+            // No need to expose and set SyncStatus.
+            // Its default value Idle aligns with the list load worked
+
+            // Act
+            repository.getMessageByIdFlow(messageId).test {
+                val successItem = awaitItem()
+
+                // Assert
+                assertIs<CachePayload.ActiveStream<MessageDomainModel?>>(successItem)
+                assertFalse(
+                    actual = successItem.isSyncing,
+                     message = "message by ID was synced on list screen"
+                )
+                val expectedDomainModel =
+                    createSampleDtoMessage(messageId, true).toMessageDomainModel()
+                assertEquals(
+                    expected = expectedDomainModel,
+                    actual = successItem.data,
+                    message = "Room found a matching message by ID"
+                )
+                assertEquals(null, successItem.syncError)
+
+                cancelAndIgnoreRemainingEvents()
+            }
+
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 1) { messageDao.getMessageByIdStream(eq(messageId)) }
+        }
+
+    @Test
+    fun `getMessageByIdFlow does not find the loaded message by ID`() =
+        runTest(testDispatcher) {
+            // Arrange
+            val messageId = 101
+            daoMessageByIdMockStream.value = null
+            // No need to expose and set SyncStatus.
+            // Its default value Idle aligns with the list load worked
+
+            // Act
+            repository.getMessageByIdFlow(messageId).test {
+                val nullItem = awaitItem()
+
+                // Assert
+                assertIs<CachePayload.ActiveStream<MessageDomainModel?>>(nullItem)
+                assertFalse(
+                    nullItem.isSyncing,
+                    "message by ID was synced on list screen"
+                )
+                val expectedDomainModel = null
+                assertEquals(
+                    expected = expectedDomainModel,
+                    actual = nullItem.data,
+                    message = "Room did not find a matching message by ID"
+                )
+                assertNull(nullItem.syncError)
+
+                cancelAndIgnoreRemainingEvents() // or awaitComplete()
+            }
+
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 1) { messageDao.getMessageByIdStream(eq(messageId)) }
+        }
+
+    @Test
+    fun `getMessageByIdFlow can see sync error values`() =
+        runTest(testDispatcher) {
+            // Arrange
+            coEvery { sessionManager.getSessionUserId() } returns SessionResult.Authenticated(42)
+            mockWebServer.enqueue(MockResponse().setResponseCode(401).setBody("Unauthorized"))
+
+            val messageId = 101
+            daoMessageByIdMockStream.value = null
+
+            // MECHANISM: Siphon and consume the list stream to completely flush the sync loop!
+
+            repository.getMessagesForActiveUser().test {
+                awaitItem() // 1. Catch the initial Loading baseline state
+                testScheduler.advanceUntilIdle() // 2. Pump the virtual clock to let syncMessages() run completely!
+                awaitItem() // 3. Wait for the list stream to emit the final error state
+                cancelAndIgnoreRemainingEvents() // 4. Release collection safely
+            }
+
+            // At this exact point in time, syncStatus is guaranteed to be SyncState.Error(401)
+
+            // Act
+            repository.getMessageByIdFlow(messageId).test {
+                val nullItem = awaitItem()
+
+                // Assert
+                assertIs<CachePayload.ActiveStream<MessageDomainModel?>>(nullItem)
+                assertFalse(
+                    actual = nullItem.isSyncing,
+                    message = "message by ID was synced on list screen"
+                )
+                val expectedDomainModel = null
+                assertEquals(
+                    expected = expectedDomainModel,
+                    actual = nullItem.data,
+                    message = "Room did not find a matching message by ID"
+                )
+                // 💡 THE RESILIENT STANDARD: Code constants are ironclad!
+                assertIs<HttpException>(nullItem.syncError)
+                val httpException = nullItem.syncError as HttpException
+
+                assertEquals(
+                    expected = 401,
+                    actual = httpException.code(),
+                    message = "The network boundary successfully captured the 401 authentication drop"
+                )
+
+                cancelAndIgnoreRemainingEvents() // or awaitComplete()
+            }
+
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 1) { messageDao.getMessageByIdStream(eq(messageId)) }
+        }
+
+    // ############################################################################################
+    // ############################################################################################
+    // ############################################################################################
+    // ############################################################################################
+
     // Fabricate the list of messages to get.
     // Notice by making the Json instance create the raw JSON string
     // that it relieves us from balancing array brackets, squiggly braces, and commas
@@ -1674,21 +2624,24 @@ class MessageRepositoryImplUnconfinedTest {
     private fun createSampleDtoMessage(id: Int, read: Boolean): MessageDto =
         MessageDto(
             id = 100 + id,
-            userId = 1,
+            userId = 42,
             subject = "Test Subject",
             body = "Test Body",
             read = read,
             createdAt = "2026-10-22T13:19:29Z"
         )
 
-    private fun createSampleDtoMessages(): String =
+    private fun createSampleDtoMessages(): List<MessageDto> =
+        MutableList(3) { index ->
+            createSampleDtoMessage(
+                index,
+                (index % 2 == 0)
+            )
+        }
+
+    private fun createSampleDtoMessagesEncodedString(): String =
         json.encodeToString(
-            value = MutableList(3) { index ->
-                createSampleDtoMessage(
-                    index,
-                    (index % 2 == 0)
-                )
-            }
+            value = createSampleDtoMessages()
         )
 
 
