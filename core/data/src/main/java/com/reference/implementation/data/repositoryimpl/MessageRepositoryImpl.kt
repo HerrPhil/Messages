@@ -398,7 +398,7 @@ class MessageRepositoryImpl @Inject constructor(
                     CachePayload.ActiveStream(
                         data = mappedData,
                         isSyncing = status is SyncState.Loading,
-                        syncError = (status as? SyncState.Error)?.exception
+                        syncError = (status as? SyncState.Error)?.exception // safe-casting
                     )
                 }.collect { unifiedPayload ->
                     emit(unifiedPayload)
@@ -418,8 +418,6 @@ class MessageRepositoryImpl @Inject constructor(
             { attempt -> auditLog("getSummaryMessages has retry attempt # $attempt.") }
 
         try {
-
-            // Payload refactor away from NetworkResult
 
             // 1. Mark status scratchpad as Loading
             syncStatus.value = SyncState.Loading
@@ -455,7 +453,6 @@ class MessageRepositoryImpl @Inject constructor(
         } catch (e: Exception) {
             if (e is CancellationException) throw e
             auditLog("Background network sync silently deferred: ${e.message}")
-            // Payload refactor away from NetworkResult
             // 4. Capture 5xx Network Errors or IO timeouts without breaking the repository!
             syncStatus.value = SyncState.Error(exception = e)
         }

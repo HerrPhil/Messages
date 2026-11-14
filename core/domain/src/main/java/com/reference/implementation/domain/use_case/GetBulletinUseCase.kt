@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
+@Deprecated("Room cache makes it obsolete")
 @Singleton
 class GetBulletinUseCase @Inject constructor(
     private val repo: BulletinCacheRepository

@@ -3,7 +3,6 @@ package com.reference.implementation.messages.presentation.screens.bulletin
 sealed interface BulletinUiState {
     object Idle : BulletinUiState
     object Loading : BulletinUiState
-    data class Retrying(val attempt: Int) : BulletinUiState
     data class Success(
         val list: List<BulletinUiDetail>,
         val isRefreshing: Boolean = false,

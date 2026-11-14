@@ -1729,12 +1729,12 @@ class MessageRepositoryImplUnconfinedTest {
                 assertIs<CachePayload.ActiveStream<List<MessageDomainModel>>>(loadingItem)
                 val initialList = emptyList<MessageDomainModel>()
                 assertEquals(
-                    initialList,
-                    loadingItem.data,
-                    "Room cache contains nothing"
+                    expected = initialList,
+                    actual = loadingItem.data,
+                    message = "Room cache contains nothing"
                 )
                 assertTrue(loadingItem.isSyncing)
-                assertEquals(null, loadingItem.syncError) // no problems for successful syncs!
+                assertNull(actual = loadingItem.syncError) // no problems for successful syncs!
 
                 // 5. Pump the virtual clock frame to execute the retryIO delayer blocks completely
                 testScheduler.advanceUntilIdle()
@@ -2238,7 +2238,7 @@ class MessageRepositoryImplUnconfinedTest {
             // 1. Mock session returns Authenticated user with ID = 42
             coEvery { sessionManager.getSessionUserId() } returns SessionResult.Authenticated(42)
 
-            // 2. Enqueue MockWebServer responses (e.g., 2 HTTP 500s then 1 HTTP 200)
+            // 2. Enqueue MockWebServer responses (e.g., 3 HTTP IOExceptions)
             repeat(3) {
                 mockWebServer.enqueue(MockResponse().setSocketPolicy(SocketPolicy.DISCONNECT_AFTER_REQUEST))
             }
@@ -2447,7 +2447,7 @@ class MessageRepositoryImplUnconfinedTest {
         }
 
     @Test
-    fun `getMessagesForActiveUser cancels cleanly without emitting NetworkResult Exception`() =
+    fun `getMessagesForActiveUser cancels cleanly without emitting CachePayload Exception`() =
         runTest(testDispatcher) {
 
             // 1. Mock session returns Authenticated user with ID = 42
@@ -2477,7 +2477,8 @@ class MessageRepositoryImplUnconfinedTest {
             testScheduler.advanceUntilIdle()
 
             // If the repository mistakenly swallowed CancellationException and emitted
-            // NetworkResult.Exception, Turbine would have thrown an unconsumed event error above!
+            // CachePayload.ActiveStream with syncError,
+            // Turbine would have thrown an unconsumed event error above!
         }
 
     // FYI: Tests for getMessagesForSelectedUser are essentially the same as
@@ -2506,7 +2507,7 @@ class MessageRepositoryImplUnconfinedTest {
                 assertIs<CachePayload.ActiveStream<MessageDomainModel?>>(successItem)
                 assertFalse(
                     actual = successItem.isSyncing,
-                     message = "message by ID was synced on list screen"
+                    message = "message by ID was synced on list screen"
                 )
                 val expectedDomainModel =
                     createSampleDtoMessage(messageId, true).toMessageDomainModel()

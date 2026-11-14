@@ -4,71 +4,48 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
-import com.reference.implementation.domain.use_case.GetBulletinUseCase
-import com.reference.implementation.domain.use_case.LoadBulletinUseCase
+import com.reference.implementation.domain.use_case.GetBulletinByIdUseCase
 import com.reference.implementation.domain.use_case.Resource
 import com.reference.implementation.messages.presentation.navigation.Route
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
-import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
 class BulletinDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
-    private val loadBulletinUseCase: LoadBulletinUseCase,
-    getBulletinUseCase: GetBulletinUseCase
+    getBulletinByIdUseCase: GetBulletinByIdUseCase
 ) : ViewModel() {
 
     // Automatically extracts the 'id' from the strongly-typed BulletinDetail route!
     private val bulletinId: Int = checkNotNull(savedStateHandle.toRoute<Route.BulletinDetail>().id)
 
-    // Tracks the active loading attempt reported by the repository's retryIO()
-    private val _loadTrigger = MutableStateFlow(0)
-
-    val uiState: StateFlow<BulletinDetailUiState> = _loadTrigger
-        .flatMapLatest { attempt -> // needs Opt-in
-            // Simply map the database/resource cache stream
-            getBulletinUseCase().map { resourceResult ->
-                when (resourceResult) {
-                    is Resource.Loading -> {
-                        if (attempt > 0) {
-                            BulletinDetailUiState.Retrying(attempt)
-                        } else {
-                            BulletinDetailUiState.Loading
-                        }
-                    }
-
-                    is Resource.Error -> BulletinDetailUiState.Error(resourceResult.message)
-                    is Resource.Success -> {
-                        val uiBulletinDetail = resourceResult.data.toBulletinUiDetail()
-                        BulletinDetailUiState.Success(data = uiBulletinDetail)
+    val uiState: StateFlow<BulletinDetailUiState> =
+        // Simply map the database/resource cache stream
+        getBulletinByIdUseCase(bulletinId).map { bulletinResource ->
+            when (bulletinResource) {
+                is Resource.Loading -> BulletinDetailUiState.Loading
+                is Resource.Error -> BulletinDetailUiState.Error(bulletinResource.message)
+                is Resource.Success -> {
+                    val bulletin = bulletinResource.data
+                    if (bulletin != null) {
+                        BulletinDetailUiState.Success(data = bulletin.toBulletinUiDetail())
+                    } else {
+                        // THE TRAP-DOOR RESOLUTION: If the row is deleted, pass this
+                        // clean state token so your Composable pops back safely without flashing a red error screen!
+                        BulletinDetailUiState.BulletinDeletedBackNavigate
                     }
                 }
             }
         }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = BulletinDetailUiState.Loading
-        )
-
-    init {
-        loadBulletinDetailData()
-    }
-
-    private fun loadBulletinDetailData() {
-        viewModelScope.launch {
-            loadBulletinUseCase(bulletinId, onRetry = { attempt ->
-                _loadTrigger.value = attempt
-            })
-        }
-    }
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = BulletinDetailUiState.Loading
+            )
 }

@@ -161,7 +161,7 @@ class GetMessagesForActiveUserUseCaseTest {
         }
 
     @Test
-    fun `invoke maps NetworkResult Error to Resource Error correctly`() = runTest {
+    fun `invoke maps CachePayload Error to Resource Error correctly`() = runTest {
 
         // Arrange
         val messagesFlow = flowOf<CachePayload<List<MessageDomainModel>>>(
@@ -196,7 +196,7 @@ class GetMessagesForActiveUserUseCaseTest {
     }
 
     @Test
-    fun `invoke maps NetworkResult not authorized Error to Resource Error correctly`() = runTest {
+    fun `invoke maps CachePayload not authorized Error to Resource Error correctly`() = runTest {
 
         // Arrange
         val messagesFlow = flowOf<CachePayload<List<MessageDomainModel>>>(

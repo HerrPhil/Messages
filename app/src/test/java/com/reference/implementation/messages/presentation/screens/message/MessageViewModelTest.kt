@@ -105,9 +105,8 @@ class MessageViewModelTest {
                 actual = messageViewModel.uiState.value
             )
 
-            coVerify(exactly = 1) {
-                val unusedFlow = getMessagesForActiveUserUseCase()
-            }
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 1) { getMessagesForActiveUserUseCase() }
         }
 
     @Test
@@ -167,9 +166,8 @@ class MessageViewModelTest {
                 actual = messageViewModel.uiState.value
             )
 
-            coVerify(exactly = 1) {
-                val unusedFlow = getMessagesForActiveUserUseCase()
-            }
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 1) { getMessagesForActiveUserUseCase() }
         }
 
     @Test
@@ -228,9 +226,8 @@ class MessageViewModelTest {
                 actual = messageViewModel.uiState.value
             )
 
-            coVerify(exactly = 1) {
-                val unusedFlow = getMessagesForActiveUserUseCase()
-            }
+            @Suppress("UnusedFlow")
+            coVerify(exactly = 1) { getMessagesForActiveUserUseCase() }
         }
 
     @Test
@@ -681,7 +678,7 @@ class MessageViewModelTest {
 
             // user selected is inherent authenticated user
 
-            messageViewModel.onToggleImportantMessageClicked( messageId = 123456, false)
+            messageViewModel.onToggleImportantMessageClicked(messageId = 123456, false)
 
             coVerify(exactly = 1) { markMessageAsNotImportantUseCase(messageId = eq(123456)) }
         }

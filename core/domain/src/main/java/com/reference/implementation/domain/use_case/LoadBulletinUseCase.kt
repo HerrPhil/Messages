@@ -5,6 +5,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 // TODO remove 'open' reserved words after retryIO() code smell is fixed
+@Deprecated("Room cache makes it obsolete")
 @Singleton
 open class LoadBulletinUseCase @Inject constructor(
     private val repo: BulletinCacheRepository

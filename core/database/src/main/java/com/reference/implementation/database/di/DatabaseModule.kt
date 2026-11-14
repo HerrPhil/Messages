@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.reference.implementation.database.AppDatabase
 import com.reference.implementation.database.dao.BulletinDao
 import com.reference.implementation.database.dao.MessageDao
+import com.reference.implementation.database.dao.PermissionDao
 import com.reference.implementation.database.dao.UserDao
 import dagger.Module
 import dagger.Provides
@@ -62,4 +63,11 @@ object DatabaseModule {
      @Provides
      @Suppress("unused")
      fun provideMessageDao(database: AppDatabase): MessageDao = database.messageDao()
+
+    // By providing PermissionDao directly, your repository constructors can demand it by name!
+    // Hilt automatically fetches your Singleton AppDatabase provider from above to satisfy
+    // the argument.
+     @Provides
+     @Suppress("unused")
+     fun providePermissionDao(database: AppDatabase): PermissionDao = database.permissionDao()
 }

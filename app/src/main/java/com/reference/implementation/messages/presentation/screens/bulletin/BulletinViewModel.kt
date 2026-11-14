@@ -5,9 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.reference.implementation.domain.model.BulletinDomainModel
 import com.reference.implementation.domain.use_case.GetAllBulletinsUseCase
-import com.reference.implementation.domain.use_case.LoadAllBulletinsUseCase
 import com.reference.implementation.domain.use_case.MarkBulletinAsBookmarkUseCase
 import com.reference.implementation.domain.use_case.MarkBulletinAsNotBookmarkUseCase
+import com.reference.implementation.domain.use_case.RefreshBulletinsUseCase
 import com.reference.implementation.domain.use_case.Resource
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.scan
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -24,14 +23,12 @@ import javax.inject.Inject
 @HiltViewModel
 @OptIn(ExperimentalCoroutinesApi::class)
 class BulletinViewModel @Inject constructor(
-    private val loadAllBulletinsUseCase: LoadAllBulletinsUseCase,
+    private val refreshBulletinsUseCase: RefreshBulletinsUseCase,
     getAllBulletinsUseCase: GetAllBulletinsUseCase,
     private val markBulletinAsBookmarkUseCase: MarkBulletinAsBookmarkUseCase,
     private val markBulletinAsNotBookmarkUseCase: MarkBulletinAsNotBookmarkUseCase,
 ) : ViewModel() {
 
-    // Tracks the active loading attempt reported by the repository's retryIO()
-    private val _loadTrigger = MutableStateFlow(0)
     private val _isRefreshing = MutableStateFlow(false)
     private val _isBookmarkOnly = MutableStateFlow<Boolean>(false)
 
@@ -40,7 +37,7 @@ class BulletinViewModel @Inject constructor(
         // if a new trigger value comes down _loadTrigger (e.g. attempt 1 ---> attempt 2),
         // it cancels the previous database/network stream execution and starts a fresh one.
         // Standard combine does not cancel in-flight work when values change!
-        _loadTrigger.flatMapLatest { getAllBulletinsUseCase() },
+        getAllBulletinsUseCase(),
         _isRefreshing,
         _isBookmarkOnly
     ) { resourceResult, isRefreshing, isBookmarkOnly ->
@@ -67,8 +64,6 @@ class BulletinViewModel @Inject constructor(
                 if (isRefreshing && previousSuccess != null) {
                     // carry forward the previous Success state list, keeping the spinner alive
                     previousSuccess.copy(isRefreshing = true)
-                } else if (_loadTrigger.value > 0) {
-                    BulletinUiState.Retrying(_loadTrigger.value)
                 } else {
                     BulletinUiState.Loading
                 }
@@ -107,25 +102,11 @@ class BulletinViewModel @Inject constructor(
         initialValue = BulletinUiState.Loading
     )
 
-    init {
-        loadBulletinData()
-    }
-
-    private fun loadBulletinData() {
-        viewModelScope.launch {
-            loadAllBulletinsUseCase(onRetry = { attempt ->
-                _loadTrigger.value = attempt
-            })
-        }
-    }
-
     fun onRefresh() {
         viewModelScope.launch {
             _isRefreshing.value = true // turn ON refreshing
             try {
-                loadAllBulletinsUseCase(onRetry = { attempt ->
-                    _loadTrigger.value = attempt
-                }) // suspending call - wait until done
+                refreshBulletinsUseCase()
             } finally { // turn OFF refreshing
                 _isRefreshing.value = false
             }
@@ -156,10 +137,8 @@ class BulletinViewModel @Inject constructor(
     }
 }
 
-
 private data class BulletinInput(
     val resource: Resource<List<BulletinDomainModel>>,
     val isRefreshing: Boolean,
     val isBookmarkOnly: Boolean
 )
-

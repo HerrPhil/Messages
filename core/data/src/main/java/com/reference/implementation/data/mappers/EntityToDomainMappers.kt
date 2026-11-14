@@ -2,6 +2,7 @@ package com.reference.implementation.data.mappers
 
 import com.reference.implementation.database.model.BulletinEntity
 import com.reference.implementation.database.model.MessageEntity
+import com.reference.implementation.database.model.PermissionEntity
 import com.reference.implementation.database.model.UserEntity
 import com.reference.implementation.domain.model.BulletinDomainModel
 import com.reference.implementation.domain.model.LoginUserDomainModel
