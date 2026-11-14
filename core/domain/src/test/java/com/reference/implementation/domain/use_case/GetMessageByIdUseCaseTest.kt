@@ -36,10 +36,9 @@ class GetMessageByIdUseCaseTest {
     @Test
     fun `invoke gets message stream and puts it in Resource Success`() =
         runTest {
-
+            // Arrange
             val expectedMessageId = 101
 
-            // Arrange
             val message1 = MessageDomainModel(
                 id = expectedMessageId,
                 subject = "Hey there",
@@ -65,14 +64,14 @@ class GetMessageByIdUseCaseTest {
             useCase(expectedMessageId).test {
                 // 1. Note: this use case does not have a Loading emission.
 
-                // 2. Initial emission: Neither message is important, list is sorted by date descending (message2 first)
+                // 2. Initial emission: Message is not important
                 val nextItem = awaitItem()
                 assertTrue(nextItem is Resource.Success)
                 val nextMessage = (nextItem as Resource.Success).data
                 assertEquals(expectedMessageId, nextMessage?.id)
                 assertFalse(nextMessage?.isImportant ?: true)
 
-                // 3. Simulate the user toggling 'Important' on message 102 in DataStore
+                // 3. Simulate the user toggling 'Important' on message 101 in DataStore
                 importantIdsFlow.value = setOf(expectedMessageId.toString())
 
                 // 4. Reactively await second emission
@@ -86,9 +85,8 @@ class GetMessageByIdUseCaseTest {
         }
 
     @Test
-    fun `invoke maps NetworkResult Error to Resource Error correctly`() =
+    fun `invoke maps CachePayload Error to Resource Error correctly`() =
         runTest {
-
             // Arrange
             val expectedMessageId = 101
 
@@ -113,38 +111,77 @@ class GetMessageByIdUseCaseTest {
         }
 
     @Test
-    fun `invoke maps NetworkResult not authorized Error to Resource Error correctly`() = runTest {
+    fun `invoke gets message stream when error is not catastrophic`() =
+        runTest {
+            // Arrange
+            val expectedMessageId = 101
 
-        // Arrange
-        val expectedMessageId = 101
-
-        val messagesFlow = MutableStateFlow<CachePayload<MessageDomainModel?>>(
-            value = CachePayload.ActiveStream(
-                data = null,
-                isSyncing = false,
-                syncError = HttpException(
-                    Response.error<Int>(
-                        401,
-                        "not authorized"
-                            .toResponseBody(
-                                "application/json".toMediaTypeOrNull()
-                            )
-                    )
-                )
-
+            // Arrange
+            val message1 = MessageDomainModel(
+                id = expectedMessageId,
+                subject = "Hey there",
+                body = "this is test message one",
+                read = false,
+                userId = 123,
+                createdAt = "2026-08-01T10:00:00Z",
+                createdAtInstant = Instant.parse("2026-08-01T10:00:00Z"),
+                isImportant = false
             )
-        )
-        val importantIdsFlow = flowOf(emptySet<String>())
 
-        every { messageRepository.getMessageByIdFlow(messageId = any()) } returns messagesFlow
-        every { userPreferencesRepository.getImportantMessageIds() } returns importantIdsFlow
+            val messagesFlow = MutableStateFlow<CachePayload<MessageDomainModel?>>(
+                value = CachePayload.ActiveStream(
+                    data = message1,
+                    isSyncing = false,
+                    syncError = IOException("Network down")
+                )
+            )
+            val importantIdsFlow = flowOf(emptySet<String>())
+            every { messageRepository.getMessageByIdFlow(messageId = any()) } returns messagesFlow
+            every { userPreferencesRepository.getImportantMessageIds() } returns importantIdsFlow
 
-        // Act & Assert
-        useCase(expectedMessageId).test {
-            val item = awaitItem()
-            assertTrue(item is Resource.Error)
-            assertEquals("Unable to load message details.", (item as Resource.Error).message)
-            cancelAndIgnoreRemainingEvents()
+            // Act & Assert
+            useCase(expectedMessageId).test {
+                val item = awaitItem()
+                assertTrue(item is Resource.Success)
+                val itemData = (item as Resource.Success).data
+                assertEquals(message1, itemData)
+                cancelAndIgnoreRemainingEvents()
+            }
         }
-    }
+
+    @Test
+    fun `invoke maps CachePayload not authorized Error to Resource Error correctly`() =
+        runTest {
+            // Arrange
+            val expectedMessageId = 101
+
+            val messagesFlow = MutableStateFlow<CachePayload<MessageDomainModel?>>(
+                value = CachePayload.ActiveStream(
+                    data = null,
+                    isSyncing = false,
+                    syncError = HttpException(
+                        Response.error<Int>(
+                            401,
+                            "not authorized"
+                                .toResponseBody(
+                                    "application/json".toMediaTypeOrNull()
+                                )
+                        )
+                    )
+
+                )
+            )
+            val importantIdsFlow = flowOf(emptySet<String>())
+
+            every { messageRepository.getMessageByIdFlow(messageId = any()) } returns messagesFlow
+            every { userPreferencesRepository.getImportantMessageIds() } returns importantIdsFlow
+
+            // Act & Assert
+            useCase(expectedMessageId).test {
+                val item = awaitItem()
+                assertTrue(item is Resource.Error)
+                assertEquals("Unable to load message details.", (item as Resource.Error).message)
+                cancelAndIgnoreRemainingEvents()
+            }
+        }
 }

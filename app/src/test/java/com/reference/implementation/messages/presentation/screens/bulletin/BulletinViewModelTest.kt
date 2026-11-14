@@ -2,15 +2,16 @@ package com.reference.implementation.messages.presentation.screens.bulletin
 
 import com.reference.implementation.domain.model.BulletinDomainModel
 import com.reference.implementation.domain.use_case.GetAllBulletinsUseCase
-import com.reference.implementation.domain.use_case.LoadAllBulletinsUseCase
 import com.reference.implementation.domain.use_case.MarkBulletinAsBookmarkUseCase
 import com.reference.implementation.domain.use_case.MarkBulletinAsNotBookmarkUseCase
+import com.reference.implementation.domain.use_case.RefreshBulletinsUseCase
 import com.reference.implementation.domain.use_case.Resource
-import com.reference.implementation.messages.presentation.screens.util.FakeLoadAllBulletinsUseCase
+import com.reference.implementation.messages.presentation.screens.util.FakeRefreshBulletinsUseCase
 import com.reference.implementation.messages.presentation.screens.util.MainDispatcherRule
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
@@ -30,8 +31,7 @@ class BulletinViewModelTest {
     @get:Rule
     val mainDispatcherRule = MainDispatcherRule()
 
-    // Create a relaxed mock to act as your "blank slate" placeholder
-    private val loadAllBulletinsUseCase: LoadAllBulletinsUseCase = mockk(relaxed = true)
+    private val refreshBulletinsUseCase: RefreshBulletinsUseCase = mockk(relaxed = true)
     private val getAllBulletinsUseCase: GetAllBulletinsUseCase = mockk()
     private val markBulletinAsBookmarkUseCase: MarkBulletinAsBookmarkUseCase = mockk(relaxed = true)
     private val markBulletinAsNotBookmarkUseCase: MarkBulletinAsNotBookmarkUseCase =
@@ -39,7 +39,7 @@ class BulletinViewModelTest {
     private lateinit var bulletinViewModel: BulletinViewModel
 
     @Test
-    fun `init fetches all bulletins from use case and immediately collects success data`() =
+    fun `getAllBulletinsUseCase fetches all bulletins and immediately collects success data`() =
         runTest {
             // Arrange
             val mockBulletins = createBulletins()
@@ -48,9 +48,9 @@ class BulletinViewModelTest {
             )
             every { getAllBulletinsUseCase() } returns mockRepositoryStream
 
-            // 1. Act - calls init() inherently
+            // 1. Act - calls getAllBulletinsUseCase() during member value assignment
             bulletinViewModel = BulletinViewModel(
-                loadAllBulletinsUseCase = loadAllBulletinsUseCase,
+                refreshBulletinsUseCase = refreshBulletinsUseCase,
                 getAllBulletinsUseCase = getAllBulletinsUseCase,
                 markBulletinAsBookmarkUseCase = markBulletinAsBookmarkUseCase,
                 markBulletinAsNotBookmarkUseCase = markBulletinAsNotBookmarkUseCase
@@ -63,7 +63,7 @@ class BulletinViewModelTest {
 
             // WHY THE FIX: To let combine block finish evaluating its data right after the initial
             // .scan() baseline emission, you just need to yield control of the test engine
-            // for a single frame
+            // for a single frame.
             //
             // runCurrent() tells UnconfinedTestDispatcher "Hey, hold on - let any pending
             // calculations inside the combine and scan lambda blocks finish their execution
@@ -82,11 +82,12 @@ class BulletinViewModelTest {
 
             assertEquals(expectedState, bulletinViewModel.uiState.value)
 
-            coVerify(exactly = 1) { loadAllBulletinsUseCase(any()) }
+            @Suppress("UnusedFlow")
+            verify(exactly = 1) { getAllBulletinsUseCase() }
         }
 
     @Test
-    fun `init fetches bookmarked bulletins from use case and immediately collects success data`() =
+    fun `getAllBulletinsUseCase fetches bookmarked bulletins and immediately collects success data`() =
         runTest {
             // Arrange
             val mockBulletins = createBulletins()
@@ -95,9 +96,9 @@ class BulletinViewModelTest {
             )
             every { getAllBulletinsUseCase() } returns mockRepositoryStream
 
-            // 1. Act - calls init() inherently
+            // 1. Act - calls getAllBulletinsUseCase() during member value assignment
             bulletinViewModel = BulletinViewModel(
-                loadAllBulletinsUseCase = loadAllBulletinsUseCase,
+                refreshBulletinsUseCase = refreshBulletinsUseCase,
                 getAllBulletinsUseCase = getAllBulletinsUseCase,
                 markBulletinAsBookmarkUseCase = markBulletinAsBookmarkUseCase,
                 markBulletinAsNotBookmarkUseCase = markBulletinAsNotBookmarkUseCase
@@ -132,7 +133,8 @@ class BulletinViewModelTest {
 
             assertEquals(expectedState, bulletinViewModel.uiState.value)
 
-            coVerify(exactly = 1) { loadAllBulletinsUseCase(any()) }
+            @Suppress("UnusedFlow")
+            verify(exactly = 1) { getAllBulletinsUseCase() }
         }
 
     @Test
@@ -146,7 +148,7 @@ class BulletinViewModelTest {
             every { getAllBulletinsUseCase() } returns mockRepositoryStream
 
             // Instantiate your handwritten fake contract
-            val fakeLoadAllBulletinsUseCase = FakeLoadAllBulletinsUseCase()
+            val fakeRefreshBulletinsUseCase = FakeRefreshBulletinsUseCase()
 
             // Prevent isRefreshing flapping
             // THE WHY: To capture the state while the pull-to-refresh action is actively in flight,
@@ -156,7 +158,7 @@ class BulletinViewModelTest {
 
             // Act Step 1: Initialize the ViewModel
             bulletinViewModel = BulletinViewModel(
-                loadAllBulletinsUseCase = fakeLoadAllBulletinsUseCase,
+                refreshBulletinsUseCase = fakeRefreshBulletinsUseCase,
                 getAllBulletinsUseCase = getAllBulletinsUseCase,
                 markBulletinAsBookmarkUseCase = markBulletinAsBookmarkUseCase,
                 markBulletinAsNotBookmarkUseCase = markBulletinAsNotBookmarkUseCase
@@ -191,67 +193,13 @@ class BulletinViewModelTest {
 
             assertEquals(expectedState, bulletinViewModel.uiState.value)
 
-            // one for init(), one for onRefresh()
-            assertEquals(2, fakeLoadAllBulletinsUseCase.invocationCount)
+            @Suppress("UnusedFlow")
+            verify(exactly = 1) { getAllBulletinsUseCase() }
+            assertEquals(1, fakeRefreshBulletinsUseCase.invocationCount)
         }
 
     @Test
-    fun `when pull to refresh is active and use case emits Retrying`() =
-        runTest {
-            // 1. Arrange: Start with a populated list in Success State
-            val mockBulletins = createBulletins()
-            val mockRepositoryStream = MutableStateFlow<Resource<List<BulletinDomainModel>>>(
-                Resource.Success(mockBulletins)
-            )
-            every { getAllBulletinsUseCase() } returns mockRepositoryStream
-
-            // Instantiate your hand-written fake contract
-            val fakeLoadAllBulletinsUseCase = FakeLoadAllBulletinsUseCase()
-
-            // Prevent isRefreshing flapping
-            // THE WHY: To capture the state while the pull-to-refresh action is actively in flight,
-            // we need to pause the loadAllBulletinsUseCase execution mid-flight inside the
-            // test body. This forces _isRefreshing to hold its true value open long enough
-            // for our scan assertion to capture it.
-
-            // 2. Act Step 1: Initialize the ViewModel
-            bulletinViewModel = BulletinViewModel(
-                loadAllBulletinsUseCase = fakeLoadAllBulletinsUseCase,
-                getAllBulletinsUseCase = getAllBulletinsUseCase,
-                markBulletinAsBookmarkUseCase = markBulletinAsBookmarkUseCase,
-                markBulletinAsNotBookmarkUseCase = markBulletinAsNotBookmarkUseCase
-            )
-
-            // Wake up WhileSubscribed to establish the baseline Success state context
-            backgroundScope.launch(testScheduler) {
-                bulletinViewModel.uiState.collect {}
-            }
-            runCurrent() // Success state is firmly established as 'previousState'
-
-            // 3. Act Part 2: Update the repository stream value to Loading
-            mockRepositoryStream.value = Resource.Loading // Change 1: Stream drops to Loading
-
-            // 4. Act Step 3: Trigger the manual refresh gesture
-            bulletinViewModel.onRefresh()                 // Change 2: Spinner sets to True
-            runCurrent()
-
-            // 5. Act Part 4: Manually fire your captured retry callback through the fake!
-            // This executes: _loadTrigger.value = 1, forcing flatMapLatest to transition streams!
-            val targetRetryCallback = checkNotNull(fakeLoadAllBulletinsUseCase.capturedOnRetry)
-            targetRetryCallback.invoke(1)
-
-            // 4. Assert: Verify your custom scan carrier rules!
-            // The state should be Success with refreshing = true, keeping the list completely visible!
-            val expectedState = BulletinUiState.Retrying(attempt = 1)
-
-            assertEquals(expectedState, bulletinViewModel.uiState.value)
-
-            // one for init(), one for onRefresh()
-            assertEquals(2, fakeLoadAllBulletinsUseCase.invocationCount)
-        }
-
-    @Test
-    fun `init emits Loading UI state when use case stream initializes with Loading resource`() =
+    fun `getAllBulletinsUseCase emits Loading UI state when use case stream initializes with Loading resource`() =
         runTest {
             // 1. Arrange: Seed your hot stream directly with the Loading state token
             val mockRepositoryStream = MutableStateFlow<Resource<List<BulletinDomainModel>>>(
@@ -261,7 +209,7 @@ class BulletinViewModelTest {
 
             // 2. Act: Construct the ViewModel (We can use a simple relaxed mock here!)
             bulletinViewModel = BulletinViewModel(
-                loadAllBulletinsUseCase = mockk(relaxed = true),
+                refreshBulletinsUseCase = refreshBulletinsUseCase,
                 getAllBulletinsUseCase = getAllBulletinsUseCase,
                 markBulletinAsBookmarkUseCase = markBulletinAsBookmarkUseCase,
                 markBulletinAsNotBookmarkUseCase = markBulletinAsNotBookmarkUseCase
@@ -279,7 +227,8 @@ class BulletinViewModelTest {
                 actual = bulletinViewModel.uiState.value
             )
 
-            // nothing to verify - loadAllBulletinsUseCase is a pure mockk value
+            @Suppress("UnusedFlow")
+            verify(exactly = 1) { getAllBulletinsUseCase() }
         }
 
 
@@ -294,7 +243,7 @@ class BulletinViewModelTest {
             every { getAllBulletinsUseCase() } returns mockRepositoryStream
 
             // Instantiate your handwritten fake contract
-            val fakeLoadAllBulletinsUseCase = FakeLoadAllBulletinsUseCase()
+            val fakeRefreshBulletinsUseCase = FakeRefreshBulletinsUseCase()
 
             // Prevent isRefreshing flapping
             // THE WHY: To capture the state while the pull-to-refresh action is actively in flight,
@@ -304,7 +253,7 @@ class BulletinViewModelTest {
 
             // Act Step 1: Initialize the ViewModel
             bulletinViewModel = BulletinViewModel(
-                loadAllBulletinsUseCase = fakeLoadAllBulletinsUseCase,
+                refreshBulletinsUseCase = fakeRefreshBulletinsUseCase,
                 getAllBulletinsUseCase = getAllBulletinsUseCase,
                 markBulletinAsBookmarkUseCase = markBulletinAsBookmarkUseCase,
                 markBulletinAsNotBookmarkUseCase = markBulletinAsNotBookmarkUseCase
@@ -339,12 +288,13 @@ class BulletinViewModelTest {
 
             assertEquals(expectedState, bulletinViewModel.uiState.value)
 
-            // one for init(), one for onRefresh()
-            assertEquals(2, fakeLoadAllBulletinsUseCase.invocationCount)
+            @Suppress("UnusedFlow")
+            verify(exactly = 1) { getAllBulletinsUseCase() }
+            assertEquals(1, fakeRefreshBulletinsUseCase.invocationCount)
         }
 
     @Test
-    fun `init emits Error UI state when use case stream initializes with Error resource`() =
+    fun `getAllBulletinsUseCase emits Error UI state when use case stream initializes with Error resource`() =
         runTest {
             // 1. Arrange: Seed your hot stream directly with the Loading state token
             val mockRepositoryStream = MutableStateFlow<Resource<List<BulletinDomainModel>>>(
@@ -354,7 +304,7 @@ class BulletinViewModelTest {
 
             // 2. Act: Construct the ViewModel (We can use a simple relaxed mock here!)
             bulletinViewModel = BulletinViewModel(
-                loadAllBulletinsUseCase = loadAllBulletinsUseCase,
+                refreshBulletinsUseCase = refreshBulletinsUseCase,
                 getAllBulletinsUseCase = getAllBulletinsUseCase,
                 markBulletinAsBookmarkUseCase = markBulletinAsBookmarkUseCase,
                 markBulletinAsNotBookmarkUseCase = markBulletinAsNotBookmarkUseCase
@@ -372,16 +322,22 @@ class BulletinViewModelTest {
                 actual = bulletinViewModel.uiState.value
             )
 
-            coVerify(exactly = 1) { loadAllBulletinsUseCase(any()) }
+            @Suppress("UnusedFlow")
+            verify(exactly = 1) { getAllBulletinsUseCase() }
         }
 
     @Test
     fun `when a bulletin item toggles bookmark to be added then execute markBulletinAsBookmarkUseCase`() =
         runTest {
-
             // Arrange
+            val mockBulletins = createBulletins()
+            val mockRepositoryStream = MutableStateFlow<Resource<List<BulletinDomainModel>>>(
+                Resource.Success(mockBulletins)
+            )
+            every { getAllBulletinsUseCase() } returns mockRepositoryStream
+
             bulletinViewModel = BulletinViewModel(
-                loadAllBulletinsUseCase = loadAllBulletinsUseCase,
+                refreshBulletinsUseCase = refreshBulletinsUseCase,
                 getAllBulletinsUseCase = getAllBulletinsUseCase,
                 markBulletinAsBookmarkUseCase = markBulletinAsBookmarkUseCase,
                 markBulletinAsNotBookmarkUseCase = markBulletinAsNotBookmarkUseCase
@@ -398,10 +354,15 @@ class BulletinViewModelTest {
     @Test
     fun `when a bulletin item toggles bookmark to be removed then execute markBulletinAsNotBookmarkUseCase`() =
         runTest {
-
             // Arrange
+            val mockBulletins = createBulletins()
+            val mockRepositoryStream = MutableStateFlow<Resource<List<BulletinDomainModel>>>(
+                Resource.Success(mockBulletins)
+            )
+            every { getAllBulletinsUseCase() } returns mockRepositoryStream
+
             bulletinViewModel = BulletinViewModel(
-                loadAllBulletinsUseCase = loadAllBulletinsUseCase,
+                refreshBulletinsUseCase = refreshBulletinsUseCase,
                 getAllBulletinsUseCase = getAllBulletinsUseCase,
                 markBulletinAsBookmarkUseCase = markBulletinAsBookmarkUseCase,
                 markBulletinAsNotBookmarkUseCase = markBulletinAsNotBookmarkUseCase

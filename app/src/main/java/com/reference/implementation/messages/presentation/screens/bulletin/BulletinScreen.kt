@@ -44,7 +44,6 @@ import com.reference.implementation.messages.presentation.components.DateTimeLab
 import com.reference.implementation.messages.presentation.components.EmptyListContent
 import com.reference.implementation.messages.presentation.components.ErrorContent
 import com.reference.implementation.messages.presentation.components.LoadingContent
-import com.reference.implementation.messages.presentation.components.RetryingContent
 import com.reference.implementation.messages.presentation.components.Welcome
 import com.reference.implementation.messages.ui.theme.MessagesTheme
 
@@ -64,11 +63,6 @@ fun BulletinScreen(
 
         is BulletinUiState.Loading -> {
             LoadingContent()
-        }
-
-        is BulletinUiState.Retrying -> {
-            val retryAttempt = "attempt #${currentState.attempt}"
-            RetryingContent(retryAttempt)
         }
 
         is BulletinUiState.Error -> {

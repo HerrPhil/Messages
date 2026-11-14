@@ -27,7 +27,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.reference.implementation.messages.presentation.components.ErrorContent
 import com.reference.implementation.messages.presentation.components.LoadingContent
-import com.reference.implementation.messages.presentation.components.RetryingContent
 import com.reference.implementation.messages.presentation.components.Welcome
 import com.reference.implementation.messages.presentation.components.getRelativeTimeString
 import com.reference.implementation.messages.ui.theme.MessagesTheme
@@ -85,10 +84,7 @@ fun BulletinDetailScreen(
                 LoadingContent()
             }
 
-            is BulletinDetailUiState.Retrying -> {
-                val retryAttempt = "attempt #${currentState.attempt}"
-                RetryingContent(retryAttempt)
-            }
+            is BulletinDetailUiState.BulletinDeletedBackNavigate -> onNavigateBack()
 
             is BulletinDetailUiState.Error -> {
                 ErrorContent(currentState.message)

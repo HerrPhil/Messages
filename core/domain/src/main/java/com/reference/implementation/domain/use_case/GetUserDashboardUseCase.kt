@@ -15,7 +15,6 @@ import kotlinx.coroutines.flow.onStart
 import javax.inject.Inject
 import javax.inject.Singleton
 
-// TODO use ported PermissionRepositoryImpl that uses CachePayload
 @Singleton
 open class GetUserDashboardUseCase @Inject constructor(
     private val userRepository: UserRepository,
@@ -34,17 +33,20 @@ open class GetUserDashboardUseCase @Inject constructor(
             userRepository.getUserInfoFlow(),
             messageRepository.getUserReadUnreadCounts(),
             roleRepository.getRoleInfoFlow(),
-            permissionRepository.getPermissionInfoFlow(onRetry)
+            permissionRepository.getPermissionsFlow()
         ) { userRes, userMessageRes, roleRes, permissionRes ->
 
             val userMessagesCachePayload = userMessageRes as CachePayload.ActiveStream
 
+            val userPermissionsCachePayload = permissionRes as CachePayload.ActiveStream
+
             // Check for catastrophic hard error (e.g. if ALL streams failed)
             // Like, server(s) down, internet down, etc.
             val allFailed = listOf(
-                userRes, roleRes, permissionRes
+                userRes, roleRes
             ).all { it is NetworkResult.Error }
-                    && userMessagesCachePayload.syncError != null
+                    && (userMessagesCachePayload.syncError != null)
+                    && (userPermissionsCachePayload.syncError != null)
 
             if (allFailed) {
                 Resource.Error("Unable to load dashboard data.")
@@ -58,8 +60,9 @@ open class GetUserDashboardUseCase @Inject constructor(
 
                 val roles =
                     (roleRes as? NetworkResult.Success)?.data?.roles // returns List<String>?
-                val permissions =
-                    (permissionRes as? NetworkResult.Success)?.data?.permissions // returns List<String>?
+
+                val userPermissionDomainModel = userPermissionsCachePayload.data
+                val permissions = userPermissionDomainModel?.permissions
 
                 Resource.Success(
                     UserDashboardDomainModel(

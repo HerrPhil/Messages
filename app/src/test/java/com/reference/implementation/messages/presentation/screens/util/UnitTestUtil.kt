@@ -1,6 +1,6 @@
 package com.reference.implementation.messages.presentation.screens.util
 
-import com.reference.implementation.domain.use_case.LoadAllBulletinsUseCase
+import com.reference.implementation.domain.use_case.RefreshBulletinsUseCase
 import com.reference.implementation.domain.use_case.RefreshMessagesUseCase
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -33,23 +33,15 @@ class MainDispatcherRule(
 
 }
 
-// 2. Create a handwritten Fake LoadAllBulletinsUseCase
-// Update the Fake to simulate actual operational latency
-class FakeLoadAllBulletinsUseCase : LoadAllBulletinsUseCase(repo = mockk(relaxed = true)) {
+class FakeRefreshMessagesUseCase : RefreshMessagesUseCase(repo = mockk(relaxed = true)) {
     var invocationCount = 0
-
-    // A clean, type-safe property to catch the lambda reference when called
-    var capturedOnRetry: ((Int) -> Unit)? = null
-
-    override suspend fun invoke(onRetry: (Int) -> Unit) {
+    override suspend fun invoke() {
         invocationCount++
-        capturedOnRetry = onRetry
-        // Leave completely blank! Runs instantly in 0ms.
         delay(1000.milliseconds)
     }
 }
 
-class FakeRefreshMessagesUseCase : RefreshMessagesUseCase(repo = mockk(relaxed = true)) {
+class FakeRefreshBulletinsUseCase : RefreshBulletinsUseCase(repo = mockk(relaxed = true)) {
     var invocationCount = 0
     override suspend fun invoke() {
         invocationCount++
