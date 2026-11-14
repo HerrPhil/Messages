@@ -30,7 +30,7 @@ open class GetUserDashboardUseCase @Inject constructor(
         onRetry: (Int) -> Unit = {}
     ): Flow<Resource<UserDashboardDomainModel>> {
         return combine(
-            userRepository.getUserInfoFlow(),
+            userRepository.getUserAuthenticatedInfoFlow(),
             messageRepository.getUserReadUnreadCounts(),
             roleRepository.getRoleInfoFlow(),
             permissionRepository.getPermissionsFlow()

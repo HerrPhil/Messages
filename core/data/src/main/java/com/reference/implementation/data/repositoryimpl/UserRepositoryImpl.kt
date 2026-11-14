@@ -53,7 +53,7 @@ class UserRepositoryImpl @Inject constructor(
      * Remains NetworkResult - do not want session info from previous session stored in Room.
      * Keep session information in-memory.
      */
-    override fun getUserInfoFlow(): Flow<NetworkResult<LoginUserDomainModel>> =
+    override fun getUserAuthenticatedInfoFlow(): Flow<NetworkResult<LoginUserDomainModel>> =
         flow {
             // Emit Loading state initially
             emit(NetworkResult.Loading)

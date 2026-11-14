@@ -23,7 +23,7 @@ class GetAdminUserInformationUseCase @Inject constructor(
     operator fun invoke(): Flow<Resource<List<UserOptionDomainModel>?>> {
         return combine(
             userRepository.getUsers(),
-            userRepository.getUserInfoFlow() // the admin session user
+            userRepository.getUserAuthenticatedInfoFlow()
         ) { listRes, sessionRes ->
 
             // Extract the specific ActiveStream type natively using Kotlin smart-casting
