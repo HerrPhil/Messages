@@ -11,7 +11,6 @@ import com.reference.implementation.database.model.MessageEntity
 import com.reference.implementation.database.model.PermissionEntity
 import com.reference.implementation.domain.model.CachePayload
 import com.reference.implementation.domain.model.UserPermissionDomainModel
-import com.reference.implementation.domain.util.NetworkResult
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -39,11 +38,9 @@ import retrofit2.Retrofit
 import retrofit2.converter.kotlinx.serialization.asConverterFactory
 import java.io.IOException
 import java.util.concurrent.TimeUnit
-import kotlin.test.assertContains
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertIs
-import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 import kotlin.test.fail

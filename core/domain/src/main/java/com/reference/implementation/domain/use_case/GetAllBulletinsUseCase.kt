@@ -2,7 +2,6 @@ package com.reference.implementation.domain.use_case
 
 import com.reference.implementation.domain.model.BulletinDomainModel
 import com.reference.implementation.domain.model.CachePayload
-import com.reference.implementation.domain.repository.BulletinCacheRepository
 import com.reference.implementation.domain.repository.BulletinRepository
 import com.reference.implementation.domain.repository.UserPreferencesRepository
 import kotlinx.coroutines.Dispatchers

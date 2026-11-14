@@ -5,7 +5,6 @@ import com.reference.implementation.domain.model.CachePayload
 import com.reference.implementation.domain.model.MessageDomainModel
 import com.reference.implementation.domain.repository.MessageRepository
 import com.reference.implementation.domain.repository.UserPreferencesRepository
-import com.reference.implementation.domain.use_case.Resource
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.flow.MutableStateFlow
