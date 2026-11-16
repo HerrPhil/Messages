@@ -19,6 +19,7 @@ import retrofit2.HttpException
 import javax.inject.Inject
 import javax.inject.Singleton
 
+@Deprecated("Obsolete with migration to Room cache")
 @Singleton
 class BulletinCacheRepositoryImpl @Inject constructor(
     @IoDispatcher private val ioDispatcher: CoroutineDispatcher, // Hilt provides it
