@@ -34,6 +34,7 @@ import kotlin.test.assertIs
 import kotlin.test.assertTrue
 import kotlin.time.Duration.Companion.milliseconds
 
+@Deprecated("Obsolete with migration to Room cache")
 @OptIn(ExperimentalCoroutinesApi::class)
 class BulletinCacheRepositoryImplTest {
 

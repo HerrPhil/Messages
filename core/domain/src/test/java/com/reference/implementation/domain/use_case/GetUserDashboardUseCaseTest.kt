@@ -49,7 +49,7 @@ class GetUserDashboardUseCaseTest {
     fun `invoke starts on Resource Loading`() = runTest {
 
         // Arrange
-        val userFlow = MutableStateFlow<NetworkResult<LoginUserDomainModel>>(
+        val userAuthenticatedInfoFlow = MutableStateFlow<NetworkResult<LoginUserDomainModel>>(
             NetworkResult.Loading
         )
 
@@ -76,7 +76,7 @@ class GetUserDashboardUseCaseTest {
             )
         )
 
-        every { userRepository.getUserInfoFlow() } returns userFlow
+        every { userRepository.getUserAuthenticatedInfoFlow() } returns userAuthenticatedInfoFlow
         every { messageRepository.getUserReadUnreadCounts() } returns userMessageCountFlow
         every { roleRepository.getRoleInfoFlow() } returns roleFlow
         every { permissionRepository.getPermissionsFlow() } returns permissionFlow
@@ -102,7 +102,7 @@ class GetUserDashboardUseCaseTest {
                 email = "test_user@test.com",
                 age = 56
             )
-            val userFlow = MutableStateFlow<NetworkResult<LoginUserDomainModel>>(
+            val userAuthenticatedInfoFlow = MutableStateFlow<NetworkResult<LoginUserDomainModel>>(
                 NetworkResult.Success(user1)
             )
 
@@ -132,7 +132,7 @@ class GetUserDashboardUseCaseTest {
                 )
             )
 
-            every { userRepository.getUserInfoFlow() } returns userFlow
+            every { userRepository.getUserAuthenticatedInfoFlow() } returns userAuthenticatedInfoFlow
             every { messageRepository.getUserReadUnreadCounts() } returns userMessageCountFlow
             every { roleRepository.getRoleInfoFlow() } returns roleFlow
             every { permissionRepository.getPermissionsFlow() } returns permissionFlow
@@ -181,7 +181,7 @@ class GetUserDashboardUseCaseTest {
         runTest {
 
             // Arrange
-            val userFlow = MutableStateFlow<NetworkResult<LoginUserDomainModel>>(
+            val userAuthenticatedInfoFlow = MutableStateFlow<NetworkResult<LoginUserDomainModel>>(
                 NetworkResult.Loading
             )
 
@@ -211,7 +211,7 @@ class GetUserDashboardUseCaseTest {
                 )
             )
 
-            every { userRepository.getUserInfoFlow() } returns userFlow
+            every { userRepository.getUserAuthenticatedInfoFlow() } returns userAuthenticatedInfoFlow
             every { messageRepository.getUserReadUnreadCounts() } returns userMessageCountFlow
             every { roleRepository.getRoleInfoFlow() } returns roleFlow
             every { permissionRepository.getPermissionsFlow() } returns permissionFlow
@@ -265,7 +265,7 @@ class GetUserDashboardUseCaseTest {
                 email = "test_user@test.com",
                 age = 56
             )
-            val userFlow = MutableStateFlow<NetworkResult<LoginUserDomainModel>>(
+            val userAuthenticatedInfoFlow = MutableStateFlow<NetworkResult<LoginUserDomainModel>>(
                 NetworkResult.Success(user1)
             )
 
@@ -295,7 +295,7 @@ class GetUserDashboardUseCaseTest {
                 )
             )
 
-            every { userRepository.getUserInfoFlow() } returns userFlow
+            every { userRepository.getUserAuthenticatedInfoFlow() } returns userAuthenticatedInfoFlow
             every { messageRepository.getUserReadUnreadCounts() } returns userMessageCountFlow
             every { roleRepository.getRoleInfoFlow() } returns roleFlow
             every { permissionRepository.getPermissionsFlow() } returns permissionFlow
@@ -349,7 +349,7 @@ class GetUserDashboardUseCaseTest {
                 email = "test_user@test.com",
                 age = 56
             )
-            val userFlow = MutableStateFlow<NetworkResult<LoginUserDomainModel>>(
+            val userAuthenticatedInfoFlow = MutableStateFlow<NetworkResult<LoginUserDomainModel>>(
                 NetworkResult.Success(user1)
             )
 
@@ -376,7 +376,7 @@ class GetUserDashboardUseCaseTest {
                 )
             )
 
-            every { userRepository.getUserInfoFlow() } returns userFlow
+            every { userRepository.getUserAuthenticatedInfoFlow() } returns userAuthenticatedInfoFlow
             every { messageRepository.getUserReadUnreadCounts() } returns userMessageCountFlow
             every { roleRepository.getRoleInfoFlow() } returns roleFlow
             every { permissionRepository.getPermissionsFlow() } returns permissionFlow
@@ -427,7 +427,7 @@ class GetUserDashboardUseCaseTest {
                 email = "test_user@test.com",
                 age = 56
             )
-            val userFlow = MutableStateFlow<NetworkResult<LoginUserDomainModel>>(
+            val userAuthenticatedInfoFlow = MutableStateFlow<NetworkResult<LoginUserDomainModel>>(
                 NetworkResult.Success(user1)
             )
 
@@ -457,7 +457,7 @@ class GetUserDashboardUseCaseTest {
                 )
             )
 
-            every { userRepository.getUserInfoFlow() } returns userFlow
+            every { userRepository.getUserAuthenticatedInfoFlow() } returns userAuthenticatedInfoFlow
             every { messageRepository.getUserReadUnreadCounts() } returns userMessageCountFlow
             every { roleRepository.getRoleInfoFlow() } returns roleFlow
             every { permissionRepository.getPermissionsFlow() } returns permissionFlow
@@ -502,7 +502,7 @@ class GetUserDashboardUseCaseTest {
         runTest {
 
             // Arrange
-            val userFlow = MutableStateFlow<NetworkResult<LoginUserDomainModel>>(
+            val userAuthenticatedInfoFlow = MutableStateFlow<NetworkResult<LoginUserDomainModel>>(
                 NetworkResult.Error(503, "Service Unavailable")
             )
             val initialDomainModel = UserMessageReadUnreadDomainModel(0, 0)
@@ -541,7 +541,7 @@ class GetUserDashboardUseCaseTest {
                 )
             )
 
-            every { userRepository.getUserInfoFlow() } returns userFlow
+            every { userRepository.getUserAuthenticatedInfoFlow() } returns userAuthenticatedInfoFlow
             every { messageRepository.getUserReadUnreadCounts() } returns userMessageCountFlow
             every { roleRepository.getRoleInfoFlow() } returns roleFlow
             every { permissionRepository.getPermissionsFlow() } returns permissionFlow
@@ -581,7 +581,7 @@ class GetUserDashboardUseCaseTest {
         runTest {
 
             // Arrange
-            val userFlow = MutableStateFlow<NetworkResult<LoginUserDomainModel>>(
+            val userAuthenticatedInfoFlow = MutableStateFlow<NetworkResult<LoginUserDomainModel>>(
                 NetworkResult.Error(503, "Service Unavailable")
             )
             val initialDomainModel = UserMessageReadUnreadDomainModel(2, 1)
@@ -620,7 +620,7 @@ class GetUserDashboardUseCaseTest {
                 )
             )
 
-            every { userRepository.getUserInfoFlow() } returns userFlow
+            every { userRepository.getUserAuthenticatedInfoFlow() } returns userAuthenticatedInfoFlow
             every { messageRepository.getUserReadUnreadCounts() } returns userMessageCountFlow
             every { roleRepository.getRoleInfoFlow() } returns roleFlow
             every { permissionRepository.getPermissionsFlow() } returns permissionFlow

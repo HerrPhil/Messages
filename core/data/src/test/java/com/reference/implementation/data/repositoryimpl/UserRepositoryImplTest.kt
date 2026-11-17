@@ -122,7 +122,7 @@ class UserRepositoryImplTest {
                 expectedUserID
             )
 
-            repository.getUserInfoFlow().test {
+            repository.getUserAuthenticatedInfoFlow().test {
 
                 // Initial state of the cache flow
                 assertEquals(NetworkResult.Loading, awaitItem())
@@ -164,7 +164,7 @@ class UserRepositoryImplTest {
             coEvery { sessionManager.getSessionUserEmail() } returns SessionResult.NoValue
             coEvery { sessionManager.getSessionUserId() } returns SessionResult.NoValue
 
-            repository.getUserInfoFlow().test {
+            repository.getUserAuthenticatedInfoFlow().test {
 
                 // Initial state of the cache flow
                 assertEquals(NetworkResult.Loading, awaitItem())
@@ -202,7 +202,7 @@ class UserRepositoryImplTest {
             coEvery { sessionManager.getSessionUserEmail() } throws CancellationException("ending")
             coEvery { sessionManager.getSessionUserId() } throws CancellationException("ending")
 
-            repository.getUserInfoFlow().test {
+            repository.getUserAuthenticatedInfoFlow().test {
                 // Initial state of the cache flow
                 assertEquals(NetworkResult.Loading, awaitItem())
 
@@ -223,7 +223,7 @@ class UserRepositoryImplTest {
             coEvery { sessionManager.getSessionUserEmail() } throws InvalidObjectException("bad value")
             coEvery { sessionManager.getSessionUserId() } throws InvalidObjectException("bad value")
 
-            repository.getUserInfoFlow().test {
+            repository.getUserAuthenticatedInfoFlow().test {
                 // Initial state of the cache flow
                 assertEquals(NetworkResult.Loading, awaitItem())
 

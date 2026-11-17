@@ -24,6 +24,8 @@ dependencies {
 
     // Module testing dependencies
     testImplementation(libs.junit)
+    testImplementation(kotlin("test"))
+
     testImplementation(libs.mockk)
     testImplementation(libs.turbine)
     testImplementation(libs.kotlinx.coroutines.test)

@@ -5,6 +5,7 @@ import com.reference.implementation.domain.model.MessageDomainModel
 import com.reference.implementation.domain.util.NetworkResult
 import kotlinx.coroutines.flow.Flow
 
+@Deprecated("Obsolete with migration to Room cache")
 interface MessageCacheRepository {
     val uiEvents: Flow<MessageDomainEvent>
     fun getMessagesByUser(): Flow<NetworkResult<List<MessageDomainModel>>>
